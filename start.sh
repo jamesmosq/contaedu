@@ -7,6 +7,20 @@ mkdir -p /app/storage/framework/cache/data
 mkdir -p /app/storage/framework/sessions
 mkdir -p /app/storage/logs
 
+echo "==> Esperando conexión a PostgreSQL..."
+MAX_TRIES=30
+TRIES=0
+until php artisan db:show --json > /dev/null 2>&1; do
+    TRIES=$((TRIES + 1))
+    if [ $TRIES -ge $MAX_TRIES ]; then
+        echo "ERROR: No se pudo conectar a PostgreSQL después de ${MAX_TRIES} intentos."
+        exit 1
+    fi
+    echo "   Intento ${TRIES}/${MAX_TRIES} — esperando 2s..."
+    sleep 2
+done
+echo "   Conexión establecida."
+
 echo "==> Migraciones centrales..."
 php artisan migrate --force --no-interaction
 
