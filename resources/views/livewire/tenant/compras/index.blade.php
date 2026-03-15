@@ -6,6 +6,9 @@
                 <p class="text-sm text-slate-500 mt-0.5">Facturas de proveedores y pagos</p>
             </div>
             <div class="flex gap-2">
+                @if($view === 'orders' && !session('audit_mode'))
+                    <button wire:click="openCreateOrder" class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">+ Nueva orden</button>
+                @endif
                 @if($view === 'invoices' && !session('audit_mode'))
                     <button wire:click="openCreate" class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">+ Nueva factura</button>
                 @endif
@@ -29,9 +32,118 @@
 
             {{-- Tabs --}}
             <div class="flex gap-1 mb-6 border-b border-slate-200">
+                <button wire:click="$set('view','orders')" class="px-4 py-2 text-sm font-medium transition {{ $view === 'orders' ? 'border-b-2 border-brand-700 text-brand-800' : 'text-slate-500 hover:text-slate-700' }}">Órdenes de compra</button>
                 <button wire:click="$set('view','invoices')" class="px-4 py-2 text-sm font-medium transition {{ $view === 'invoices' ? 'border-b-2 border-brand-700 text-brand-800' : 'text-slate-500 hover:text-slate-700' }}">Facturas de compra</button>
                 <button wire:click="$set('view','payments')" class="px-4 py-2 text-sm font-medium transition {{ $view === 'payments' ? 'border-b-2 border-brand-700 text-brand-800' : 'text-slate-500 hover:text-slate-700' }}">Pagos a proveedores</button>
             </div>
+
+            {{-- ══════════════════════════════════ MODAL ORDEN DE COMPRA ══════════════════════════════════ --}}
+            @if($showOrderForm && !session('audit_mode'))
+                <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto" wire:click.self="$set('showOrderForm',false)">
+                    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl my-8">
+                        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white rounded-t-xl z-10">
+                            <h3 class="font-semibold text-slate-800">{{ $editingOrderId ? 'Editar orden de compra' : 'Nueva orden de compra' }}</h3>
+                            <button wire:click="$set('showOrderForm',false)" class="text-slate-400 hover:text-slate-600">✕</button>
+                        </div>
+                        <div class="px-6 py-5 space-y-4">
+                            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                                <div class="col-span-2">
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Proveedor</label>
+                                    <select wire:model="order_third_id" class="block w-full rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500">
+                                        <option value="0">— Seleccionar —</option>
+                                        @foreach($suppliers as $s)
+                                            <option value="{{ $s->id }}">{{ $s->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    @error('order_third_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Fecha</label>
+                                    <input wire:model="order_date" type="date" class="block w-full rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Fecha entrega esperada</label>
+                                    <input wire:model="order_expected_date" type="date" class="block w-full rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500" />
+                                </div>
+                            </div>
+
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Productos a pedir</p>
+                                    <button wire:click="addOrderLine" type="button" class="text-xs text-brand-600 hover:text-brand-800 font-medium">+ Agregar línea</button>
+                                </div>
+                                @error('order_lines') <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
+                                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                                    <table class="w-full text-sm">
+                                        <thead class="bg-slate-50 border-b border-slate-200">
+                                            <tr>
+                                                <th class="text-left px-3 py-2 text-xs font-semibold text-slate-500">Producto</th>
+                                                <th class="text-left px-3 py-2 text-xs font-semibold text-slate-500">Descripción</th>
+                                                <th class="text-right px-3 py-2 text-xs font-semibold text-slate-500 w-20">Cant.</th>
+                                                <th class="text-right px-3 py-2 text-xs font-semibold text-slate-500 w-28">Costo unit.</th>
+                                                <th class="text-right px-3 py-2 text-xs font-semibold text-slate-500 w-28">Total</th>
+                                                <th class="px-3 py-2 w-8"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100">
+                                            @forelse($order_lines as $i => $ol)
+                                                @php $olTotal = ($ol['unit_cost']??0) * ($ol['qty']??1); @endphp
+                                                <tr wire:key="ol-{{ $i }}">
+                                                    <td class="px-3 py-2">
+                                                        <select wire:model.live="order_lines.{{ $i }}.product_id" class="block w-full rounded border-slate-200 text-xs focus:ring-brand-500 focus:border-brand-500">
+                                                            <option value="">— Libre —</option>
+                                                            @foreach($products as $p)
+                                                                <option value="{{ $p->id }}">{{ $p->code }} {{ $p->name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                    </td>
+                                                    <td class="px-3 py-2">
+                                                        <input wire:model="order_lines.{{ $i }}.description" type="text" class="block w-full rounded border-slate-200 text-xs focus:ring-brand-500 focus:border-brand-500" />
+                                                        @error("order_lines.{$i}.description") <p class="text-red-500 text-xs">{{ $message }}</p> @enderror
+                                                    </td>
+                                                    <td class="px-3 py-2">
+                                                        <input wire:model.live="order_lines.{{ $i }}.qty" type="number" step="0.01" min="0.01" class="block w-full rounded border-slate-200 text-xs text-right focus:ring-brand-500 focus:border-brand-500" />
+                                                    </td>
+                                                    <td class="px-3 py-2">
+                                                        <input wire:model.live="order_lines.{{ $i }}.unit_cost" type="number" step="0.01" min="0" class="block w-full rounded border-slate-200 text-xs text-right focus:ring-brand-500 focus:border-brand-500" />
+                                                    </td>
+                                                    <td class="px-3 py-2 text-right font-mono text-xs text-slate-700">$ {{ number_format($olTotal, 0, ',', '.') }}</td>
+                                                    <td class="px-3 py-2 text-center">
+                                                        <button wire:click="removeOrderLine({{ $i }})" type="button" class="text-red-400 hover:text-red-600">✕</button>
+                                                    </td>
+                                                </tr>
+                                            @empty
+                                                <tr><td colspan="6" class="px-3 py-6 text-center text-slate-400 text-xs">Sin líneas. <button wire:click="addOrderLine" type="button" class="text-brand-600 hover:underline">Agregar</button></td></tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
+                                @if(count($order_lines) > 0)
+                                    @php $orderTotal = array_sum(array_map(fn($l) => ($l['unit_cost']??0)*($l['qty']??1), $order_lines)); @endphp
+                                    <div class="flex justify-end mt-2">
+                                        <div class="text-sm w-64 flex justify-between font-bold text-slate-800 border-t border-slate-200 pt-1">
+                                            <span>Total estimado:</span>
+                                            <span class="font-mono">$ {{ number_format($orderTotal, 0, ',', '.') }}</span>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Notas <span class="text-slate-400">(opcional)</span></label>
+                                <textarea wire:model="order_notes" rows="2" class="block w-full rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500"></textarea>
+                            </div>
+                        </div>
+                        <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-white rounded-b-xl">
+                            <button wire:click="$set('showOrderForm',false)" type="button" class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800">Cancelar</button>
+                            <button wire:click="saveOrder" type="button" class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">
+                                <span wire:loading.remove wire:target="saveOrder">Guardar orden</span>
+                                <span wire:loading wire:target="saveOrder">Guardando...</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             {{-- Modal factura de compra --}}
             @if($showForm && !session('audit_mode'))
@@ -195,6 +307,62 @@
                             </button>
                         </div>
                     </div>
+                </div>
+            @endif
+
+            {{-- ══════════════════════════════════ VISTA: ÓRDENES ══════════════════════════════════ --}}
+            @if($view === 'orders')
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-100">
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Nro.</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Fecha</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Fecha entrega</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Proveedor</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Estado</th>
+                                <th class="px-6 py-3"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($orders as $ord)
+                                <tr wire:key="ord-{{ $ord->id }}" class="hover:bg-slate-50 transition">
+                                    <td class="px-6 py-3 font-mono text-xs font-bold text-slate-700">OC-{{ str_pad($ord->id, 5, '0', STR_PAD_LEFT) }}</td>
+                                    <td class="px-6 py-3 text-slate-600">{{ $ord->date->format('d/m/Y') }}</td>
+                                    <td class="px-6 py-3 text-slate-600">{{ $ord->expected_date?->format('d/m/Y') ?? '—' }}</td>
+                                    <td class="px-6 py-3 font-medium text-slate-700">{{ $ord->third->name }}</td>
+                                    <td class="px-6 py-3 text-right font-mono text-sm text-slate-800">$ {{ number_format($ord->total, 0, ',', '.') }}</td>
+                                    <td class="px-6 py-3">
+                                        <span class="px-2 py-0.5 rounded text-xs font-medium {{ $ord->status->color() }}">{{ $ord->status->label() }}</span>
+                                    </td>
+                                    <td class="px-6 py-3">
+                                        @if(!session('audit_mode'))
+                                            <div class="flex items-center justify-end gap-3">
+                                                @if($ord->status === \App\Enums\PurchaseOrderStatus::Pendiente)
+                                                    <button wire:click="openEditOrder({{ $ord->id }})" class="text-xs text-brand-600 hover:text-brand-800 font-medium">Editar</button>
+                                                    <button wire:click="receiveOrder({{ $ord->id }})" wire:confirm="¿Confirmar recepción de mercancía? Se creará una factura de compra en borrador." class="text-xs text-accent-600 hover:text-accent-800 font-medium">Recibir mercancía</button>
+                                                    <button wire:click="cancelOrder({{ $ord->id }})" wire:confirm="¿Cancelar esta orden?" class="text-xs text-red-500 hover:text-red-700 font-medium">Cancelar</button>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="px-6 py-10 text-center text-slate-400">
+                                        No hay órdenes de compra.
+                                        @if(!session('audit_mode'))
+                                            <button wire:click="openCreateOrder" class="ml-2 text-brand-600 hover:underline">Crear la primera</button>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                    @if($orders->hasPages())
+                        <div class="px-6 py-4 border-t border-slate-100">{{ $orders->links() }}</div>
+                    @endif
                 </div>
             @endif
 

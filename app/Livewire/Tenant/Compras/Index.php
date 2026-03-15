@@ -1,13 +1,16 @@
 <?php
+
 namespace App\Livewire\Tenant\Compras;
 
 use App\Enums\PurchaseInvoiceStatus;
-use App\Models\Tenant\PurchaseInvoice;
-use App\Models\Tenant\PurchaseInvoiceLine;
+use App\Enums\PurchaseOrderStatus;
 use App\Models\Tenant\Payment;
-use App\Models\Tenant\Third;
 use App\Models\Tenant\Product;
+use App\Models\Tenant\PurchaseInvoice;
+use App\Models\Tenant\PurchaseOrder;
+use App\Models\Tenant\Third;
 use App\Services\PurchaseService;
+use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -17,33 +20,240 @@ class Index extends Component
 {
     use WithPagination;
 
-    // Vista activa: 'invoices' | 'payments'
-    public string $view = 'invoices';
+    // Vista activa: 'orders' | 'invoices' | 'payments'
+    public string $view = 'orders';
 
-    public string $search      = '';
-    public bool   $showForm    = false;
-    public ?int   $editingId   = null;
+    public string $search = '';
+
+    public bool $showForm = false;
+
+    public ?int $editingId = null;
 
     // Cabecera factura compra
-    public int    $third_id                  = 0;
-    public string $supplier_invoice_number   = '';
-    public string $date                      = '';
-    public string $due_date                  = '';
-    public string $notes                     = '';
-    public array  $lines                     = [];
+    public int $third_id = 0;
+
+    public string $supplier_invoice_number = '';
+
+    public string $date = '';
+
+    public string $due_date = '';
+
+    public string $notes = '';
+
+    public array $lines = [];
+
+    // ─── Órdenes de compra ──────────────────────────────────────────────────
+    public bool $showOrderForm = false;
+
+    public ?int $editingOrderId = null;
+
+    public int $order_third_id = 0;
+
+    public string $order_date = '';
+
+    public string $order_expected_date = '';
+
+    public string $order_notes = '';
+
+    public array $order_lines = [];
 
     // Pago
-    public bool   $showPaymentForm           = false;
-    public int    $payment_third_id          = 0;
-    public string $payment_date              = '';
-    public string $payment_notes             = '';
-    public array  $payment_items             = []; // [{purchase_invoice_id, amount_applied, invoice_ref, invoice_balance}]
+    public bool $showPaymentForm = false;
+
+    public int $payment_third_id = 0;
+
+    public string $payment_date = '';
+
+    public string $payment_notes = '';
+
+    public array $payment_items = []; // [{purchase_invoice_id, amount_applied, invoice_ref, invoice_balance}]
 
     public function mount(): void
     {
-        $this->date         = now()->toDateString();
-        $this->due_date     = now()->addDays(30)->toDateString();
+        $this->date = now()->toDateString();
+        $this->due_date = now()->addDays(30)->toDateString();
         $this->payment_date = now()->toDateString();
+        $this->order_date = now()->toDateString();
+        $this->order_expected_date = now()->addDays(15)->toDateString();
+    }
+
+    // ─── Órdenes de compra ──────────────────────────────────────────────────
+
+    public function openCreateOrder(): void
+    {
+        $this->resetOrderForm();
+        $this->showOrderForm = true;
+    }
+
+    public function openEditOrder(int $id): void
+    {
+        $order = PurchaseOrder::with('lines')->findOrFail($id);
+        if ($order->status !== PurchaseOrderStatus::Pendiente) {
+            return;
+        }
+
+        $this->editingOrderId = $id;
+        $this->order_third_id = $order->third_id;
+        $this->order_date = $order->date->toDateString();
+        $this->order_expected_date = $order->expected_date?->toDateString() ?? '';
+        $this->order_notes = $order->notes ?? '';
+        $this->order_lines = $order->lines->map(fn ($l) => [
+            'product_id' => $l->product_id,
+            'description' => $l->description,
+            'qty' => $l->qty,
+            'unit_cost' => $l->unit_cost,
+        ])->toArray();
+
+        $this->showOrderForm = true;
+    }
+
+    public function addOrderLine(): void
+    {
+        $this->order_lines[] = ['product_id' => null, 'description' => '', 'qty' => 1, 'unit_cost' => 0];
+    }
+
+    public function removeOrderLine(int $index): void
+    {
+        array_splice($this->order_lines, $index, 1);
+        $this->order_lines = array_values($this->order_lines);
+    }
+
+    public function updatedOrderLines(mixed $value, string $key): void
+    {
+        if (str_ends_with($key, '.product_id') && $value) {
+            $idx = (int) explode('.', $key)[0];
+            $product = Product::find($value);
+            if ($product) {
+                $this->order_lines[$idx]['description'] = $product->name;
+                $this->order_lines[$idx]['unit_cost'] = $product->cost_price;
+            }
+        }
+    }
+
+    public function saveOrder(): void
+    {
+        $this->validate([
+            'order_third_id' => ['required', 'integer', 'min:1'],
+            'order_date' => ['required', 'date'],
+            'order_expected_date' => ['nullable', 'date'],
+            'order_lines' => ['required', 'array', 'min:1'],
+            'order_lines.*.description' => ['required', 'string'],
+            'order_lines.*.qty' => ['required', 'numeric', 'min:0.01'],
+            'order_lines.*.unit_cost' => ['required', 'numeric', 'min:0'],
+        ], [
+            'order_third_id.min' => 'Selecciona un proveedor.',
+            'order_lines.min' => 'Agrega al menos una línea.',
+        ]);
+
+        DB::transaction(function () {
+            $lineData = array_map(function (array $l): array {
+                return [
+                    'product_id' => $l['product_id'] ?: null,
+                    'description' => $l['description'],
+                    'qty' => $l['qty'],
+                    'unit_cost' => $l['unit_cost'],
+                    'line_total' => round($l['unit_cost'] * $l['qty'], 2),
+                ];
+            }, $this->order_lines);
+
+            $total = array_sum(array_column($lineData, 'line_total'));
+
+            $headerData = [
+                'third_id' => $this->order_third_id,
+                'date' => $this->order_date,
+                'expected_date' => $this->order_expected_date ?: null,
+                'notes' => $this->order_notes ?: null,
+                'total' => $total,
+                'status' => PurchaseOrderStatus::Pendiente->value,
+            ];
+
+            if ($this->editingOrderId) {
+                $order = PurchaseOrder::findOrFail($this->editingOrderId);
+                $order->update($headerData);
+                $order->lines()->delete();
+            } else {
+                $order = PurchaseOrder::create($headerData);
+            }
+
+            foreach ($lineData as $ld) {
+                $order->lines()->create($ld);
+            }
+        });
+
+        $this->resetOrderForm();
+        session()->flash('success', 'Orden de compra guardada.');
+    }
+
+    public function receiveOrder(int $id): void
+    {
+        $order = PurchaseOrder::with('lines.product', 'third')->findOrFail($id);
+
+        if ($order->status !== PurchaseOrderStatus::Pendiente) {
+            session()->flash('error', 'Solo se pueden recibir órdenes pendientes.');
+
+            return;
+        }
+
+        DB::transaction(function () use ($order) {
+            $order->update(['status' => PurchaseOrderStatus::Recibida->value]);
+
+            // Crear factura de compra en borrador a partir de la orden
+            $subtotal = 0.0;
+            $tax = 0.0;
+
+            $invoice = PurchaseInvoice::create([
+                'third_id' => $order->third_id,
+                'purchase_order_id' => $order->id,
+                'supplier_invoice_number' => null,
+                'date' => now()->toDateString(),
+                'due_date' => now()->addDays(30)->toDateString(),
+                'status' => 'borrador',
+                'subtotal' => 0,
+                'tax_amount' => 0,
+                'total' => 0,
+            ]);
+
+            foreach ($order->lines as $ol) {
+                $lineSub = round($ol->unit_cost * $ol->qty, 2);
+                $lineTax = 0.0; // Las órdenes no tienen IVA directo; se ajusta en la factura
+                $invoice->lines()->create([
+                    'product_id' => $ol->product_id,
+                    'description' => $ol->description,
+                    'qty' => $ol->qty,
+                    'unit_cost' => $ol->unit_cost,
+                    'tax_rate' => 0,
+                    'line_subtotal' => $lineSub,
+                    'line_tax' => $lineTax,
+                    'line_total' => $lineSub,
+                ]);
+                $subtotal += $lineSub;
+            }
+
+            $invoice->update([
+                'subtotal' => $subtotal,
+                'tax_amount' => $tax,
+                'total' => $subtotal + $tax,
+            ]);
+        });
+
+        $this->view = 'invoices';
+        session()->flash('success', 'Mercancía recibida. Se creó una factura de compra en borrador para ajustar IVA y confirmar.');
+    }
+
+    public function cancelOrder(int $id): void
+    {
+        $order = PurchaseOrder::findOrFail($id);
+        if ($order->status === PurchaseOrderStatus::Pendiente) {
+            $order->update(['status' => PurchaseOrderStatus::Cancelada->value]);
+        }
+    }
+
+    private function resetOrderForm(): void
+    {
+        $this->reset(['editingOrderId', 'order_third_id', 'order_notes', 'order_lines']);
+        $this->showOrderForm = false;
+        $this->order_date = now()->toDateString();
+        $this->order_expected_date = now()->addDays(15)->toDateString();
     }
 
     // ─── Facturas de compra ──────────────────────────────────────────────────
@@ -57,25 +267,25 @@ class Index extends Component
     public function openEdit(int $id): void
     {
         $invoice = PurchaseInvoice::with('lines')->findOrFail($id);
-        $this->editingId                = $id;
-        $this->third_id                 = $invoice->third_id;
-        $this->supplier_invoice_number  = $invoice->supplier_invoice_number ?? '';
-        $this->date                     = $invoice->date->toDateString();
-        $this->due_date                 = $invoice->due_date?->toDateString() ?? '';
-        $this->notes                    = $invoice->notes ?? '';
-        $this->lines                    = $invoice->lines->map(fn($l) => [
-            'product_id'  => $l->product_id,
+        $this->editingId = $id;
+        $this->third_id = $invoice->third_id;
+        $this->supplier_invoice_number = $invoice->supplier_invoice_number ?? '';
+        $this->date = $invoice->date->toDateString();
+        $this->due_date = $invoice->due_date?->toDateString() ?? '';
+        $this->notes = $invoice->notes ?? '';
+        $this->lines = $invoice->lines->map(fn ($l) => [
+            'product_id' => $l->product_id,
             'description' => $l->description,
-            'qty'         => $l->qty,
-            'unit_cost'   => $l->unit_cost,
-            'tax_rate'    => $l->tax_rate,
+            'qty' => $l->qty,
+            'unit_cost' => $l->unit_cost,
+            'tax_rate' => $l->tax_rate,
         ])->toArray();
         $this->showForm = true;
     }
 
     public function addLine(): void
     {
-        $this->lines[] = ['product_id'=>null,'description'=>'','qty'=>1,'unit_cost'=>0,'tax_rate'=>19];
+        $this->lines[] = ['product_id' => null, 'description' => '', 'qty' => 1, 'unit_cost' => 0, 'tax_rate' => 19];
     }
 
     public function removeLine(int $index): void
@@ -87,12 +297,12 @@ class Index extends Component
     public function updatedLines(mixed $value, string $key): void
     {
         if (str_ends_with($key, '.product_id') && $value) {
-            $idx     = (int) explode('.', $key)[0];
+            $idx = (int) explode('.', $key)[0];
             $product = Product::find($value);
             if ($product) {
                 $this->lines[$idx]['description'] = $product->name;
-                $this->lines[$idx]['unit_cost']   = $product->cost_price;
-                $this->lines[$idx]['tax_rate']    = $product->tax_rate->value;
+                $this->lines[$idx]['unit_cost'] = $product->cost_price;
+                $this->lines[$idx]['tax_rate'] = $product->tax_rate->value;
             }
         }
     }
@@ -100,46 +310,47 @@ class Index extends Component
     public function save(PurchaseService $service): void
     {
         $this->validate([
-            'third_id'   => ['required','integer','min:1'],
-            'date'       => ['required','date'],
-            'lines'      => ['required','array','min:1'],
-            'lines.*.description' => ['required','string'],
-            'lines.*.qty'         => ['required','numeric','min:0.01'],
-            'lines.*.unit_cost'   => ['required','numeric','min:0'],
+            'third_id' => ['required', 'integer', 'min:1'],
+            'date' => ['required', 'date'],
+            'lines' => ['required', 'array', 'min:1'],
+            'lines.*.description' => ['required', 'string'],
+            'lines.*.qty' => ['required', 'numeric', 'min:0.01'],
+            'lines.*.unit_cost' => ['required', 'numeric', 'min:0'],
         ], [
             'third_id.min' => 'Selecciona un proveedor.',
-            'lines.min'    => 'Agrega al menos una línea.',
+            'lines.min' => 'Agrega al menos una línea.',
         ]);
 
-        \Illuminate\Support\Facades\DB::transaction(function () use ($service) {
+        DB::transaction(function () {
             $lineData = array_map(function (array $l): array {
                 $subtotal = round($l['unit_cost'] * $l['qty'], 2);
-                $tax      = round($subtotal * ($l['tax_rate'] / 100), 2);
+                $tax = round($subtotal * ($l['tax_rate'] / 100), 2);
+
                 return [
-                    'product_id'   => $l['product_id'] ?: null,
-                    'description'  => $l['description'],
-                    'qty'          => $l['qty'],
-                    'unit_cost'    => $l['unit_cost'],
-                    'tax_rate'     => (int) $l['tax_rate'],
-                    'line_subtotal'=> $subtotal,
-                    'line_tax'     => $tax,
-                    'line_total'   => $subtotal + $tax,
+                    'product_id' => $l['product_id'] ?: null,
+                    'description' => $l['description'],
+                    'qty' => $l['qty'],
+                    'unit_cost' => $l['unit_cost'],
+                    'tax_rate' => (int) $l['tax_rate'],
+                    'line_subtotal' => $subtotal,
+                    'line_tax' => $tax,
+                    'line_total' => $subtotal + $tax,
                 ];
             }, $this->lines);
 
-            $subtotal  = array_sum(array_column($lineData, 'line_subtotal'));
+            $subtotal = array_sum(array_column($lineData, 'line_subtotal'));
             $taxAmount = array_sum(array_column($lineData, 'line_tax'));
 
             $headerData = [
-                'third_id'                => $this->third_id,
+                'third_id' => $this->third_id,
                 'supplier_invoice_number' => $this->supplier_invoice_number ?: null,
-                'date'                    => $this->date,
-                'due_date'                => $this->due_date ?: null,
-                'notes'                   => $this->notes ?: null,
-                'subtotal'                => $subtotal,
-                'tax_amount'              => $taxAmount,
-                'total'                   => $subtotal + $taxAmount,
-                'status'                  => 'borrador',
+                'date' => $this->date,
+                'due_date' => $this->due_date ?: null,
+                'notes' => $this->notes ?: null,
+                'subtotal' => $subtotal,
+                'tax_amount' => $taxAmount,
+                'total' => $subtotal + $taxAmount,
+                'status' => 'borrador',
             ];
 
             if ($this->editingId) {
@@ -181,9 +392,9 @@ class Index extends Component
 
     private function resetInvoiceForm(): void
     {
-        $this->reset(['editingId','third_id','supplier_invoice_number','notes','lines']);
+        $this->reset(['editingId', 'third_id', 'supplier_invoice_number', 'notes', 'lines']);
         $this->showForm = false;
-        $this->date     = now()->toDateString();
+        $this->date = now()->toDateString();
         $this->due_date = now()->addDays(30)->toDateString();
     }
 
@@ -192,8 +403,8 @@ class Index extends Component
     public function openPayment(int $supplierId): void
     {
         $this->payment_third_id = $supplierId;
-        $this->payment_date     = now()->toDateString();
-        $this->payment_notes    = '';
+        $this->payment_date = now()->toDateString();
+        $this->payment_notes = '';
 
         // Cargar facturas pendientes del proveedor
         $pending = PurchaseInvoice::where('third_id', $supplierId)
@@ -201,12 +412,12 @@ class Index extends Component
             ->with('payments')
             ->get();
 
-        $this->payment_items = $pending->map(fn($inv) => [
+        $this->payment_items = $pending->map(fn ($inv) => [
             'purchase_invoice_id' => $inv->id,
-            'invoice_ref'         => ($inv->supplier_invoice_number ?? 'FC-' . str_pad($inv->id, 5, '0', STR_PAD_LEFT)),
-            'invoice_balance'     => $inv->balance(),
-            'amount_applied'      => $inv->balance(),
-        ])->filter(fn($i) => $i['invoice_balance'] > 0)->values()->toArray();
+            'invoice_ref' => ($inv->supplier_invoice_number ?? 'FC-'.str_pad($inv->id, 5, '0', STR_PAD_LEFT)),
+            'invoice_balance' => $inv->balance(),
+            'amount_applied' => $inv->balance(),
+        ])->filter(fn ($i) => $i['invoice_balance'] > 0)->values()->toArray();
 
         $this->showPaymentForm = true;
     }
@@ -214,10 +425,10 @@ class Index extends Component
     public function applyPayment(PurchaseService $service): void
     {
         $this->validate([
-            'payment_third_id'              => ['required','integer','min:1'],
-            'payment_date'                  => ['required','date'],
-            'payment_items'                 => ['required','array','min:1'],
-            'payment_items.*.amount_applied'=> ['required','numeric','min:0.01'],
+            'payment_third_id' => ['required', 'integer', 'min:1'],
+            'payment_date' => ['required', 'date'],
+            'payment_items' => ['required', 'array', 'min:1'],
+            'payment_items.*.amount_applied' => ['required', 'numeric', 'min:0.01'],
         ], ['payment_third_id.min' => 'Selecciona un proveedor.']);
 
         try {
@@ -225,42 +436,49 @@ class Index extends Component
 
             $payment = Payment::create([
                 'third_id' => $this->payment_third_id,
-                'date'     => $this->payment_date,
-                'total'    => $total,
-                'notes'    => $this->payment_notes ?: null,
-                'status'   => 'borrador',
+                'date' => $this->payment_date,
+                'total' => $total,
+                'notes' => $this->payment_notes ?: null,
+                'status' => 'borrador',
             ]);
 
-            $items = array_map(fn($i) => [
+            $items = array_map(fn ($i) => [
                 'purchase_invoice_id' => $i['purchase_invoice_id'],
-                'amount_applied'      => $i['amount_applied'],
+                'amount_applied' => $i['amount_applied'],
             ], $this->payment_items);
 
             $service->applyPayment($payment, $items);
 
             $this->showPaymentForm = false;
-            $this->reset(['payment_third_id','payment_notes','payment_items']);
+            $this->reset(['payment_third_id', 'payment_notes', 'payment_items']);
             session()->flash('success', 'Pago aplicado y asiento generado.');
         } catch (\Exception $e) {
             session()->flash('error', $e->getMessage());
         }
     }
 
-    public function updatingSearch(): void { $this->resetPage(); }
+    public function updatingSearch(): void
+    {
+        $this->resetPage();
+    }
 
     public function render(): mixed
     {
         $invoices = PurchaseInvoice::with('third')
-            ->when($this->search, fn($q) => $q->whereHas('third', fn($q2) => $q2->where('name', 'ilike', "%{$this->search}%")))
+            ->when($this->search, fn ($q) => $q->whereHas('third', fn ($q2) => $q2->where('name', 'ilike', "%{$this->search}%")))
             ->orderByDesc('date')->orderByDesc('id')
             ->paginate(15);
 
-        $suppliers  = Third::whereIn('type', ['proveedor','ambos'])->where('active', true)->orderBy('name')->get();
-        $products   = Product::where('active', true)->orderBy('name')->get();
-        $statuses   = PurchaseInvoiceStatus::cases();
-        $payments   = Payment::with('third')->orderByDesc('date')->orderByDesc('id')->limit(50)->get();
+        $orders = PurchaseOrder::with('third')
+            ->orderByDesc('date')->orderByDesc('id')
+            ->paginate(15);
 
-        return view('livewire.tenant.compras.index', compact('invoices','suppliers','products','statuses','payments'))
+        $suppliers = Third::whereIn('type', ['proveedor', 'ambos'])->where('active', true)->orderBy('name')->get();
+        $products = Product::where('active', true)->orderBy('name')->get();
+        $statuses = PurchaseInvoiceStatus::cases();
+        $payments = Payment::with('third')->orderByDesc('date')->orderByDesc('id')->limit(50)->get();
+
+        return view('livewire.tenant.compras.index', compact('invoices', 'orders', 'suppliers', 'products', 'statuses', 'payments'))
             ->title('Compras');
     }
 }

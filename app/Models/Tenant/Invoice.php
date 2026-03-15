@@ -1,12 +1,13 @@
 <?php
+
 namespace App\Models\Tenant;
 
 use App\Enums\InvoiceStatus;
 use App\Enums\InvoiceType;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Invoice extends Model
 {
@@ -18,13 +19,13 @@ class Invoice extends Model
     ];
 
     protected $casts = [
-        'date'       => 'date',
-        'due_date'   => 'date',
-        'type'       => InvoiceType::class,
-        'status'     => InvoiceStatus::class,
-        'subtotal'   => 'float',
+        'date' => 'date',
+        'due_date' => 'date',
+        'type' => InvoiceType::class,
+        'status' => InvoiceStatus::class,
+        'subtotal' => 'float',
         'tax_amount' => 'float',
-        'total'      => 'float',
+        'total' => 'float',
     ];
 
     public function third(): BelongsTo
@@ -42,6 +43,31 @@ class Invoice extends Model
         return $this->hasMany(JournalEntry::class, 'document_id')->where('document_type', 'invoice');
     }
 
+    public function cashReceiptItems(): HasMany
+    {
+        return $this->hasMany(CashReceiptItem::class);
+    }
+
+    public function creditNotes(): HasMany
+    {
+        return $this->hasMany(CreditNote::class);
+    }
+
+    public function amountReceived(): float
+    {
+        return (float) $this->cashReceiptItems()->sum('amount_applied');
+    }
+
+    public function amountCredited(): float
+    {
+        return (float) $this->creditNotes()->whereNot('status', 'anulada')->sum('total');
+    }
+
+    public function balance(): float
+    {
+        return max(0, $this->total - $this->amountReceived() - $this->amountCredited());
+    }
+
     public function isBorrador(): bool
     {
         return $this->status === InvoiceStatus::Borrador;
@@ -54,11 +80,11 @@ class Invoice extends Model
 
     public function fullReference(): string
     {
-        return $this->series . str_pad($this->number, 5, '0', STR_PAD_LEFT);
+        return $this->series.str_pad($this->number, 5, '0', STR_PAD_LEFT);
     }
 
     public static function nextNumber(string $series): int
     {
-        return (int)(static::where('series', $series)->max('number') ?? 0) + 1;
+        return (int) (static::where('series', $series)->max('number') ?? 0) + 1;
     }
 }
