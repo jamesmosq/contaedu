@@ -115,7 +115,12 @@ class Dashboard extends Component
         $preview = [];
         $row = 0;
 
-        while (($cols = fgetcsv($handle, 1000, ',')) !== false) {
+        // Auto-detectar separador: Excel en español usa ";" en lugar de ","
+        $firstLine = fgets($handle);
+        rewind($handle);
+        $separator = substr_count($firstLine, ';') >= substr_count($firstLine, ',') ? ';' : ',';
+
+        while (($cols = fgetcsv($handle, 1000, $separator)) !== false) {
             $row++;
 
             // Saltar cabecera
