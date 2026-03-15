@@ -27,12 +27,12 @@ php artisan migrate --force --no-interaction
 echo "==> Migraciones de tenants..."
 php artisan tenants:migrate --force --no-interaction
 
-echo "==> Iniciando servidor..."
-# Usar FrankenPHP si está disponible (Railpack), si no php artisan serve
+echo "==> Iniciando servidor en puerto ${PORT:-8080}..."
 if [ -f /start-container.sh ]; then
-    echo "   Usando FrankenPHP (/start-container.sh)"
+    # FrankenPHP necesita SERVER_NAME para escuchar en el puerto de Railway
+    export SERVER_NAME=":${PORT:-8080}"
+    echo "   FrankenPHP en SERVER_NAME=${SERVER_NAME}"
     exec /start-container.sh
 else
-    echo "   Usando php artisan serve en puerto ${PORT:-8000}"
-    exec php artisan serve --host=0.0.0.0 --port="${PORT:-8000}"
+    exec php artisan serve --host=0.0.0.0 --port="${PORT:-8080}"
 fi
