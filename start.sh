@@ -9,7 +9,6 @@ mkdir -p /app/storage/logs
 
 echo "==> Limpiando config cache para usar variables de entorno actuales..."
 php artisan config:clear --quiet
-php artisan cache:clear --quiet
 
 echo "==> Esperando conexión a PostgreSQL..."
 MAX_TRIES=30
