@@ -46,6 +46,16 @@ php artisan migrate --force --no-interaction
 echo "==> Migraciones de tenants..."
 php artisan tenants:migrate --force --no-interaction
 
+echo "==> Verificando datos iniciales..."
+USER_COUNT=$(php artisan tinker --execute="echo \App\Models\User::count();" 2>/dev/null | tail -1)
+if [ "$USER_COUNT" = "0" ]; then
+    echo "   Base vacía — sembrando datos iniciales..."
+    php artisan db:seed --force --no-interaction
+    echo "   Seeder completado."
+else
+    echo "   Ya existen usuarios, omitiendo seeder."
+fi
+
 echo "==> Iniciando servidor en puerto ${PORT:-8080}..."
 if [ -f /start-container.sh ]; then
     export SERVER_NAME=":${PORT:-8080}"
