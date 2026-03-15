@@ -316,21 +316,19 @@
 
                         <div class="flex gap-3">
                             @if(empty($bulkPreview) && empty($bulkResults))
-                                <button wire:click="processBulkFile" wire:loading.attr="disabled"
-                                    class="px-4 py-2 bg-slate-700 text-white text-sm font-semibold rounded-lg hover:bg-slate-600 transition disabled:opacity-50">
-                                    <span wire:loading.remove wire:target="processBulkFile">Vista previa</span>
-                                    <span wire:loading wire:target="processBulkFile">Procesando…</span>
+                                <button wire:click="processBulkFile"
+                                    class="px-4 py-2 bg-slate-700 text-white text-sm font-semibold rounded-lg hover:bg-slate-600 transition">
+                                    Vista previa
                                 </button>
                             @endif
 
                             @if(!empty($bulkPreview))
-                                @php $validCount = count(array_filter($bulkPreview, fn($r) => empty($r['error']))); @endphp
+                                @php $validCount = count(array_filter($bulkPreview, fn ($r) => empty($r['error']))); @endphp
                                 @if($validCount > 0)
-                                    <button wire:click="confirmBulkCreate" wire:loading.attr="disabled"
+                                    <button wire:click="confirmBulkCreate"
                                         wire:confirm="¿Confirmar la creación de {{ $validCount }} empresa(s)? Esta acción no se puede deshacer."
-                                        class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition disabled:opacity-50">
-                                        <span wire:loading.remove wire:target="confirmBulkCreate">Crear {{ $validCount }} empresa(s)</span>
-                                        <span wire:loading wire:target="confirmBulkCreate">Creando…</span>
+                                        class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">
+                                        Crear {{ $validCount }} empresa(s)
                                     </button>
                                 @endif
                             @endif
