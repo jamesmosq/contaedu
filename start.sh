@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -e
 
+echo "==> Creando directorios de almacenamiento..."
+mkdir -p /app/storage/framework/views
+mkdir -p /app/storage/framework/cache/data
+mkdir -p /app/storage/framework/sessions
+mkdir -p /app/storage/logs
+
 echo "==> Migraciones centrales..."
 php artisan migrate --force --no-interaction
 
