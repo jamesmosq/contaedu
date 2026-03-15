@@ -1,59 +1,133 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# ContaEdu — Plataforma Contable Educativa
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistema web educativo tipo SaaS multi-tenant que simula un software contable colombiano (similar a Siigo), diseñado para que estudiantes de administración y contabilidad practiquen el **ciclo contable completo** en un entorno seguro y aislado.
 
-## About Laravel
+---
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Stack tecnológico
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+| Capa | Tecnología |
+|---|---|
+| Framework | Laravel 12 |
+| Frontend | Livewire 4 + Alpine.js + Blade |
+| Estilos | Tailwind CSS v4 |
+| Base de datos | PostgreSQL (schemas por tenant) |
+| Multitenancy | `stancl/tenancy` v3 — modo schemas |
+| PDF | `barryvdh/laravel-dompdf` |
+| Autenticación | Laravel Breeze + guard `student` |
+| Testing | Pest 4 |
+| Entorno local | Laravel Herd (Windows) |
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+---
 
-## Learning Laravel
+## Requisitos
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework. You can also check out [Laravel Learn](https://laravel.com/learn), where you will be guided through building a modern Laravel application.
+- PHP 8.3+
+- PostgreSQL 14+
+- Node.js 18+
+- Composer 2+
+- Laravel Herd (o servidor equivalente)
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+---
 
-## Laravel Sponsors
+## Instalación local
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+```bash
+# 1. Clonar el repositorio
+git clone <url-del-repo> contaedu
+cd contaedu
 
-### Premium Partners
+# 2. Instalar dependencias PHP y JS
+composer install
+npm install && npm run build
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+# 3. Configurar entorno
+cp .env.example .env
+php artisan key:generate
+```
 
-## Contributing
+Editar `.env` con las credenciales de PostgreSQL:
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+```env
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=contaedu
+DB_USERNAME=postgres
+DB_PASSWORD=tu_password
+```
 
-## Code of Conduct
+```bash
+# 4. Migrar y sembrar datos demo
+php artisan migrate:fresh --seed
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+> **Nota:** Si ya existen schemas de tenant de una ejecución anterior, primero ejecutar:
+> ```
+> php artisan tenants:drop-schemas
+> php artisan migrate:fresh --seed
+> ```
 
-## Security Vulnerabilities
+---
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+## Credenciales de acceso
 
-## License
+| Rol | URL de login | Email / Cédula | Contraseña |
+|---|---|---|---|
+| Superadministrador | `/login` | admin@contaedu.test | password |
+| Docente | `/login` | docente@contaedu.test | password |
+| Estudiante — Ana García | `/estudiante/login` | cc1023456789 | password |
+| Estudiante — Luis Pérez | `/estudiante/login` | cc1098765432 | password |
+| Estudiante — María Rodríguez | `/estudiante/login` | cc1055544433 | password |
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+---
+
+## Arquitectura multi-tenant
+
+```
+PostgreSQL (una sola instancia)
+├── schema: public              ← BD central: institutions, groups, users, tenants
+├── schema: tenant_cc1023456789 ← Empresa de Ana García
+├── schema: tenant_cc1098765432 ← Empresa de Luis Pérez
+└── schema: tenant_cc1055544433 ← Empresa de María Rodríguez
+```
+
+Cada empresa estudiantil vive en su propio schema PostgreSQL. La identificación del tenant se hace por **cédula del estudiante** (no por subdominio), lo que simplifica el deploy en Railway.
+
+---
+
+## Módulos implementados
+
+| Fase | Módulo |
+|---|---|
+| 1 | Fundación: login por rol, multitenancy, guards separados |
+| 2 | Maestros contables: configuración empresa, PUC colombiano, terceros, productos |
+| 3 | Ventas: facturas, notas crédito, recibos de caja + asientos automáticos |
+| 4 | Compras: órdenes, facturas de compra, pagos a proveedores + asientos automáticos |
+| 5 | Reportes: libro diario, mayor, balance de comprobación, estado de resultados, balance general, cartera, CxP, exportación PDF |
+| 6 | Panel docente: dashboard grupo, modo auditoría (solo lectura), comparativo, rúbrica de calificación |
+
+---
+
+## Tests
+
+```bash
+# Correr toda la suite
+php artisan test --compact
+
+# Filtrar por nombre
+php artisan test --compact --filter=AdminDashboard
+```
+
+---
+
+## Deploy en Railway
+
+1. Crear un proyecto con un servicio **Laravel** y un servicio **PostgreSQL**
+2. Configurar variables de entorno: `DB_CONNECTION=pgsql`, `APP_KEY`, `APP_URL`
+3. Comando de inicio: `php artisan serve --host=0.0.0.0 --port=$PORT`
+4. En cada deploy ejecutar: `php artisan migrate --force` y `php artisan tenants:migrate --force`
+
+---
+
+Ver [PLATAFORMA.md](PLATAFORMA.md) para la guía completa de uso de la plataforma.

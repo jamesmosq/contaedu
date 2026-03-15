@@ -1,3 +1,419 @@
+# ContaEdu — Plataforma Contable Educativa
+## Contexto del proyecto
+
+Sistema web educativo tipo SaaS multi-tenant que simula un software contable similar a Siigo, para que estudiantes de administración y contabilidad colombiana practiquen el ciclo contable completo: clientes, proveedores, facturación, compras, contabilidad de doble partida y reportes financieros. Cada estudiante opera su propia empresa virtual completamente aislada. El docente audita todas las empresas del grupo.
+
+**No usar MoonShine.** Todos los paneles (superadmin, docente, estudiante) se construyen con Blade + Livewire 3. Esto evita conflictos con el multitenancy y da control total sobre el flujo de auditoría.
+
+---
+
+## Stack tecnológico
+
+| Capa | Tecnología |
+|---|---|
+| Framework | Laravel 11 (último estable) |
+| Frontend | Livewire 3 + Alpine.js + Blade |
+| Estilos | Tailwind CSS |
+| Base de datos | **PostgreSQL** (local con pgAdmin/DataGrip, Railway en producción) |
+| Multitenancy | `stancl/tenancy` v3 — modo **PostgreSQL schemas** (un servidor, un schema por tenant) |
+| PDF | `barryvdh/laravel-dompdf` |
+| Autenticación | Laravel Breeze adaptado + guard propio para estudiantes |
+| Entorno local | WAMP64 (Windows) + PostgreSQL instalado por separado, dominio `contaedu.test` |
+| Producción | Railway — un servicio Laravel + un servicio PostgreSQL |
+
+---
+
+## Arquitectura multi-tenant (PostgreSQL schemas)
+
+`stancl/tenancy` en modo schema de PostgreSQL crea un schema separado dentro del mismo servidor de BD por cada tenant (empresa estudiantil). El schema `public` es la base de datos central (landlord). Cada empresa estudiantil tiene su propio schema, por ejemplo `tenant_cc12345678`.
+
+Esto es ideal para Railway porque solo se necesita **una instancia de PostgreSQL**, no múltiples bases de datos.
+
+```
+PostgreSQL (una sola instancia)
+├── schema: public          ← BD central: institutions, groups, users, tenants
+├── schema: tenant_cc001    ← Empresa de estudiante 1
+├── schema: tenant_cc002    ← Empresa de estudiante 2
+└── schema: tenant_ccN      ← Empresa de estudiante N
+```
+
+### Identificación del tenant
+
+NO se usa identificación por dominio (subdominios). Se identifica al tenant por **path** o por **request data** (cédula del estudiante en login). Esto simplifica Railway, que no maneja subdominios dinámicos fácilmente.
+
+El flujo es:
+1. Estudiante ingresa cédula + contraseña en `/login`
+2. El sistema busca en la tabla `tenants` del schema `public` qué schema corresponde a esa cédula
+3. Se inicializa el tenant: `tenancy()->initialize($tenant)`
+4. Se redirige al dashboard de la empresa del estudiante
+
+---
+
+## Roles del sistema
+
+| Rol | Guard | Acceso |
+|---|---|---|
+| `superadmin` | `web` | Panel central: CRUD de instituciones y docentes |
+| `docente` | `web` | Panel de grupo: crear empresas, asignar estudiantes, modo auditoría |
+| `estudiante` | `student` | Solo su empresa: todos los módulos contables |
+
+---
+
+## Módulos y fases de desarrollo
+
+### Fase 1 — Fundación del sistema (ejecutar primero, completar antes de continuar)
+
+**Objetivo**: sistema funcionando con login diferenciado por rol y multitenancy activo.
+
+**Instalación base**:
+```bash
+composer create-project laravel/laravel contaedu
+cd contaedu
+composer require stancl/tenancy livewire/livewire barryvdh/laravel-dompdf
+composer require laravel/breeze --dev
+php artisan breeze:install blade
+npm install && npm run build
+```
+
+**Configurar `.env` para PostgreSQL**:
+```
+DB_CONNECTION=pgsql
+DB_HOST=127.0.0.1
+DB_PORT=5432
+DB_DATABASE=contaedu
+DB_USERNAME=postgres
+DB_PASSWORD=base1234
+```
+
+**Migraciones de BD central** (schema `public`):
+```
+institutions: id, name, nit, city, active, timestamps
+groups: id, institution_id, teacher_id, name, period, active, timestamps
+users: id, group_id, role (superadmin|teacher), name, email, password, remember_token, timestamps
+tenants: id (string = cc del estudiante), student_name, company_name, nit_empresa, group_id, active, tenancy_db_name (schema name), timestamps
+student_scores: id, tenant_id, module, score, notes, graded_by, timestamps
+```
+
+**Configuración de tenancy** (`config/tenancy.php`):
+- Usar `PostgreSQLSchemaManager` para crear schemas por tenant
+- El ID del tenant = cédula del estudiante (string, ej: `cc1023456789`)
+- Schema name = `tenant_` + cédula del estudiante
+
+**Guards**: crear guard `student` separado en `config/auth.php` con su propio provider que busca en la tabla `tenants` (no en `users`).
+
+**Criterios de aceptación Fase 1**:
+- [ ] Superadmin puede hacer login y crear una institución y un docente
+- [ ] Docente puede hacer login y ver su panel
+- [ ] Docente crea una empresa: ingresa cédula del estudiante, nombre, NIT empresa → se crea el schema `tenant_cc...` en PostgreSQL
+- [ ] Estudiante hace login con cédula + contraseña y llega a su dashboard vacío
+- [ ] En DataGrip/pgAdmin se puede verificar que el schema del estudiante existe y está vacío
+- [ ] Seeder: 1 institución, 1 docente, 3 estudiantes con sus schemas y empresas
+
+---
+
+### Fase 2 — Maestros contables (dentro de cada tenant)
+
+**Objetivo**: cada empresa tiene configuración inicial y puede registrar sus terceros y productos.
+
+**Migraciones de tenant** (en `database/migrations/tenant/`):
+
+```sql
+company_config: nit, razon_social, regimen (simplificado|comun|gran_contribuyente),
+                direccion, telefono, email, logo_path,
+                prefijo_factura, resolucion_dian (texto libre, educativo),
+                timestamps
+
+accounts: id, code (varchar 10), name, type (activo|pasivo|patrimonio|ingreso|costo|gasto|orden),
+          nature (debito|credito), parent_id (FK self), level (1-4), active, timestamps
+
+thirds: id, document_type (cc|nit|ce|pasaporte), document, name, type (cliente|proveedor|ambos),
+        regimen (simplificado|comun), address, phone, email, active, timestamps
+
+products: id, code, name, description, unit (und|kg|lt|m|caja|par|otro),
+          sale_price, cost_price,
+          inventory_account_id (FK accounts), revenue_account_id (FK accounts),
+          cogs_account_id (FK accounts), tax_rate (0|5|19), active, timestamps
+```
+
+**Seeder del PUC colombiano**: al crear cada tenant, sembrar automáticamente el Plan Único de Cuentas estándar de Colombia. Mínimo cuentas de nivel 2 de las clases 1 a 6:
+
+```
+Clase 1 - Activo
+  11 Disponible (Caja, Bancos)
+  12 Inversiones
+  13 Deudores (Cuentas por Cobrar clientes 1305)
+  14 Inventarios (1435 Mercancías no fabricadas por la empresa)
+  15 Propiedades planta y equipo
+  16 Intangibles
+
+Clase 2 - Pasivo
+  21 Obligaciones financieras
+  22 Proveedores (2205 Nacionales)
+  23 Cuentas por pagar
+  24 Impuestos, gravámenes y tasas (2408 IVA por pagar)
+
+Clase 3 - Patrimonio
+  31 Capital social
+  33 Reservas
+  36 Resultados del ejercicio (3610 Utilidad del ejercicio)
+
+Clase 4 - Ingresos
+  41 Operacionales (4135 Comercio al por mayor y menor)
+
+Clase 5 - Gastos
+  51 Operacionales de administración
+  52 Operacionales de ventas
+
+Clase 6 - Costos de venta
+  61 Costo de ventas (6135 Comercio al por mayor y menor)
+```
+
+**Criterios de aceptación Fase 2**:
+- [ ] Al crear el tenant se siembran automáticamente las cuentas del PUC
+- [ ] Estudiante puede ver el plan de cuentas y agregar subcuentas auxiliares (nivel 3-4)
+- [ ] CRUD de terceros: clientes y proveedores
+- [ ] CRUD de productos con vinculación de cuentas contables
+- [ ] CRUD de configuración de empresa
+
+---
+
+### Fase 3 — Operaciones de venta
+
+**Objetivo**: ciclo completo de venta con generación automática de asientos contables.
+
+**Migraciones de tenant**:
+
+```sql
+invoices: id, type (venta|compra), series, number (consecutivo), date,
+          due_date, third_id, status (borrador|emitida|anulada),
+          subtotal, tax_amount, total, notes, timestamps
+
+invoice_lines: id, invoice_id, product_id, description, qty, unit_price,
+               discount_pct, tax_rate, line_subtotal, line_tax, line_total
+
+credit_notes: id, invoice_id (FK facturas de venta), date, reason, total, status, timestamps
+credit_note_lines: id, credit_note_id, invoice_line_id, qty, unit_price, line_total
+
+debit_notes: id, invoice_id, date, reason, amount, status, timestamps
+
+cash_receipts: id, third_id, date, total, notes, status, timestamps
+cash_receipt_items: id, cash_receipt_id, invoice_id, amount_applied
+```
+
+**Asientos automáticos** — al confirmar una factura de venta, `AccountingService` genera automáticamente:
+
+```
+Débito  1305 Cuentas por cobrar clientes     $total_con_iva
+Crédito 4135 Ingresos por ventas             $subtotal
+Crédito 2408 IVA por pagar                  $iva
+```
+
+Y si el producto tiene costo (inventario):
+```
+Débito  6135 Costo de ventas                 $costo_total
+Crédito 1435 Inventario de mercancías        $costo_total
+```
+
+Al registrar un recibo de caja:
+```
+Débito  1105 Caja (o 1110 Bancos)            $monto_recibido
+Crédito 1305 Cuentas por cobrar clientes     $monto_recibido
+```
+
+**Regla de validación**: antes de guardar cualquier `JournalEntry`, verificar que `SUM(debits) === SUM(credits)`. Si no cuadra, lanzar `AccountingImbalanceException` y revertir la transacción completa (`DB::transaction()`).
+
+**Criterios de aceptación Fase 3**:
+- [ ] Crear factura borrador, agregar líneas, confirmar → estado cambia a "emitida"
+- [ ] Al confirmar, se genera asiento contable automático y se puede ver en el libro diario
+- [ ] Anular factura genera asiento de reverso
+- [ ] Nota crédito reduce cartera del cliente
+- [ ] Recibo de caja salda cartera
+
+---
+
+### Fase 4 — Operaciones de compra
+
+**Objetivo**: ciclo completo de compra (proveedor → orden → factura → pago).
+
+**Migraciones de tenant**:
+
+```sql
+purchase_orders: id, third_id (proveedor), date, expected_date,
+                 status (pendiente|parcial|recibida|cancelada), total, timestamps
+
+purchase_order_lines: id, purchase_order_id, product_id, qty, unit_cost, line_total
+
+purchase_invoices: id, third_id, purchase_order_id (nullable), supplier_invoice_number,
+                   date, due_date, status (pendiente|pagada|anulada), subtotal, tax, total
+
+purchase_invoice_lines: id, purchase_invoice_id, product_id, qty, unit_cost, tax_rate, line_total
+
+payments: id, third_id (proveedor), date, total, notes, status, timestamps
+payment_items: id, payment_id, purchase_invoice_id, amount_applied
+```
+
+**Asientos automáticos de compra**:
+
+Al confirmar factura de compra:
+```
+Débito  1435 Inventario                      $subtotal
+Débito  2408 IVA descontable                 $iva
+Crédito 2205 Proveedores nacionales          $total
+```
+
+Al registrar pago a proveedor:
+```
+Débito  2205 Proveedores nacionales          $monto_pagado
+Crédito 1105 Caja (o 1110 Bancos)           $monto_pagado
+```
+
+**Criterios de aceptación Fase 4**:
+- [ ] Orden de compra → recibir mercancía → entra a inventario automáticamente
+- [ ] Factura de compra genera CxP al proveedor
+- [ ] Pago saldo la cuenta del proveedor con asiento correcto
+
+---
+
+### Fase 5 — Contabilidad y reportes
+
+**Migraciones de tenant**:
+
+```sql
+journal_entries: id, date, reference, description, document_type, document_id, auto_generated, timestamps
+journal_lines: id, journal_entry_id, account_id, debit, credit, description
+```
+
+**Reportes a implementar** (con filtros por fecha):
+
+1. **Libro diario**: todos los asientos en orden cronológico, con referencia al documento origen
+2. **Libro mayor por cuenta**: seleccionar una cuenta, ver todos sus movimientos con saldo acumulado
+3. **Balance de comprobación**: todas las cuentas activas con: saldo inicial + débitos del período + créditos del período + saldo final
+4. **Estado de resultados**: ingresos (clase 4) menos costos (clase 6) menos gastos (clase 5) = utilidad/pérdida
+5. **Balance general**: activos (clase 1) = pasivos (clase 2) + patrimonio (clase 3)
+6. **Cartera por cobrar**: facturas de venta emitidas con días vencidas (aging)
+7. **Cuentas por pagar**: facturas de compra pendientes con días vencidos
+
+Todos los reportes se pueden **exportar a PDF** con `barryvdh/laravel-dompdf`, usando una vista Blade limpia con los colores corporativos de la empresa del estudiante.
+
+**Criterios de aceptación Fase 5**:
+- [ ] Libro diario muestra TODOS los asientos incluyendo los generados automáticamente
+- [ ] Balance de comprobación: suma de débitos = suma de créditos siempre
+- [ ] Estado de resultados cuadra con facturas confirmadas
+- [ ] Balance general: activos = pasivos + patrimonio
+- [ ] PDFs generados correctamente con nombre de empresa y período
+
+---
+
+### Fase 6 — Panel del docente (modo auditoría)
+
+**Objetivo**: el docente puede supervisar y calificar a todos los estudiantes.
+
+**Vistas del docente**:
+
+1. **Dashboard del grupo**: tabla con columnas: estudiante, empresa, facturas emitidas, total facturado, última actividad, acciones.
+
+2. **Modo auditoría**: el docente hace clic en "Auditar empresa" de un estudiante → el sistema inicializa el tenant del estudiante (`tenancy()->initialize($tenant)`) con un flag de solo lectura. Todas las vistas del estudiante se renderizan normalmente PERO con un banner en la parte superior: `"Modo auditoría — empresa de [nombre estudiante] — Solo lectura"`. Todos los botones de guardar/confirmar/anular están deshabilitados o hidden con `@if(!session('audit_mode'))`.
+
+3. **Panel comparativo**: métricas de todos los estudiantes del grupo en una tabla: facturas de venta (#, total), facturas de compra (#, total), balance de caja estimado, si tienen el balance cuadrado (activos = pasivos + patrimonio).
+
+4. **Rúbrica de calificación**: el docente puede ingresar una nota (1.0 a 5.0) por cada módulo para cada estudiante:
+   - Maestros contables (clientes, proveedores, productos)
+   - Facturación y cobro
+   - Compras y pagos
+   - Cierre contable (reportes cuadrados)
+   - Nota final (promedio ponderado)
+
+**Criterios de aceptación Fase 6**:
+- [ ] El docente puede ver todas las empresas del grupo con sus métricas
+- [ ] El modo auditoría permite navegar toda la empresa del estudiante sin poder modificar nada
+- [ ] El banner de auditoría es visible y claro
+- [ ] La rúbrica persiste las notas y muestra promedio del grupo
+
+---
+
+## Estructura de archivos
+
+```
+app/
+├── Http/
+│   ├── Controllers/
+│   │   ├── Admin/          # Superadmin (crear instituciones, docentes)
+│   │   ├── Teacher/        # Docente (grupos, auditoría, rúbrica)
+│   │   ├── Student/        # Auth del estudiante
+│   │   └── Tenant/         # Módulos del estudiante (facturas, compras, etc.)
+│   └── Middleware/
+│       ├── InitializeTenancyByStudent.php
+│       └── AuditModeOnly.php
+├── Livewire/
+│   ├── Teacher/            # Componentes del panel docente
+│   └── Tenant/             # Componentes de los módulos del estudiante
+│       ├── Invoices/
+│       ├── Purchases/
+│       ├── Accounting/
+│       └── Reports/
+├── Models/
+│   ├── Central/            # User, Tenant, Group, Institution (schema public)
+│   └── Tenant/             # Account, Third, Product, Invoice, etc. (schema del tenant)
+└── Services/
+    ├── AccountingService.php      # Generación y validación de asientos en doble partida
+    ├── InvoiceService.php         # Lógica de facturación
+    ├── PurchaseService.php        # Lógica de compras
+    ├── TenantProvisionService.php # Crear schema + sembrar PUC al crear empresa
+    └── ReportService.php          # Generación de reportes
+
+database/
+├── migrations/             # Schema public (institutions, users, tenants, groups)
+└── migrations/tenant/      # Migraciones que se ejecutan en cada tenant schema
+```
+
+---
+
+## Reglas de desarrollo para Claude Code
+
+### Generales
+- **Sin MoonShine** — todo Blade + Livewire 3
+- **Sin `HasFactory`** en modelos de negocio del tenant (Account, Third, Product, Invoice, JournalEntry, etc.)
+- **Sin `use HasFactory`** — los seeders usan `DB::table()->insert()` o `Model::create()` directamente
+- Separar siempre lógica de negocio en Services — los controladores solo coordinan, los Livewire components solo presentan
+- Usar **enums de PHP 8.1** para estados, tipos y roles — no strings libres
+- **Soft deletes** en todos los documentos contables (facturas, notas, recibos, asientos)
+- Idioma: toda la interfaz en **español colombiano** (`es` locale)
+
+### Regla crítica de contabilidad
+Toda operación que genere dinero debe envolverse en `DB::transaction()`. Dentro de la transacción: primero guardar el documento, luego llamar a `AccountingService::generateEntry()`. Si el servicio falla (débitos ≠ créditos), se lanza `AccountingImbalanceException` y toda la transacción se revierte. **Nunca guardar un documento sin su asiento completo.**
+
+### Sobre stancl/tenancy en modo schema
+- Usar `PostgreSQLSchemaManager` (no `MySQLDatabaseManager`)
+- El nombre del schema = `tenant_` + id del tenant (cédula del estudiante)
+- Las migraciones del tenant van en `database/migrations/tenant/`
+- Al crear un tenant, el pipeline de eventos debe: 1) crear schema, 2) migrar, 3) sembrar PUC
+- Para el modo auditoría: llamar `tenancy()->initialize($tenant)` y guardar en sesión `audit_mode = true`
+
+### Deployment en Railway
+- Configurar `Procfile` o `railway.json` con comando de start: `php artisan serve --host=0.0.0.0 --port=$PORT` (o usar Nginx config de Railway)
+- Variables de entorno en Railway: `DB_CONNECTION=pgsql`, `APP_KEY`, `APP_URL`
+- Para las migraciones en deploy: `php artisan migrate --force` y `php artisan tenants:migrate --force`
+- El schema `public` siempre existe en PostgreSQL — usarlo como landlord sin configuración extra
+
+---
+
+## Orden de ejecución para Claude Code
+
+Ejecutar cada fase en orden. No avanzar a la siguiente sin validar los criterios de aceptación de la fase actual.
+
+1. Decir: **"ejecuta la Fase 1"** → Claude Code crea el proyecto, instala dependencias, configura tenancy con PostgreSQL schemas, crea migraciones centrales, guards, vistas de login, seeders
+2. Validar manualmente que el login de los 3 roles funciona y que el schema del tenant se crea en PostgreSQL
+3. Decir: **"la Fase 1 está aprobada, ejecuta la Fase 2"**
+4. Continuar hasta Fase 6
+
+Antes de cada fase, Claude Code debe:
+1. Leer este archivo completo
+2. Listar brevemente qué archivos va a crear o modificar
+3. Confirmar que no hay conflictos con lo ya construido
+4. Proceder con la implementación
+
+===
+
 <laravel-boost-guidelines>
 === foundation rules ===
 
@@ -9,20 +425,25 @@ The Laravel Boost guidelines are specifically curated by Laravel maintainers for
 
 This application is a Laravel application and its main Laravel ecosystems package & versions are below. You are an expert with them all. Ensure you abide by these specific packages & versions.
 
-- php - 8.5.1
+- php - 8.3.6
 - laravel/framework (LARAVEL) - v12
 - laravel/prompts (PROMPTS) - v0
+- livewire/livewire (LIVEWIRE) - v4
+- laravel/breeze (BREEZE) - v2
 - laravel/mcp (MCP) - v0
 - laravel/pint (PINT) - v1
 - laravel/sail (SAIL) - v1
 - pestphp/pest (PEST) - v4
 - phpunit/phpunit (PHPUNIT) - v12
+- tailwindcss (TAILWINDCSS) - v4
 
 ## Skills Activation
 
 This project has domain-specific skills available. You MUST activate the relevant skill whenever you work in that domain—don't wait until you're stuck.
 
+- `livewire-development` — Develops reactive Livewire 4 components. Activates when creating, updating, or modifying Livewire components; working with wire:model, wire:click, wire:loading, or any wire: directives; adding real-time updates, loading states, or reactivity; debugging component behavior; writing Livewire tests; or when the user mentions Livewire, component, counter, or reactive UI.
 - `pest-testing` — Tests applications using the Pest 4 PHP framework. Activates when writing tests, creating unit or feature tests, adding assertions, testing Livewire components, browser testing, debugging test failures, working with datasets or mocking; or when the user mentions test, spec, TDD, expects, assertion, coverage, or needs to verify functionality works.
+- `tailwindcss-development` — Styles applications using Tailwind CSS v4 utilities. Activates when adding styles, restyling components, working with gradients, spacing, layout, flex, grid, responsive design, dark mode, colors, typography, or borders; or when the user mentions CSS, styling, classes, Tailwind, restyle, hero section, cards, buttons, or any visual/UI changes.
 
 ## Conventions
 
@@ -213,6 +634,15 @@ protected function isAccessible(User $user, ?string $path = null): bool
 
 - Casts can and likely should be set in a `casts()` method on a model rather than the `$casts` property. Follow existing conventions from other models.
 
+=== livewire/core rules ===
+
+# Livewire
+
+- Livewire allows you to build dynamic, reactive interfaces using only PHP — no JavaScript required.
+- Instead of writing frontend code in JavaScript frameworks, you use Alpine.js to build the UI when client-side interactions are required.
+- State lives on the server; the UI reflects it. Validate and authorize in actions (they're like HTTP requests).
+- IMPORTANT: Activate `livewire-development` every time you're working with Livewire-related tasks.
+
 === pint/core rules ===
 
 # Laravel Pint Code Formatter
@@ -229,4 +659,12 @@ protected function isAccessible(User $user, ?string $path = null): bool
 - Do NOT delete tests without approval.
 - CRITICAL: ALWAYS use `search-docs` tool for version-specific Pest documentation and updated code examples.
 - IMPORTANT: Activate `pest-testing` every time you're working with a Pest or testing-related task.
+
+=== tailwindcss/core rules ===
+
+# Tailwind CSS
+
+- Always use existing Tailwind conventions; check project patterns before adding new ones.
+- IMPORTANT: Always use `search-docs` tool for version-specific Tailwind CSS documentation and updated code examples. Never rely on training data.
+- IMPORTANT: Activate `tailwindcss-development` every time you're working with a Tailwind CSS or styling-related task.
 </laravel-boost-guidelines>
