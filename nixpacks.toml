@@ -1,0 +1,14 @@
+[phases.install]
+cmds = [
+    "composer install --no-dev --optimize-autoloader --no-interaction"
+]
+
+[phases.build]
+cmds = [
+    "npm ci --no-audit",
+    "npm run build",
+    "php artisan storage:link --quiet"
+]
+
+[start]
+cmd = "bash start.sh"
