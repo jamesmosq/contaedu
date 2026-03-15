@@ -15,17 +15,20 @@ class InitializeTenancyByStudent
         $student = auth('student')->user();
         if ($student instanceof Tenant) {
             tenancy()->initialize($student);
+
             return $next($request);
         }
 
-        // Modo auditoría: solo activo en rutas de auditoría y peticiones Livewire AJAX.
-        // No debe activarse en rutas centrales (login, admin, etc.) para no corromper
-        // el contexto de autenticación de esas páginas.
+        // Modo auditoría: solo activo en rutas de auditoría y peticiones Livewire AJAX
+        // originadas desde una ruta de auditoría (verificado por el header Referer).
+        // No debe activarse en rutas centrales (dashboard docente, admin, etc.).
         if (auth('web')->check() && session('audit_mode') && session('audit_tenant_id')) {
-            $isAuditRoute    = $request->routeIs('teacher.auditoria.*');
-            $isLivewireAjax  = str_starts_with($request->path(), 'livewire');
+            $isAuditRoute = $request->routeIs('teacher.auditoria.*');
+            $referer = $request->header('referer', '');
+            $isLivewireFromAudit = str_starts_with($request->path(), 'livewire')
+                && str_contains($referer, '/docente/auditoria/');
 
-            if ($isAuditRoute || $isLivewireAjax) {
+            if ($isAuditRoute || $isLivewireFromAudit) {
                 $centralConn = config('tenancy.database.central_connection', 'pgsql');
                 $tenant = Tenant::on($centralConn)->find(session('audit_tenant_id'));
                 if ($tenant) {

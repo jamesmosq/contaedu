@@ -203,7 +203,8 @@ class Dashboard extends Component
                 continue;
             }
 
-            if (Tenant::find($row['cedula'])) {
+            $centralConn = config('tenancy.database.central_connection', 'pgsql');
+            if (Tenant::on($centralConn)->find($row['cedula'])) {
                 $results[] = array_merge($row, ['status' => 'error', 'message' => 'La cédula ya existe.']);
 
                 continue;
