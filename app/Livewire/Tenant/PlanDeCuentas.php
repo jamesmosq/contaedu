@@ -10,14 +10,20 @@ use Livewire\Component;
 class PlanDeCuentas extends Component
 {
     public bool $showForm = false;
+
     public string $search = '';
 
     // Form
     public ?int $editingId = null;
+
     public string $code = '';
+
     public string $name = '';
+
     public string $type = 'activo';
+
     public string $nature = 'debito';
+
     public ?int $parent_id = null;
 
     public function rules(): array
@@ -54,17 +60,17 @@ class PlanDeCuentas extends Component
             : 1;
 
         Account::create([
-            'code'      => $this->code,
-            'name'      => $this->name,
-            'type'      => $this->type,
-            'nature'    => $this->nature,
+            'code' => $this->code,
+            'name' => $this->name,
+            'type' => $this->type,
+            'nature' => $this->nature,
             'parent_id' => $this->parent_id,
-            'level'     => $level,
-            'active'    => true,
+            'level' => $level,
+            'active' => true,
         ]);
 
         $this->reset(['showForm', 'editingId', 'code', 'name', 'type', 'nature', 'parent_id']);
-        $this->dispatch('cuenta-guardada');
+        $this->dispatch('notify', type: 'success', message: 'Cuenta guardada correctamente.');
     }
 
     public function cancelForm(): void

@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- Fondo: forest-950 con esquinas redondeadas -->
+  <rect width="64" height="64" rx="12" fill="#051a0f"/>
+
+  <!-- Birrete: tablero superior (rombo) — gold-400 -->
+  <polygon points="32,7 56,21 32,35 8,21" fill="#e8b828"/>
+  <!-- Línea central del tablero para dar profundidad — gold-500 -->
+  <polygon points="32,12 51,21 32,30 13,21" fill="#d4a017"/>
+
+  <!-- Birrete: cuerpo cilíndrico debajo del tablero -->
+  <rect x="19" y="33" width="26" height="13" rx="3" fill="#d4a017"/>
+  <!-- Parte inferior del cilindro (sombra) — gold-600 -->
+  <rect x="19" y="41" width="26" height="5" rx="2" fill="#b8860b"/>
+
+  <!-- Borla / cordón: línea vertical desde esquina derecha del tablero -->
+  <line x1="56" y1="21" x2="56" y2="41" stroke="#e8b828" stroke-width="2.5" stroke-linecap="round"/>
+  <!-- Borla: esfera al final -->
+  <circle cx="56" cy="45" r="4.5" fill="#e8b828"/>
+
+  <!-- Iniciales "CE" en la parte inferior — Contabasura Edu -->
+  <text
+    x="32"
+    y="60"
+    text-anchor="middle"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="10"
+    font-weight="700"
+    letter-spacing="1"
+    fill="#e8b828"
+  >CE</text>
+</svg>

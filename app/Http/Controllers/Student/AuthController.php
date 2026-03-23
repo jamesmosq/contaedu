@@ -24,6 +24,7 @@ class AuthController extends Controller
 
         if (Auth::guard('student')->attempt(['id' => $credentials['cedula'], 'password' => $credentials['password']])) {
             $request->session()->regenerate();
+            $request->session()->forget(['audit_mode', 'audit_tenant_id', 'audit_student_name']);
 
             return redirect()->route('student.dashboard');
         }

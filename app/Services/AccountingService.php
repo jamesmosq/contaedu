@@ -6,11 +6,14 @@ use App\Exceptions\AccountingImbalanceException;
 use App\Models\Tenant\Account;
 use App\Models\Tenant\CashReceipt;
 use App\Models\Tenant\CreditNote;
+use App\Models\Tenant\DebitNote;
+use App\Models\Tenant\FixedAsset;
 use App\Models\Tenant\Invoice;
 use App\Models\Tenant\JournalEntry;
 use App\Models\Tenant\JournalLine;
 use App\Models\Tenant\Payment;
 use App\Models\Tenant\PurchaseInvoice;
+use Carbon\Carbon;
 
 class AccountingService
 {
@@ -179,31 +182,185 @@ class AccountingService
     }
 
     /**
+     * Genera el asiento contable de una nota débito emitida.
+     * La nota débito aumenta lo que el cliente debe (cartera).
+     *
+     * Débito  1305 Cuentas por cobrar  (total de la nota)
+     * Crédito 4135 Ingresos            (subtotal)
+     * Crédito 2408 IVA por pagar       (si tax_amount > 0)
+     */
+    public function generateDebitNoteEntry(DebitNote $debitNote): JournalEntry
+    {
+        $ar = $this->accountId('1305'); // Cuentas por cobrar
+        $revenue = $this->accountId('4135'); // Ingresos por ventas
+        $vat = $this->accountId('2408'); // IVA por pagar
+
+        $lines = [];
+
+        // Débito: aumenta cartera del cliente
+        if ($ar) {
+            $lines[] = [
+                'account_id' => $ar,
+                'debit' => $debitNote->amount,
+                'credit' => 0,
+                'description' => 'ND cartera — '.$debitNote->invoice->third->name,
+            ];
+        }
+
+        // Crédito: ingresos
+        if ($revenue) {
+            $lines[] = [
+                'account_id' => $revenue,
+                'debit' => 0,
+                'credit' => $debitNote->subtotal,
+                'description' => 'ND ingresos — '.$debitNote->invoice->fullReference(),
+            ];
+        }
+
+        // Crédito: IVA (si aplica)
+        if ($debitNote->tax_amount > 0 && $vat) {
+            $lines[] = [
+                'account_id' => $vat,
+                'debit' => 0,
+                'credit' => $debitNote->tax_amount,
+                'description' => 'ND IVA — '.$debitNote->invoice->fullReference(),
+            ];
+        }
+
+        return $this->createEntry([
+            'date' => $debitNote->date,
+            'reference' => $debitNote->fullReference(),
+            'description' => 'Nota débito — '.$debitNote->invoice->fullReference().' — '.$debitNote->reason,
+            'document_type' => 'debit_note',
+            'document_id' => $debitNote->id,
+            'auto_generated' => true,
+        ], $lines);
+    }
+
+    /**
+     * Genera el asiento de reverso (anulación) de una nota débito.
+     */
+    public function generateDebitNoteReversal(DebitNote $debitNote): JournalEntry
+    {
+        $original = JournalEntry::where('document_type', 'debit_note')
+            ->where('document_id', $debitNote->id)
+            ->with('lines')
+            ->first();
+
+        if (! $original) {
+            // Si no hay asiento (borrador sin confirmar), no hay nada que revertir
+            throw new \RuntimeException('No se encontró el asiento original de la nota débito.');
+        }
+
+        $reversalLines = $original->lines->map(fn ($l) => [
+            'account_id' => $l->account_id,
+            'debit' => $l->credit,
+            'credit' => $l->debit,
+            'description' => 'Reverso: '.$l->description,
+        ])->all();
+
+        return $this->createEntry([
+            'date' => now()->toDateString(),
+            'reference' => 'AN-'.$debitNote->fullReference(),
+            'description' => 'Anulación nota débito '.$debitNote->fullReference(),
+            'document_type' => 'debit_note_reversal',
+            'document_id' => $debitNote->id,
+            'auto_generated' => true,
+        ], $reversalLines);
+    }
+
+    /**
      * Genera el asiento de una factura de compra confirmada.
-     * Débito 1435 Inventario + Débito 2408 IVA descontable
-     * Crédito 2205 Proveedores nacionales
+     *
+     * Sin retenciones:
+     *   Débito  1435 Inventario
+     *   Débito  2408 IVA descontable
+     *   Crédito 2205 Proveedores nacionales (total bruto)
+     *
+     * Con retenciones:
+     *   Débito  1435 Inventario
+     *   Débito  2408 IVA descontable
+     *   Crédito 2205 Proveedores nacionales (total neto a pagar)
+     *   Crédito 2365 Retención en la fuente  (si retefte > 0)
+     *   Crédito 2367 Retención IVA           (si reteiva > 0)
+     *   Crédito 2368 Retención ICA           (si reteica > 0)
      */
     public function generatePurchaseEntry(PurchaseInvoice $invoice): JournalEntry
     {
         $inventory = $this->accountId('1435'); // Inventario
-        $vatInput = $this->accountId('2408'); // IVA descontable / por pagar
+        $vatInput = $this->accountId('2408'); // IVA descontable
         $suppliers = $this->accountId('2205'); // Proveedores nacionales
+        $reteFte = $this->accountId('2365'); // Retención en la fuente
+        $reteIva = $this->accountId('2367'); // Reteiva
+        $reteIca = $this->accountId('2368'); // Reteica
+
+        // Total bruto (subtotal + IVA), antes de retenciones
+        $totalBruto = $invoice->subtotal + $invoice->tax_amount;
+
+        // Neto que realmente se le pagará al proveedor (bruto - retenciones)
+        $totalRetenciones = (float) ($invoice->total_retenciones ?? 0);
+        $totalNeto = round($totalBruto - $totalRetenciones, 2);
 
         $lines = [];
 
-        // Débito inventario (subtotal)
+        // Débito inventario (subtotal sin IVA)
         if ($inventory) {
-            $lines[] = ['account_id' => $inventory, 'debit' => $invoice->subtotal, 'credit' => 0, 'description' => 'Compra '.($invoice->supplier_invoice_number ?? 'S/N').' — '.$invoice->third->name];
+            $lines[] = [
+                'account_id' => $inventory,
+                'debit' => $invoice->subtotal,
+                'credit' => 0,
+                'description' => 'Compra '.($invoice->supplier_invoice_number ?? 'S/N').' — '.$invoice->third->name,
+            ];
         }
 
         // Débito IVA descontable
         if ($invoice->tax_amount > 0 && $vatInput) {
-            $lines[] = ['account_id' => $vatInput, 'debit' => $invoice->tax_amount, 'credit' => 0, 'description' => 'IVA compra '.($invoice->supplier_invoice_number ?? 'S/N')];
+            $lines[] = [
+                'account_id' => $vatInput,
+                'debit' => $invoice->tax_amount,
+                'credit' => 0,
+                'description' => 'IVA compra '.($invoice->supplier_invoice_number ?? 'S/N'),
+            ];
         }
 
-        // Crédito proveedores (total)
+        // Crédito proveedores — solo el neto a pagar (bruto menos retenciones)
         if ($suppliers) {
-            $lines[] = ['account_id' => $suppliers, 'debit' => 0, 'credit' => $invoice->total, 'description' => 'CxP proveedor '.$invoice->third->name];
+            $lines[] = [
+                'account_id' => $suppliers,
+                'debit' => 0,
+                'credit' => $totalNeto,
+                'description' => 'CxP proveedor '.$invoice->third->name,
+            ];
+        }
+
+        // Crédito retención en la fuente
+        if (($invoice->retefte_valor ?? 0) > 0 && $reteFte) {
+            $lines[] = [
+                'account_id' => $reteFte,
+                'debit' => 0,
+                'credit' => $invoice->retefte_valor,
+                'description' => 'RteFte '.$invoice->retencion_concepto?->label().' — '.$invoice->third->name,
+            ];
+        }
+
+        // Crédito reteiva
+        if (($invoice->reteiva_valor ?? 0) > 0 && $reteIva) {
+            $lines[] = [
+                'account_id' => $reteIva,
+                'debit' => 0,
+                'credit' => $invoice->reteiva_valor,
+                'description' => 'Reteiva — '.$invoice->third->name,
+            ];
+        }
+
+        // Crédito reteica
+        if (($invoice->reteica_valor ?? 0) > 0 && $reteIca) {
+            $lines[] = [
+                'account_id' => $reteIca,
+                'debit' => 0,
+                'credit' => $invoice->reteica_valor,
+                'description' => 'Reteica — '.$invoice->third->name,
+            ];
         }
 
         return $this->createEntry([
@@ -237,6 +394,32 @@ class AccountingService
             'description' => 'Pago a proveedor — '.$payment->third->name,
             'document_type' => 'payment',
             'document_id' => $payment->id,
+            'auto_generated' => true,
+        ], $lines);
+    }
+
+    /**
+     * Genera el asiento de depreciación mensual de un activo fijo.
+     *
+     * DR 5160 Gasto depreciación    $cuota
+     * CR 1592 Depreciación acumulada $cuota
+     */
+    public function generateDepreciationEntry(FixedAsset $asset, float $cuota, Carbon $period): JournalEntry
+    {
+        $gasto = $this->accountId('5160');
+        $acumula = $this->accountId('1592');
+
+        $lines = [
+            ['account_id' => $gasto,   'debit' => $cuota, 'credit' => 0,     'description' => 'Depreciación '.$asset->name.' '.$period->translatedFormat('F Y')],
+            ['account_id' => $acumula, 'debit' => 0,      'credit' => $cuota, 'description' => 'Dep. acum. '.$asset->name],
+        ];
+
+        return $this->createEntry([
+            'date' => $period->endOfMonth()->toDateString(),
+            'reference' => 'DEP-'.str_pad($asset->id, 5, '0', STR_PAD_LEFT).'-'.$period->format('Ym'),
+            'description' => 'Depreciación mensual — '.$asset->name.' ('.$period->translatedFormat('F Y').')',
+            'document_type' => 'depreciation',
+            'document_id' => $asset->id,
             'auto_generated' => true,
         ], $lines);
     }

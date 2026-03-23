@@ -19,12 +19,6 @@
     <div class="py-8">
         <div class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            @if(session('success'))
-                <div class="mb-4 p-4 bg-accent-50 border border-accent-200 rounded-xl text-accent-700 text-sm">
-                    {{ session('success') }}
-                </div>
-            @endif
-
             <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-100">
                     <h3 class="font-semibold text-slate-800">Notas por módulo (1.0 – 5.0)</h3>

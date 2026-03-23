@@ -9,15 +9,14 @@ class PucSeeder extends Seeder
 {
     public function run(): void
     {
-        $accounts = $this->getPucAccounts();
+        $now = now();
+        $accounts = array_map(
+            fn ($a) => array_merge($a, ['active' => true, 'created_at' => $now, 'updated_at' => $now]),
+            $this->getPucAccounts()
+        );
 
-        foreach ($accounts as $account) {
-            DB::table('accounts')->insert(array_merge($account, [
-                'active' => true,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]));
-        }
+        // Un solo INSERT en lote en vez de 57 queries individuales.
+        DB::table('accounts')->insert($accounts);
     }
 
     private function getPucAccounts(): array
@@ -34,7 +33,7 @@ class PucSeeder extends Seeder
             ['code' => '1305', 'name' => 'Clientes',                             'type' => 'activo',    'nature' => 'debito',  'parent_id' => null, 'level' => 3],
             ['code' => '1330', 'name' => 'Anticipos y avances',                  'type' => 'activo',    'nature' => 'debito',  'parent_id' => null, 'level' => 3],
             ['code' => '14',   'name' => 'INVENTARIOS',                          'type' => 'activo',    'nature' => 'debito',  'parent_id' => null, 'level' => 2],
-            ['code' => '1435', 'name' => 'Mercancías no fabricadas por la empresa','type' => 'activo',  'nature' => 'debito',  'parent_id' => null, 'level' => 3],
+            ['code' => '1435', 'name' => 'Mercancías no fabricadas por la empresa', 'type' => 'activo',  'nature' => 'debito',  'parent_id' => null, 'level' => 3],
             ['code' => '15',   'name' => 'PROPIEDADES PLANTA Y EQUIPO',          'type' => 'activo',    'nature' => 'debito',  'parent_id' => null, 'level' => 2],
             ['code' => '1504', 'name' => 'Terrenos',                             'type' => 'activo',    'nature' => 'debito',  'parent_id' => null, 'level' => 3],
             ['code' => '1520', 'name' => 'Construcciones y edificaciones',       'type' => 'activo',    'nature' => 'debito',  'parent_id' => null, 'level' => 3],
@@ -54,16 +53,19 @@ class PucSeeder extends Seeder
             ['code' => '24',   'name' => 'IMPUESTOS, GRAVÁMENES Y TASAS',        'type' => 'pasivo',    'nature' => 'credito', 'parent_id' => null, 'level' => 2],
             ['code' => '2408', 'name' => 'IVA por pagar',                        'type' => 'pasivo',    'nature' => 'credito', 'parent_id' => null, 'level' => 3],
             ['code' => '2404', 'name' => 'Retención en la fuente',               'type' => 'pasivo',    'nature' => 'credito', 'parent_id' => null, 'level' => 3],
+            ['code' => '2365', 'name' => 'Retención en la fuente a título de renta', 'type' => 'pasivo', 'nature' => 'credito', 'parent_id' => null, 'level' => 3],
+            ['code' => '2367', 'name' => 'Retención impuesto sobre las ventas (Reteiva)', 'type' => 'pasivo', 'nature' => 'credito', 'parent_id' => null, 'level' => 3],
+            ['code' => '2368', 'name' => 'Retención de industria y comercio (Reteica)', 'type' => 'pasivo', 'nature' => 'credito', 'parent_id' => null, 'level' => 3],
 
             // ─── CLASE 3 PATRIMONIO ───────────────────────────────────────
-            ['code' => '3',    'name' => 'PATRIMONIO',                           'type' => 'patrimonio','nature' => 'credito', 'parent_id' => null, 'level' => 1],
-            ['code' => '31',   'name' => 'CAPITAL SOCIAL',                       'type' => 'patrimonio','nature' => 'credito', 'parent_id' => null, 'level' => 2],
-            ['code' => '3105', 'name' => 'Capital suscrito y pagado',            'type' => 'patrimonio','nature' => 'credito', 'parent_id' => null, 'level' => 3],
-            ['code' => '33',   'name' => 'RESERVAS',                             'type' => 'patrimonio','nature' => 'credito', 'parent_id' => null, 'level' => 2],
-            ['code' => '3305', 'name' => 'Reserva legal',                        'type' => 'patrimonio','nature' => 'credito', 'parent_id' => null, 'level' => 3],
-            ['code' => '36',   'name' => 'RESULTADOS DEL EJERCICIO',             'type' => 'patrimonio','nature' => 'credito', 'parent_id' => null, 'level' => 2],
-            ['code' => '3605', 'name' => 'Utilidad del ejercicio',               'type' => 'patrimonio','nature' => 'credito', 'parent_id' => null, 'level' => 3],
-            ['code' => '3610', 'name' => 'Pérdida del ejercicio',                'type' => 'patrimonio','nature' => 'debito',  'parent_id' => null, 'level' => 3],
+            ['code' => '3',    'name' => 'PATRIMONIO',                           'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 1],
+            ['code' => '31',   'name' => 'CAPITAL SOCIAL',                       'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 2],
+            ['code' => '3105', 'name' => 'Capital suscrito y pagado',            'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 3],
+            ['code' => '33',   'name' => 'RESERVAS',                             'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 2],
+            ['code' => '3305', 'name' => 'Reserva legal',                        'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 3],
+            ['code' => '36',   'name' => 'RESULTADOS DEL EJERCICIO',             'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 2],
+            ['code' => '3605', 'name' => 'Utilidad del ejercicio',               'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 3],
+            ['code' => '3610', 'name' => 'Pérdida del ejercicio',                'type' => 'patrimonio', 'nature' => 'debito',  'parent_id' => null, 'level' => 3],
 
             // ─── CLASE 4 INGRESOS ─────────────────────────────────────────
             ['code' => '4',    'name' => 'INGRESOS',                             'type' => 'ingreso',   'nature' => 'credito', 'parent_id' => null, 'level' => 1],

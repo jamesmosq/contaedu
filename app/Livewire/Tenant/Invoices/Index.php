@@ -8,10 +8,12 @@ use App\Enums\ReceiptStatus;
 use App\Models\Tenant\CashReceipt;
 use App\Models\Tenant\CashReceiptItem;
 use App\Models\Tenant\CreditNote;
+use App\Models\Tenant\DebitNote;
 use App\Models\Tenant\Invoice;
 use App\Models\Tenant\Product;
 use App\Models\Tenant\Third;
 use App\Services\AccountingService;
+use App\Services\DebitNoteService;
 use App\Services\InvoiceService;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
@@ -23,7 +25,7 @@ class Index extends Component
 {
     use WithPagination;
 
-    // Pestaña activa: 'facturas' | 'recibos' | 'notas'
+    // Pestaña activa: 'facturas' | 'recibos' | 'notas' | 'notas_debito'
     public string $activeTab = 'facturas';
 
     // ─── Facturas ────────────────────────────────────────────────────────────
@@ -72,6 +74,21 @@ class Index extends Component
     public array $cn_lines = [];  // [{invoice_line_id, description, max_qty, qty, unit_price, tax_rate}]
 
     public string $cn_invoice_ref = '';  // solo lectura, para mostrar en modal
+
+    // ─── Nota débito ─────────────────────────────────────────────────────────
+    public bool $showDebitNoteForm = false;
+
+    public ?int $dn_invoice_id = null;
+
+    public string $dn_date = '';
+
+    public string $dn_reason = '';
+
+    public float $dn_subtotal = 0;
+
+    public int $dn_tax_rate = 19;
+
+    public string $dn_invoice_ref = '';  // solo lectura, para mostrar en modal
 
     public function mount(): void
     {
@@ -198,9 +215,9 @@ class Index extends Component
     {
         try {
             $service->confirm(Invoice::with('lines.product', 'third')->findOrFail($id));
-            session()->flash('success', 'Factura confirmada y asiento contable generado.');
+            $this->dispatch('notify', type: 'success', message: 'Factura confirmada y asiento contable generado.');
         } catch (\Exception $e) {
-            session()->flash('error', $e->getMessage());
+            $this->dispatch('notify', type: 'error', message: $e->getMessage());
         }
     }
 
@@ -208,9 +225,9 @@ class Index extends Component
     {
         try {
             $service->annul(Invoice::with('lines.product', 'third')->findOrFail($id));
-            session()->flash('success', 'Factura anulada. Asiento de reverso generado.');
+            $this->dispatch('notify', type: 'success', message: 'Factura anulada. Asiento de reverso generado.');
         } catch (\Exception $e) {
-            session()->flash('error', $e->getMessage());
+            $this->dispatch('notify', type: 'error', message: $e->getMessage());
         }
     }
 
@@ -291,9 +308,9 @@ class Index extends Component
 
             $this->showReceiptForm = false;
             $this->reset(['receipt_invoice_id', 'receipt_date', 'receipt_amount', 'receipt_notes', 'receipt_ref']);
-            session()->flash('success', 'Recibo de caja registrado y asiento generado.');
+            $this->dispatch('notify', type: 'success', message: 'Recibo de caja registrado y asiento generado.');
         } catch (\Exception $e) {
-            session()->flash('error', $e->getMessage());
+            $this->dispatch('notify', type: 'error', message: $e->getMessage());
         }
     }
 
@@ -393,9 +410,75 @@ class Index extends Component
 
             $this->showCreditNoteForm = false;
             $this->reset(['cn_invoice_id', 'cn_date', 'cn_reason', 'cn_lines', 'cn_invoice_ref']);
-            session()->flash('success', 'Nota de crédito aplicada y asiento generado.');
+            $this->dispatch('notify', type: 'success', message: 'Nota de crédito aplicada y asiento generado.');
         } catch (\Exception $e) {
-            session()->flash('error', $e->getMessage());
+            $this->dispatch('notify', type: 'error', message: $e->getMessage());
+        }
+    }
+
+    // ─── Nota débito ─────────────────────────────────────────────────────────
+
+    public function openDebitNote(int $invoiceId): void
+    {
+        $invoice = Invoice::with('third')->findOrFail($invoiceId);
+
+        $this->dn_invoice_id = $invoiceId;
+        $this->dn_date = now()->toDateString();
+        $this->dn_reason = '';
+        $this->dn_subtotal = 0;
+        $this->dn_tax_rate = 19;
+        $this->dn_invoice_ref = $invoice->fullReference().' — '.$invoice->third->name;
+
+        $this->showDebitNoteForm = true;
+    }
+
+    public function saveDebitNote(DebitNoteService $service): void
+    {
+        $this->validate([
+            'dn_invoice_id' => ['required', 'integer'],
+            'dn_date' => ['required', 'date'],
+            'dn_reason' => ['required', 'string', 'min:5'],
+            'dn_subtotal' => ['required', 'numeric', 'min:0.01'],
+            'dn_tax_rate' => ['required', 'integer', 'in:0,5,19'],
+        ], [
+            'dn_reason.min' => 'La razón debe tener al menos 5 caracteres.',
+            'dn_subtotal.min' => 'El valor debe ser mayor a cero.',
+        ]);
+
+        try {
+            $invoice = Invoice::findOrFail($this->dn_invoice_id);
+            $service->create($invoice, [
+                'date' => $this->dn_date,
+                'reason' => $this->dn_reason,
+                'subtotal' => $this->dn_subtotal,
+                'tax_rate' => $this->dn_tax_rate,
+            ]);
+
+            $this->showDebitNoteForm = false;
+            $this->reset(['dn_invoice_id', 'dn_date', 'dn_reason', 'dn_subtotal', 'dn_tax_rate', 'dn_invoice_ref']);
+            $this->dispatch('notify', type: 'success', message: 'Nota débito creada en borrador.');
+        } catch (\Exception $e) {
+            $this->dispatch('notify', type: 'error', message: $e->getMessage());
+        }
+    }
+
+    public function confirmDebitNote(int $id, DebitNoteService $service): void
+    {
+        try {
+            $service->confirm(DebitNote::with('invoice.third')->findOrFail($id));
+            $this->dispatch('notify', type: 'success', message: 'Nota débito emitida. Asiento contable generado.');
+        } catch (\Exception $e) {
+            $this->dispatch('notify', type: 'error', message: $e->getMessage());
+        }
+    }
+
+    public function annulDebitNote(int $id, DebitNoteService $service): void
+    {
+        try {
+            $service->annul(DebitNote::findOrFail($id));
+            $this->dispatch('notify', type: 'success', message: 'Nota débito anulada. Asiento de reverso generado.');
+        } catch (\Exception $e) {
+            $this->dispatch('notify', type: 'error', message: $e->getMessage());
         }
     }
 
@@ -431,12 +514,18 @@ class Index extends Component
             ->limit(50)
             ->get();
 
+        $debitNotes = DebitNote::with('invoice.third')
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->limit(50)
+            ->get();
+
         $thirds = Third::where('type', '!=', 'proveedor')->where('active', true)->orderBy('name')->get();
         $products = Product::where('active', true)->orderBy('name')->get();
         $statuses = InvoiceStatus::cases();
 
         return view('livewire.tenant.invoices.index', compact(
-            'invoices', 'receipts', 'creditNotes', 'thirds', 'products', 'statuses'
+            'invoices', 'receipts', 'creditNotes', 'debitNotes', 'thirds', 'products', 'statuses'
         ))->title('Facturación');
     }
 }

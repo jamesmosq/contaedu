@@ -9,5 +9,6 @@ class TenantDatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(PucSeeder::class);
+        $this->call(FeResolucionSeeder::class);
     }
 }

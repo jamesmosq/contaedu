@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Tenant\Compras;
 
+use App\Enums\ConceptoRetencion;
 use App\Enums\PurchaseInvoiceStatus;
 use App\Enums\PurchaseOrderStatus;
 use App\Models\Tenant\Payment;
@@ -10,6 +11,7 @@ use App\Models\Tenant\PurchaseInvoice;
 use App\Models\Tenant\PurchaseOrder;
 use App\Models\Tenant\Third;
 use App\Services\PurchaseService;
+use App\Services\RetencionService;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -57,7 +59,24 @@ class Index extends Component
 
     public array $order_lines = [];
 
-    // Pago
+    // ─── Retenciones (formulario de confirmación) ───────────────────────────
+
+    /** Valor del enum ConceptoRetencion (string) o '' para ninguno */
+    public string $retencion_concepto = '';
+
+    public bool $aplicar_reteiva = false;
+
+    /** Porcentaje de Reteica a aplicar (0 = no aplica) */
+    public float $reteica_porcentaje = 0.0;
+
+    /** Resumen calculado de retenciones (se llena al abrir el modal de confirmar) */
+    public array $retencionesSummary = [];
+
+    public bool $showConfirmModal = false;
+
+    public ?int $confirmingInvoiceId = null;
+
+    // ─── Pago ────────────────────────────────────────────────────────────────
     public bool $showPaymentForm = false;
 
     public int $payment_third_id = 0;
@@ -181,7 +200,7 @@ class Index extends Component
         });
 
         $this->resetOrderForm();
-        session()->flash('success', 'Orden de compra guardada.');
+        $this->dispatch('notify', type: 'success', message: 'Orden de compra guardada.');
     }
 
     public function receiveOrder(int $id): void
@@ -189,7 +208,7 @@ class Index extends Component
         $order = PurchaseOrder::with('lines.product', 'third')->findOrFail($id);
 
         if ($order->status !== PurchaseOrderStatus::Pendiente) {
-            session()->flash('error', 'Solo se pueden recibir órdenes pendientes.');
+            $this->dispatch('notify', type: 'error', message: 'Solo se pueden recibir órdenes pendientes.');
 
             return;
         }
@@ -237,7 +256,7 @@ class Index extends Component
         });
 
         $this->view = 'invoices';
-        session()->flash('success', 'Mercancía recibida. Se creó una factura de compra en borrador para ajustar IVA y confirmar.');
+        $this->dispatch('notify', type: 'success', message: 'Mercancía recibida. Se creó una factura de compra en borrador para ajustar IVA y confirmar.');
     }
 
     public function cancelOrder(int $id): void
@@ -367,17 +386,78 @@ class Index extends Component
         });
 
         $this->resetInvoiceForm();
-        session()->flash('success', 'Factura de compra guardada.');
+        $this->dispatch('notify', type: 'success', message: 'Factura de compra guardada.');
     }
 
-    public function confirm(int $id, PurchaseService $service): void
+    /**
+     * Abre el modal de confirmación para una factura de compra.
+     * Pre-carga el tercero para mostrar su régimen en el formulario de retenciones.
+     */
+    public function openConfirm(int $id): void
+    {
+        $this->confirmingInvoiceId = $id;
+        $this->retencion_concepto = '';
+        $this->aplicar_reteiva = false;
+        $this->reteica_porcentaje = 0.0;
+        $this->retencionesSummary = [];
+        $this->showConfirmModal = true;
+    }
+
+    /**
+     * Recalcula el resumen de retenciones en tiempo real cuando el usuario
+     * modifica los campos del modal de confirmación.
+     */
+    public function calcularRetenciones(RetencionService $service): void
+    {
+        if (! $this->confirmingInvoiceId) {
+            return;
+        }
+
+        $invoice = PurchaseInvoice::with('third')->findOrFail($this->confirmingInvoiceId);
+
+        $concepto = $this->retencion_concepto !== ''
+            ? ConceptoRetencion::from($this->retencion_concepto)
+            : null;
+
+        $this->retencionesSummary = $service->calcular(
+            $invoice,
+            $concepto,
+            $this->aplicar_reteiva,
+            (float) $this->reteica_porcentaje,
+        );
+    }
+
+    /**
+     * Confirma la factura aplicando las retenciones calculadas.
+     */
+    public function confirmarConRetenciones(PurchaseService $purchaseService, RetencionService $retencionService): void
     {
         try {
-            $invoice = PurchaseInvoice::with('lines.product', 'third')->findOrFail($id);
-            $service->confirmInvoice($invoice);
-            session()->flash('success', 'Factura confirmada. Asiento de compra generado.');
+            $invoice = PurchaseInvoice::with('lines.product', 'third')->findOrFail($this->confirmingInvoiceId);
+
+            $concepto = $this->retencion_concepto !== ''
+                ? ConceptoRetencion::from($this->retencion_concepto)
+                : null;
+
+            $retenciones = $retencionService->calcular(
+                $invoice,
+                $concepto,
+                $this->aplicar_reteiva,
+                (float) $this->reteica_porcentaje,
+            );
+
+            // Solo pasar retenciones si hay algo que retener
+            $purchaseService->confirmInvoice(
+                $invoice,
+                $retenciones['total_retenciones'] > 0 ? $retenciones : null,
+            );
+
+            $this->showConfirmModal = false;
+            $this->confirmingInvoiceId = null;
+            $this->retencionesSummary = [];
+            $this->dispatch('notify', type: 'success', message: 'Factura confirmada. Asiento de compra generado.');
         } catch (\Exception $e) {
-            session()->flash('error', $e->getMessage());
+            $this->dispatch('notify', type: 'error', message: $e->getMessage());
         }
     }
 
@@ -451,9 +531,9 @@ class Index extends Component
 
             $this->showPaymentForm = false;
             $this->reset(['payment_third_id', 'payment_notes', 'payment_items']);
-            session()->flash('success', 'Pago aplicado y asiento generado.');
+            $this->dispatch('notify', type: 'success', message: 'Pago aplicado y asiento generado.');
         } catch (\Exception $e) {
-            session()->flash('error', $e->getMessage());
+            $this->dispatch('notify', type: 'error', message: $e->getMessage());
         }
     }
 
@@ -478,7 +558,10 @@ class Index extends Component
         $statuses = PurchaseInvoiceStatus::cases();
         $payments = Payment::with('third')->orderByDesc('date')->orderByDesc('id')->limit(50)->get();
 
-        return view('livewire.tenant.compras.index', compact('invoices', 'orders', 'suppliers', 'products', 'statuses', 'payments'))
-            ->title('Compras');
+        $conceptosRetencion = ConceptoRetencion::cases();
+
+        return view('livewire.tenant.compras.index', compact(
+            'invoices', 'orders', 'suppliers', 'products', 'statuses', 'payments', 'conceptosRetencion'
+        ))->title('Compras');
     }
 }

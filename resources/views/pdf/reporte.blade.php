@@ -30,6 +30,7 @@
     <div class="header">
         <div class="company">{{ $config?->razon_social ?? config('app.name') }}</div>
         @if($config?->nit) <div class="subtitle">NIT: {{ $config->nit }}</div> @endif
+        @if($config?->ciiu_code) <div class="subtitle">CIIU {{ $config->ciiu_code }} — {{ $config->ciiu_description }}</div> @endif
         <div class="report-title">{{ $title }}</div>
         @if(!in_array($report, ['cartera','cxp','balance']))
             <div class="period">Período: {{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }} al {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}</div>
@@ -118,6 +119,65 @@
         <div class="utilidad-box {{ $data['utilidad'] < 0 ? 'perdida' : '' }}">
             <strong>{{ $data['utilidad'] >= 0 ? 'UTILIDAD DEL EJERCICIO' : 'PÉRDIDA DEL EJERCICIO' }}: $ {{ number_format(abs($data['utilidad']),0,',','.') }}</strong>
         </div>
+    @endif
+
+    @if($report === 'iva')
+        <table style="margin-bottom:12px; border:1px solid #e2e8f0;">
+            <tbody>
+                <tr>
+                    <td style="padding:6px 10px; font-weight:bold; color:#15803d;">IVA generado (ventas)</td>
+                    <td class="text-right mono" style="padding:6px 10px; color:#15803d;">$ {{ number_format($data['iva_ventas'], 0, ',', '.') }}</td>
+                </tr>
+                <tr style="background:#f8fafc;">
+                    <td style="padding:6px 10px; color:#1d4ed8;">IVA descontable (compras)</td>
+                    <td class="text-right mono" style="padding:6px 10px; color:#1d4ed8;">($ {{ number_format($data['iva_compras'], 0, ',', '.') }})</td>
+                </tr>
+                <tr>
+                    <td style="padding:6px 10px; color:#b45309;">Reteiva practicada (2367)</td>
+                    <td class="text-right mono" style="padding:6px 10px; color:#b45309;">($ {{ number_format($data['reteiva'], 0, ',', '.') }})</td>
+                </tr>
+                <tr style="background:#f8fafc;">
+                    <td style="padding:6px 10px; color:#7c3aed;">Reteica practicada (2368)</td>
+                    <td class="text-right mono" style="padding:6px 10px; color:#7c3aed;">($ {{ number_format($data['reteica'], 0, ',', '.') }})</td>
+                </tr>
+                <tr style="border-top:2px solid #334155;">
+                    @php $saldo = $data['saldo_dian']; @endphp
+                    <td style="padding:6px 10px; font-weight:bold; color:{{ $saldo > 0 ? '#dc2626' : '#15803d' }};">
+                        Saldo {{ $saldo > 0 ? 'a pagar DIAN' : 'a favor' }}
+                    </td>
+                    <td class="text-right mono" style="padding:6px 10px; font-weight:bold; color:{{ $saldo > 0 ? '#dc2626' : '#15803d' }};">
+                        $ {{ number_format(abs($saldo), 0, ',', '.') }}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <div class="section-title">DETALLE DE MOVIMIENTOS</div>
+        <table>
+            <thead>
+                <tr>
+                    <th>Fecha</th>
+                    <th>Referencia</th>
+                    <th>Descripción</th>
+                    <th>Tipo</th>
+                    <th>Cuenta</th>
+                    <th class="text-right">Débito</th>
+                    <th class="text-right">Crédito</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach($data['movimientos'] as $mov)
+                    <tr>
+                        <td class="mono">{{ \Carbon\Carbon::parse($mov['date'])->format('d/m/Y') }}</td>
+                        <td class="mono">{{ $mov['reference'] }}</td>
+                        <td>{{ $mov['description'] }}</td>
+                        <td>{{ $mov['tipo'] }}</td>
+                        <td class="mono">{{ $mov['cuenta'] }}</td>
+                        <td class="text-right mono">{{ $mov['debito'] > 0 ? '$ '.number_format($mov['debito'],0,',','.') : '—' }}</td>
+                        <td class="text-right mono">{{ $mov['credito'] > 0 ? '$ '.number_format($mov['credito'],0,',','.') : '—' }}</td>
+                    </tr>
+                @endforeach
+            </tbody>
+        </table>
     @endif
 
     @if($report === 'balance')

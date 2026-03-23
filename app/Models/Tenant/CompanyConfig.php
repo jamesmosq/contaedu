@@ -12,6 +12,8 @@ class CompanyConfig extends Model
         'nit',
         'razon_social',
         'regimen',
+        'ciiu_code',
+        'ciiu_description',
         'direccion',
         'telefono',
         'email',

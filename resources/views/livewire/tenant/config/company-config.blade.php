@@ -44,6 +44,64 @@
                             <input wire:model="razon_social" type="text" class="block w-full rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500" />
                             @error('razon_social') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
+
+                        {{-- CIIU --}}
+                        <div x-data="{
+                            search: '',
+                            open: false,
+                            codes: {{ $ciiuCodes->map(fn($c) => ['code' => $c->code, 'name' => $c->name, 'label' => $c->code.' — '.Str::limit($c->name, 70)])->toJson() }},
+                            get filtered() {
+                                if (!this.search) return this.codes.slice(0, 10);
+                                const q = this.search.toLowerCase();
+                                return this.codes.filter(c => c.code.includes(q) || c.name.toLowerCase().includes(q)).slice(0, 15);
+                            },
+                            select(code, name) {
+                                $wire.set('ciiu_code', code);
+                                $wire.set('ciiu_description', name);
+                                this.search = code + ' — ' + name.substring(0, 60);
+                                this.open = false;
+                            },
+                            init() {
+                                const current = '{{ $ciiu_code }}';
+                                if (current) {
+                                    const found = this.codes.find(c => c.code === current);
+                                    if (found) this.search = found.code + ' — ' + found.name.substring(0, 60);
+                                }
+                            }
+                        }" class="relative">
+                            <label class="block text-sm font-medium text-slate-700 mb-1">
+                                Código CIIU — Actividad económica
+                                <span class="text-slate-400 font-normal">(opcional)</span>
+                            </label>
+                            <input
+                                type="text"
+                                x-model="search"
+                                @focus="open = true"
+                                @click.outside="open = false"
+                                @input="open = true"
+                                placeholder="Buscar por código o nombre de actividad..."
+                                class="block w-full rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500"
+                            />
+                            <div x-show="open && filtered.length > 0" x-cloak
+                                class="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
+                                <template x-for="item in filtered" :key="item.code">
+                                    <button type="button"
+                                        @click="select(item.code, item.name)"
+                                        class="w-full text-left px-4 py-2 hover:bg-slate-50 text-sm border-b border-slate-50 last:border-0">
+                                        <span class="font-mono text-xs font-bold text-brand-700" x-text="item.code"></span>
+                                        <span class="text-slate-600 ml-2" x-text="item.name.substring(0, 80) + (item.name.length > 80 ? '...' : '')"></span>
+                                    </button>
+                                </template>
+                            </div>
+                            @if($ciiu_code)
+                                <div class="mt-1.5 flex items-center gap-2">
+                                    <span class="px-2 py-0.5 rounded bg-brand-50 text-brand-700 font-mono text-xs font-bold">{{ $ciiu_code }}</span>
+                                    <span class="text-xs text-slate-500">{{ Str::limit($ciiu_description, 90) }}</span>
+                                    <button type="button" wire:click="$set('ciiu_code', '')" class="text-slate-300 hover:text-red-400 text-xs ml-auto">✕ Quitar</button>
+                                </div>
+                            @endif
+                        </div>
+
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1">Teléfono</label>

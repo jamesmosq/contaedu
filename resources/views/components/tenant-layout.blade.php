@@ -9,42 +9,82 @@
 
         <title>{{ config('app.name', 'ContaEdu') }} — {{ $title }}</title>
 
-        <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 
+        <link rel="preconnect" href="https://fonts.googleapis.com">
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+        <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+        @livewireStyles
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="font-sans antialiased bg-slate-50 text-slate-800">
-        <div class="min-h-screen">
-            {{-- Banner de auditoría --}}
-            @if(session('audit_mode'))
-                <div class="bg-amber-500 text-white px-4 py-2 flex items-center justify-between text-sm font-medium">
-                    <div class="flex items-center gap-2">
-                        <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.641 0-8.574-3.007-9.964-7.178Z" />
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
-                        </svg>
-                        <span>Modo auditoría — empresa de <strong>{{ session('audit_student_name') }}</strong> — Solo lectura</span>
-                    </div>
-                    <a href="{{ route('teacher.auditar.stop') }}" class="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-semibold transition">
-                        Salir de auditoría
-                    </a>
-                </div>
-            @endif
+    <body class="font-sans antialiased bg-cream-50 text-slate-800">
 
+        <div class="flex min-h-screen" x-data="{ sidebarOpen: false }">
+
+            {{-- Overlay móvil --}}
+            <div x-show="sidebarOpen"
+                 x-transition:enter="transition-opacity ease-linear duration-200"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="transition-opacity ease-linear duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 @click="sidebarOpen = false"
+                 class="fixed inset-0 z-20 bg-black/50 lg:hidden"
+                 style="display:none"></div>
+
+            {{-- Sidebar --}}
             @include('layouts.tenant-navigation')
 
-            @isset($header)
-                <header class="bg-white border-b border-slate-200">
-                    <div class="max-w-7xl mx-auto py-5 px-4 sm:px-6 lg:px-8">
-                        {{ $header }}
-                    </div>
-                </header>
-            @endisset
+            {{-- Contenido principal --}}
+            <div class="flex-1 flex flex-col min-w-0">
 
-            <main>
-                {{ $slot }}
-            </main>
+                {{-- Banner de auditoría --}}
+                @if(session('audit_mode'))
+                    <div class="bg-amber-500 text-white px-4 py-2 flex items-center justify-between text-sm font-medium shrink-0">
+                        <div class="flex items-center gap-2">
+                            <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.641 0-8.574-3.007-9.964-7.178Z" />
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+                            </svg>
+                            <span>Modo auditoría — empresa de <strong>{{ session('audit_student_name') }}</strong> — Solo lectura</span>
+                        </div>
+                        <a href="{{ route('teacher.auditar.stop') }}" class="px-3 py-1 bg-white/20 hover:bg-white/30 rounded-lg text-xs font-semibold transition">
+                            Salir
+                        </a>
+                    </div>
+                @endif
+
+                {{-- Topbar móvil --}}
+                <div class="lg:hidden flex items-center justify-between px-4 py-3 bg-forest-900 shrink-0">
+                    <span class="font-display text-lg font-bold text-white">Conta<span class="text-gold-400">Edu</span></span>
+                    <button @click="sidebarOpen = true" class="p-2 rounded-lg text-forest-300 hover:text-white hover:bg-forest-800 transition">
+                        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+                        </svg>
+                    </button>
+                </div>
+
+                {{-- Header de página --}}
+                @isset($header)
+                    <header class="bg-white border-b border-cream-200 shadow-card-sm shrink-0">
+                        <div class="px-6 py-4">
+                            {{ $header }}
+                        </div>
+                    </header>
+                @endisset
+
+                {{-- Contenido --}}
+                <main class="flex-1">
+                    {{ $slot }}
+                </main>
+
+            </div>
         </div>
+
+        @livewireScripts
+        @stack('scripts')
     </body>
 </html>

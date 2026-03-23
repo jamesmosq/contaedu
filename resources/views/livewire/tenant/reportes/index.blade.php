@@ -27,10 +27,6 @@
     <div class="py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            @if(session('error'))
-                <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">{{ session('error') }}</div>
-            @endif
-
             {{-- Controles --}}
             <div class="bg-white rounded-xl border border-slate-200 p-5 mb-6">
                 <div class="flex flex-wrap gap-4 items-end">
@@ -44,6 +40,7 @@
                             <option value="comprobacion">Balance de comprobación</option>
                             <option value="resultados">Estado de resultados</option>
                             <option value="balance">Balance general</option>
+                            <option value="iva">Libro auxiliar de IVA</option>
                         </select>
                     </div>
 
@@ -407,6 +404,107 @@
                                 </div>
                             </div>
                         </div>
+                    </div>
+                @endif
+
+                {{-- LIBRO AUXILIAR DE IVA --}}
+                @if($report === 'iva' && is_array($reportData))
+                    {{-- Tarjetas resumen --}}
+                    <div class="grid grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+                        <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">IVA generado</p>
+                            <p class="text-xl font-mono font-bold text-emerald-700">$ {{ number_format($reportData['iva_ventas'], 0, ',', '.') }}</p>
+                            <p class="text-xs text-slate-400 mt-1">Cuenta 2408 CR (ventas)</p>
+                        </div>
+                        <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">IVA descontable</p>
+                            <p class="text-xl font-mono font-bold text-blue-700">$ {{ number_format($reportData['iva_compras'], 0, ',', '.') }}</p>
+                            <p class="text-xs text-slate-400 mt-1">Cuenta 2408 DR (compras)</p>
+                        </div>
+                        <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Reteiva practicada</p>
+                            <p class="text-xl font-mono font-bold text-amber-700">$ {{ number_format($reportData['reteiva'], 0, ',', '.') }}</p>
+                            <p class="text-xs text-slate-400 mt-1">Cuenta 2367</p>
+                        </div>
+                        <div class="bg-white rounded-xl border border-slate-200 p-4 text-center">
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Reteica practicada</p>
+                            <p class="text-xl font-mono font-bold text-purple-700">$ {{ number_format($reportData['reteica'], 0, ',', '.') }}</p>
+                            <p class="text-xs text-slate-400 mt-1">Cuenta 2368</p>
+                        </div>
+                        @php $saldo = $reportData['saldo_dian']; @endphp
+                        <div class="bg-white rounded-xl border-2 {{ $saldo > 0 ? 'border-red-300' : ($saldo < 0 ? 'border-green-300' : 'border-slate-200') }} p-4 text-center">
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Saldo DIAN</p>
+                            <p class="text-xl font-mono font-bold {{ $saldo > 0 ? 'text-red-700' : ($saldo < 0 ? 'text-green-700' : 'text-slate-600') }}">
+                                $ {{ number_format(abs($saldo), 0, ',', '.') }}
+                            </p>
+                            <p class="text-xs font-semibold mt-1 {{ $saldo > 0 ? 'text-red-500' : ($saldo < 0 ? 'text-green-600' : 'text-slate-400') }}">
+                                {{ $saldo > 0 ? 'A pagar' : ($saldo < 0 ? 'Saldo a favor' : 'En cero') }}
+                            </p>
+                        </div>
+                    </div>
+
+                    {{-- Tabla de movimientos --}}
+                    <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                        <div class="px-6 py-4 border-b border-slate-100">
+                            <h3 class="font-semibold text-slate-800">Movimientos de IVA</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">
+                                Período: {{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }} — {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}
+                            </p>
+                        </div>
+                        <table class="w-full text-sm">
+                            <thead class="bg-slate-50 border-b border-slate-100">
+                                <tr>
+                                    <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Fecha</th>
+                                    <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Referencia</th>
+                                    <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Descripción</th>
+                                    <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Tipo</th>
+                                    <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Cuenta</th>
+                                    <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Débito</th>
+                                    <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase">Crédito</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @forelse($reportData['movimientos'] as $mov)
+                                    @php
+                                        $rowColor = match(true) {
+                                            str_contains($mov['tipo'], 'generado')    => 'bg-emerald-50/40',
+                                            str_contains($mov['tipo'], 'descontable') => 'bg-blue-50/40',
+                                            str_contains($mov['tipo'], 'Reteiva')     => 'bg-amber-50/40',
+                                            str_contains($mov['tipo'], 'Reteica')     => 'bg-purple-50/40',
+                                            default                                   => '',
+                                        };
+                                    @endphp
+                                    <tr class="{{ $rowColor }} hover:bg-slate-50">
+                                        <td class="px-4 py-2 text-slate-500 whitespace-nowrap">{{ \Carbon\Carbon::parse($mov['date'])->format('d/m/Y') }}</td>
+                                        <td class="px-4 py-2 font-mono text-xs text-slate-600">{{ $mov['reference'] }}</td>
+                                        <td class="px-4 py-2 text-slate-600 text-xs">{{ $mov['description'] }}</td>
+                                        <td class="px-4 py-2">
+                                            <span class="px-2 py-0.5 rounded text-xs font-medium
+                                                @if(str_contains($mov['tipo'], 'generado')) bg-emerald-100 text-emerald-700
+                                                @elseif(str_contains($mov['tipo'], 'descontable')) bg-blue-100 text-blue-700
+                                                @elseif(str_contains($mov['tipo'], 'Reteiva')) bg-amber-100 text-amber-700
+                                                @elseif(str_contains($mov['tipo'], 'Reteica')) bg-purple-100 text-purple-700
+                                                @else bg-slate-100 text-slate-600 @endif">
+                                                {{ $mov['tipo'] }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-2 font-mono text-xs text-slate-500">{{ $mov['cuenta'] }}</td>
+                                        <td class="px-4 py-2 text-right font-mono text-sm {{ $mov['debito'] > 0 ? 'text-slate-800' : 'text-slate-300' }}">
+                                            {{ $mov['debito'] > 0 ? '$ '.number_format($mov['debito'], 0, ',', '.') : '—' }}
+                                        </td>
+                                        <td class="px-4 py-2 text-right font-mono text-sm {{ $mov['credito'] > 0 ? 'text-slate-800' : 'text-slate-300' }}">
+                                            {{ $mov['credito'] > 0 ? '$ '.number_format($mov['credito'], 0, ',', '.') : '—' }}
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="7" class="px-6 py-10 text-center text-slate-400">
+                                            No hay movimientos de IVA en el período seleccionado.
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
                     </div>
                 @endif
 

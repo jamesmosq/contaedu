@@ -3,13 +3,20 @@
 use App\Http\Controllers\Student\AuthController as StudentAuth;
 use App\Http\Controllers\Teacher\AuditController;
 use App\Http\Controllers\Teacher\BulkTemplateController;
+use App\Http\Controllers\Tenant\ActivosFijosPdfController;
+use App\Http\Controllers\Tenant\ConciliacionPdfController;
 use App\Http\Controllers\Tenant\DashboardController as TenantDashboard;
+use App\Http\Controllers\Tenant\FacturacionElectronica\FacturacionElectronicaController;
+use App\Http\Controllers\Tenant\FacturacionElectronica\FeResolucionController;
 use App\Http\Controllers\Tenant\ReportPdfController;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Teacher\Comparativo as TeacherComparativo;
 use App\Livewire\Teacher\Dashboard as TeacherDashboard;
 use App\Livewire\Teacher\Rubrica as TeacherRubrica;
+use App\Livewire\Tenant\ActivosFijos\Index as ActivosFijosIndex;
+use App\Livewire\Tenant\Calendario\Index as CalendarioIndex;
 use App\Livewire\Tenant\Compras\Index as ComprasIndex;
+use App\Livewire\Tenant\Conciliacion\Index as ConciliacionIndex;
 use App\Livewire\Tenant\Config\CompanyConfig;
 use App\Livewire\Tenant\Invoices\Index as InvoicesIndex;
 use App\Livewire\Tenant\PlanDeCuentas;
@@ -20,6 +27,18 @@ use Illuminate\Support\Facades\Route;
 
 // ─── Página principal ──────────────────────────────────────────────────────
 Route::get('/', function () {
+    if (auth('student')->check()) {
+        return redirect()->route('student.dashboard');
+    }
+
+    if (auth('web')->check()) {
+        $user = auth('web')->user();
+
+        return $user->role === 'superadmin'
+            ? redirect()->route('admin.dashboard')
+            : redirect()->route('teacher.dashboard');
+    }
+
     return view('welcome');
 });
 
@@ -53,6 +72,11 @@ Route::middleware(['auth', 'role:teacher'])->prefix('docente')->name('teacher.')
         Route::get('/compras', ComprasIndex::class)->name('compras');
         Route::get('/reportes', ReportesIndex::class)->name('reportes');
         Route::get('/reportes/pdf', ReportPdfController::class)->name('reportes.pdf');
+        Route::get('/calendario-tributario', CalendarioIndex::class)->name('calendario');
+        Route::get('/activos-fijos', ActivosFijosIndex::class)->name('activos-fijos');
+        Route::get('/activos-fijos/pdf', ActivosFijosPdfController::class)->name('activos-fijos.pdf');
+        Route::get('/conciliacion-bancaria', ConciliacionIndex::class)->name('conciliacion');
+        Route::get('/conciliacion-bancaria/pdf', ConciliacionPdfController::class)->name('conciliacion.pdf');
     });
 });
 
@@ -88,4 +112,25 @@ Route::middleware(['auth:student', 'tenant.initialize'])
         // Fase 5 — Reportes contables
         Route::get('/reportes', ReportesIndex::class)->name('reportes');
         Route::get('/reportes/pdf', ReportPdfController::class)->name('reportes.pdf');
+        Route::get('/calendario-tributario', CalendarioIndex::class)->name('calendario');
+        Route::get('/activos-fijos', ActivosFijosIndex::class)->name('activos-fijos');
+        Route::get('/activos-fijos/pdf', ActivosFijosPdfController::class)->name('activos-fijos.pdf');
+        Route::get('/conciliacion-bancaria', ConciliacionIndex::class)->name('conciliacion');
+        Route::get('/conciliacion-bancaria/pdf', ConciliacionPdfController::class)->name('conciliacion.pdf');
+
+        // Fase 6 — Facturación Electrónica Simulada
+        Route::prefix('facturacion-electronica')->name('fe.')->group(function () {
+            Route::get('/', [FacturacionElectronicaController::class, 'index'])->name('index');
+            Route::get('/crear', [FacturacionElectronicaController::class, 'crear'])->name('crear');
+            Route::post('/', [FacturacionElectronicaController::class, 'store'])->name('store');
+            // Resoluciones primero para evitar conflicto con el wildcard /{factura}
+            Route::resource('resoluciones', FeResolucionController::class)->except('destroy')->parameters(['resoluciones' => 'resolucion']);
+            Route::get('/{factura}', [FacturacionElectronicaController::class, 'show'])->name('show');
+            Route::post('/{factura}/emitir', [FacturacionElectronicaController::class, 'emitir'])->name('emitir');
+            Route::post('/{factura}/reenviar', [FacturacionElectronicaController::class, 'reenviar'])->name('reenviar');
+            Route::post('/{factura}/anular', [FacturacionElectronicaController::class, 'anular'])->name('anular');
+            Route::get('/{factura}/xml', [FacturacionElectronicaController::class, 'verXml'])->name('xml');
+            Route::get('/{factura}/representacion', [FacturacionElectronicaController::class, 'representacion'])->name('representacion');
+            Route::post('/{factura}/eventos', [FacturacionElectronicaController::class, 'registrarEvento'])->name('eventos.store');
+        });
     });

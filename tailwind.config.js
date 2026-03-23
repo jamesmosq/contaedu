@@ -1,5 +1,5 @@
-import defaultTheme from 'tailwindcss/defaultTheme';
-import forms from '@tailwindcss/forms';
+import defaultTheme from 'tailwindcss/defaultTheme'
+import forms from '@tailwindcss/forms'
 
 /** @type {import('tailwindcss').Config} */
 export default {
@@ -7,42 +7,95 @@ export default {
         './vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php',
         './storage/framework/views/*.php',
         './resources/views/**/*.blade.php',
+        './resources/js/**/*.js',
     ],
 
     theme: {
         extend: {
             fontFamily: {
-                sans: ['Figtree', ...defaultTheme.fontFamily.sans],
+                sans:    ['Plus Jakarta Sans', ...defaultTheme.fontFamily.sans],
+                display: ['Playfair Display', ...defaultTheme.fontFamily.serif],
             },
+
             colors: {
+                // ── brand → Verde forestal (alias del sistema de diseño) ──
                 brand: {
-                    50:  '#eff6ff',
-                    100: '#dbeafe',
-                    200: '#bfdbfe',
-                    300: '#93c5fd',
-                    400: '#60a5fa',
-                    500: '#3b82f6',
-                    600: '#2563eb',
-                    700: '#1d4ed8',
-                    800: '#1e40af',
-                    900: '#1e3a8a',
-                    950: '#172554',
+                    50:  '#edf8f2',
+                    100: '#d4f0e1',
+                    200: '#a7dfc0',
+                    300: '#71c99c',
+                    400: '#3db872',
+                    500: '#279558',
+                    600: '#1e7d47',
+                    700: '#165e36',
+                    800: '#10472a',
+                    900: '#0a2e1a',
+                    950: '#051a0f',
                 },
+
+                // ── accent → Dorado (alias del sistema de diseño) ──
                 accent: {
-                    50:  '#ecfdf5',
-                    100: '#d1fae5',
-                    200: '#a7f3d0',
-                    300: '#6ee7b7',
-                    400: '#34d399',
-                    500: '#10b981',
-                    600: '#059669',
-                    700: '#047857',
-                    800: '#065f46',
-                    900: '#064e3b',
+                    50:  '#fffcf0',
+                    100: '#fdf3d0',
+                    200: '#fae89a',
+                    300: '#f0cc5a',
+                    400: '#e8b828',
+                    500: '#d4a017',
+                    600: '#b8860b',
+                    700: '#956808',
+                    800: '#6e4c06',
+                    900: '#4a3204',
                 },
+
+                // ── forest — token semántico primario ──
+                forest: {
+                    950: '#051a0f',
+                    900: '#0a2e1a',
+                    800: '#10472a',
+                    700: '#165e36',
+                    600: '#1e7d47',
+                    500: '#279558',
+                    400: '#3db872',
+                    300: '#71c99c',
+                    200: '#a7dfc0',
+                    100: '#d4f0e1',
+                    50:  '#edf8f2',
+                },
+
+                // ── gold — acento ──
+                gold: {
+                    600: '#b8860b',
+                    500: '#d4a017',
+                    400: '#e8b828',
+                    300: '#f0cc5a',
+                    100: '#fdf3d0',
+                    50:  '#fffcf0',
+                },
+
+                // ── cream — fondos neutros cálidos ──
+                cream: {
+                    300: '#d5d2c3',
+                    200: '#e8e6dc',
+                    100: '#f3f2ec',
+                    50:  '#fafaf7',
+                },
+            },
+
+            borderRadius: {
+                xl:  '14px',
+                '2xl': '20px',
+                '3xl': '28px',
+                '4xl': '36px',
+            },
+
+            boxShadow: {
+                'card-sm': '0 1px 4px rgba(10,46,26,.07)',
+                'card':    '0 4px 20px rgba(10,46,26,.10)',
+                'card-lg': '0 12px 48px rgba(10,46,26,.15)',
+                'gold':    '0 4px 20px rgba(212,160,23,.35)',
             },
         },
     },
 
     plugins: [forms],
-};
+}

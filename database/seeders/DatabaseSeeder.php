@@ -80,10 +80,13 @@ class DatabaseSeeder extends Seeder
                 'company_name' => $student['company_name'],
                 'nit_empresa' => $student['nit_empresa'],
                 'password' => Hash::make('password'),
-                'tenancy_db_name' => 'tenant_' . $student['id'],
+                'tenancy_db_name' => 'tenant_'.$student['id'],
                 'active' => true,
             ]);
         }
+
+        // Códigos CIIU colombianos (tabla central)
+        $this->call(CiiuSeeder::class);
 
         // Sembrar datos demo completos en cada empresa (ciclo contable completo)
         $this->call(DemoDataSeeder::class);

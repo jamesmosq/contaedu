@@ -26,6 +26,22 @@ return Application::configure(basePath: dirname(__DIR__))
             'role' => CheckRole::class,
         ]);
 
+        // Redirigir usuarios ya autenticados que visiten rutas "guest"
+        $middleware->redirectUsersTo(function (Request $request) {
+            if (auth()->guard('student')->check()) {
+                return route('student.dashboard');
+            }
+
+            $user = auth()->guard('web')->user();
+            if ($user) {
+                return $user->role === 'superadmin'
+                    ? route('admin.dashboard')
+                    : route('teacher.dashboard');
+            }
+
+            return route('login');
+        });
+
         // Run tenancy initialization on every web request (including Livewire AJAX updates)
         $middleware->appendToGroup('web', InitializeTenancyByStudent::class);
     })

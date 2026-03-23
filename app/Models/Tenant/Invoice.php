@@ -2,6 +2,7 @@
 
 namespace App\Models\Tenant;
 
+use App\Enums\DebitNoteStatus;
 use App\Enums\InvoiceStatus;
 use App\Enums\InvoiceType;
 use Illuminate\Database\Eloquent\Model;
@@ -53,6 +54,11 @@ class Invoice extends Model
         return $this->hasMany(CreditNote::class);
     }
 
+    public function debitNotes(): HasMany
+    {
+        return $this->hasMany(DebitNote::class);
+    }
+
     public function amountReceived(): float
     {
         return (float) $this->cashReceiptItems()->sum('amount_applied');
@@ -63,9 +69,17 @@ class Invoice extends Model
         return (float) $this->creditNotes()->whereNot('status', 'anulada')->sum('total');
     }
 
+    /**
+     * Suma de notas débito emitidas (aumentan lo que el cliente debe).
+     */
+    public function amountDebited(): float
+    {
+        return (float) $this->debitNotes()->where('status', DebitNoteStatus::Emitida->value)->sum('amount');
+    }
+
     public function balance(): float
     {
-        return max(0, $this->total - $this->amountReceived() - $this->amountCredited());
+        return max(0, $this->total + $this->amountDebited() - $this->amountReceived() - $this->amountCredited());
     }
 
     public function isBorrador(): bool

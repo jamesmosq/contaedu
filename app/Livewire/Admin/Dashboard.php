@@ -4,31 +4,41 @@ namespace App\Livewire\Admin;
 
 use App\Models\Central\Group;
 use App\Models\Central\Institution;
+use App\Models\Central\Tenant;
 use App\Models\User;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
-#[Layout('layouts.app')]
+#[Layout('layouts.admin')]
 class Dashboard extends Component
 {
     // ── Tab activa ──────────────────────────────────────────────────────────
-    public string $tab = 'instituciones';
+    public string $tab = 'resumen';
 
     // ── Institución ─────────────────────────────────────────────────────────
-    public bool   $showInstForm  = false;
-    public ?int   $instEditingId = null;
-    public string $instName      = '';
-    public string $instNit       = '';
-    public string $instCity      = '';
+    public bool $showInstForm = false;
+
+    public ?int $instEditingId = null;
+
+    public string $instName = '';
+
+    public string $instNit = '';
+
+    public string $instCity = '';
 
     // ── Docente ─────────────────────────────────────────────────────────────
-    public bool   $showTeacherForm  = false;
-    public ?int   $teacherEditingId = null;
-    public string $teacherName      = '';
-    public string $teacherEmail     = '';
-    public string $teacherPassword  = '';
-    public int    $teacherInstitution = 0; // para crear grupo automático
+    public bool $showTeacherForm = false;
+
+    public ?int $teacherEditingId = null;
+
+    public string $teacherName = '';
+
+    public string $teacherEmail = '';
+
+    public string $teacherPassword = '';
+
+    public int $teacherInstitution = 0;
 
     // ── Institución CRUD ────────────────────────────────────────────────────
 
@@ -42,17 +52,17 @@ class Dashboard extends Component
     {
         $inst = Institution::findOrFail($id);
         $this->instEditingId = $id;
-        $this->instName      = $inst->name;
-        $this->instNit       = $inst->nit ?? '';
-        $this->instCity      = $inst->city ?? '';
-        $this->showInstForm  = true;
+        $this->instName = $inst->name;
+        $this->instNit = $inst->nit ?? '';
+        $this->instCity = $inst->city ?? '';
+        $this->showInstForm = true;
     }
 
     public function saveInst(): void
     {
         $this->validate([
             'instName' => ['required', 'string', 'max:150'],
-            'instNit'  => ['nullable', 'string', 'max:20'],
+            'instNit' => ['nullable', 'string', 'max:20'],
             'instCity' => ['nullable', 'string', 'max:100'],
         ]);
 
@@ -66,12 +76,13 @@ class Dashboard extends Component
 
         $this->showInstForm = false;
         $this->reset(['instEditingId', 'instName', 'instNit', 'instCity']);
-        session()->flash('success', 'Institución guardada.');
+        $this->dispatch('notify', type: 'success', message: 'Institución guardada.');
     }
 
     public function deleteInst(int $id): void
     {
         Institution::findOrFail($id)->delete();
+        $this->dispatch('notify', type: 'success', message: 'Institución eliminada.');
     }
 
     // ── Docente CRUD ────────────────────────────────────────────────────────
@@ -86,21 +97,21 @@ class Dashboard extends Component
     {
         $teacher = User::findOrFail($id);
         $this->teacherEditingId = $id;
-        $this->teacherName      = $teacher->name;
-        $this->teacherEmail     = $teacher->email;
-        $this->teacherPassword  = '';
-        $this->showTeacherForm  = true;
+        $this->teacherName = $teacher->name;
+        $this->teacherEmail = $teacher->email;
+        $this->teacherPassword = '';
+        $this->showTeacherForm = true;
     }
 
     public function saveTeacher(): void
     {
         $rules = [
-            'teacherName'  => ['required', 'string', 'max:150'],
+            'teacherName' => ['required', 'string', 'max:150'],
             'teacherEmail' => ['required', 'email', 'max:150'],
         ];
 
         if (! $this->teacherEditingId) {
-            $rules['teacherPassword']    = ['required', 'string', 'min:6'];
+            $rules['teacherPassword'] = ['required', 'string', 'min:6'];
             $rules['teacherInstitution'] = ['required', 'integer', 'min:1'];
         } elseif ($this->teacherPassword) {
             $rules['teacherPassword'] = ['string', 'min:6'];
@@ -113,44 +124,57 @@ class Dashboard extends Component
         if ($this->teacherEditingId) {
             $teacher = User::findOrFail($this->teacherEditingId);
             $teacher->update(array_filter([
-                'name'     => $this->teacherName,
-                'email'    => $this->teacherEmail,
+                'name' => $this->teacherName,
+                'email' => $this->teacherEmail,
                 'password' => $this->teacherPassword ? Hash::make($this->teacherPassword) : null,
             ]));
         } else {
             $teacher = User::create([
-                'name'     => $this->teacherName,
-                'email'    => $this->teacherEmail,
+                'name' => $this->teacherName,
+                'email' => $this->teacherEmail,
                 'password' => Hash::make($this->teacherPassword),
-                'role'     => 'teacher',
+                'role' => 'teacher',
             ]);
 
-            // Crear grupo por defecto para este docente
             Group::create([
                 'institution_id' => $this->teacherInstitution,
-                'teacher_id'     => $teacher->id,
-                'name'           => 'Grupo ' . date('Y'),
-                'period'         => date('Y') . '-1',
-                'active'         => true,
+                'teacher_id' => $teacher->id,
+                'name' => 'Grupo '.date('Y'),
+                'period' => date('Y').'-1',
+                'active' => true,
             ]);
         }
 
         $this->showTeacherForm = false;
         $this->reset(['teacherEditingId', 'teacherName', 'teacherEmail', 'teacherPassword', 'teacherInstitution']);
-        session()->flash('success', 'Docente guardado.');
+        $this->dispatch('notify', type: 'success', message: 'Docente guardado.');
     }
 
     public function deleteTeacher(int $id): void
     {
         User::where('id', $id)->where('role', 'teacher')->delete();
+        $this->dispatch('notify', type: 'success', message: 'Docente eliminado.');
     }
 
     public function render(): mixed
     {
-        $institutions = Institution::withCount('groups')->orderBy('name')->get();
-        $teachers     = User::where('role', 'teacher')->with('teacherGroups.institution')->orderBy('name')->get();
+        $institutions = Institution::withCount(['groups', 'groups as students_count' => fn ($q) => $q->join('tenants', 'tenants.group_id', '=', 'groups.id')])->orderBy('name')->get();
+        $teachers = User::where('role', 'teacher')->with('teacherGroups.institution')->withCount(['teacherGroups as students_count' => fn ($q) => $q->join('tenants', 'tenants.group_id', '=', 'groups.id')])->orderBy('name')->get();
+        $tenants = Tenant::with('group.institution')->orderByDesc('created_at')->get();
+        $groups = Group::with(['institution', 'teacher'])->withCount('tenants')->orderBy('name')->get();
 
-        return view('livewire.admin.dashboard', compact('institutions', 'teachers'))
-            ->title('Superadmin');
+        $stats = [
+            'instituciones' => $institutions->count(),
+            'docentes' => $teachers->count(),
+            'estudiantes' => $tenants->count(),
+            'grupos' => $groups->count(),
+            'activos' => $tenants->where('active', true)->count(),
+        ];
+
+        $recentTenants = $tenants->take(8);
+
+        return view('livewire.admin.dashboard', compact(
+            'institutions', 'teachers', 'tenants', 'groups', 'stats', 'recentTenants'
+        ))->title('Superadmin — ContaEdu');
     }
 }

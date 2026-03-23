@@ -1,33 +1,21 @@
 <div>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <div>
-                <h2 class="text-xl font-bold text-slate-800">Facturación</h2>
-                <p class="text-sm text-slate-500 mt-0.5">Facturas de venta, recibos de caja y notas de crédito</p>
-            </div>
-            @if(!session('audit_mode') && $activeTab === 'facturas')
-                <button wire:click="openCreate" class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">
-                    + Nueva factura
-                </button>
-            @endif
-        </div>
+        <h2 class="text-xl font-bold text-slate-800">Facturación</h2>
+        <p class="text-sm text-slate-500 mt-0.5">Facturas de venta, recibos de caja y notas de crédito</p>
     </x-slot>
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            {{-- Flash messages --}}
-            @if(session('success'))
-                <div class="mb-4 p-4 bg-accent-50 border border-accent-200 rounded-xl text-accent-700 text-sm flex items-center gap-2">
-                    <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-                    {{ session('success') }}
-                </div>
-            @endif
-            @if(session('error'))
-                <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">{{ session('error') }}</div>
+            {{-- Barra de acción + tabs --}}
+            @if(!session('audit_mode') && $activeTab === 'facturas')
+            <div class="flex justify-end mb-4">
+                <button wire:click="openCreate" class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">
+                    + Nueva factura
+                </button>
+            </div>
             @endif
 
-            {{-- Tabs --}}
             <div class="flex gap-1 mb-6 border-b border-slate-200">
                 <button wire:click="$set('activeTab','facturas')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'facturas' ? 'border-b-2 border-brand-700 text-brand-800' : 'text-slate-500 hover:text-slate-700' }}">
                     Facturas de venta
@@ -37,6 +25,9 @@
                 </button>
                 <button wire:click="$set('activeTab','notas')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'notas' ? 'border-b-2 border-brand-700 text-brand-800' : 'text-slate-500 hover:text-slate-700' }}">
                     Notas de crédito
+                </button>
+                <button wire:click="$set('activeTab','notas_debito')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'notas_debito' ? 'border-b-2 border-brand-700 text-brand-800' : 'text-slate-500 hover:text-slate-700' }}">
+                    Notas débito
                 </button>
             </div>
 
@@ -361,14 +352,15 @@
                                             <div class="flex items-center justify-end gap-3">
                                                 @if($invoice->isBorrador())
                                                     <button wire:click="openEdit({{ $invoice->id }})" class="text-xs text-brand-600 hover:text-brand-800 font-medium">Editar</button>
-                                                    <button wire:click="confirm({{ $invoice->id }})" wire:confirm="¿Confirmar esta factura? Se generará el asiento contable." class="text-xs text-accent-600 hover:text-accent-800 font-medium">Confirmar</button>
-                                                    <button wire:click="delete({{ $invoice->id }})" wire:confirm="¿Eliminar este borrador?" class="text-xs text-red-500 hover:text-red-700 font-medium">Eliminar</button>
+                                                    <button x-on:click="confirmAction('¿Confirmar esta factura? Se generará el asiento contable.', () => $wire.confirm({{ $invoice->id }}), {confirmText: 'Sí, confirmar'})" class="text-xs text-accent-600 hover:text-accent-800 font-medium">Confirmar</button>
+                                                    <button x-on:click="confirmAction('¿Eliminar este borrador?', () => $wire.delete({{ $invoice->id }}), {danger: true, confirmText: 'Sí, eliminar'})" class="text-xs text-red-500 hover:text-red-700 font-medium">Eliminar</button>
                                                 @elseif($invoice->isEmitida())
                                                     @if($invoice->balance() > 0)
                                                         <button wire:click="openReceipt({{ $invoice->id }})" class="text-xs text-accent-600 hover:text-accent-800 font-medium">Cobrar</button>
                                                         <button wire:click="openCreditNote({{ $invoice->id }})" class="text-xs text-orange-600 hover:text-orange-800 font-medium">Nota crédito</button>
+                                                        <button wire:click="openDebitNote({{ $invoice->id }})" class="text-xs text-rose-600 hover:text-rose-800 font-medium">Nota débito</button>
                                                     @endif
-                                                    <button wire:click="annul({{ $invoice->id }})" wire:confirm="¿Anular esta factura? Se generará un asiento de reverso." class="text-xs text-red-500 hover:text-red-700 font-medium">Anular</button>
+                                                    <button x-on:click="confirmAction('¿Anular esta factura? Se generará un asiento de reverso.', () => $wire.annul({{ $invoice->id }}), {danger: true, confirmText: 'Sí, anular'})" class="text-xs text-red-500 hover:text-red-700 font-medium">Anular</button>
                                                 @endif
                                             </div>
                                         @endif
@@ -462,6 +454,172 @@
                 </div>
             @endif
 
+            {{-- ══════════════════════════════════ TAB: NOTAS DÉBITO ══════════════════════════════════ --}}
+            @if($activeTab === 'notas_debito')
+                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-slate-50 border-b border-slate-100">
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Referencia</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Fecha</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Factura origen</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Cliente</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Razón</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Subtotal</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">IVA</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total ND</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Estado</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($debitNotes as $dn)
+                                <tr wire:key="dn-{{ $dn->id }}" class="hover:bg-slate-50">
+                                    <td class="px-6 py-3 font-mono text-xs font-bold text-slate-700">{{ $dn->fullReference() }}</td>
+                                    <td class="px-6 py-3 text-slate-600">{{ $dn->date->format('d/m/Y') }}</td>
+                                    <td class="px-6 py-3 font-mono text-xs text-slate-600">{{ $dn->invoice->fullReference() }}</td>
+                                    <td class="px-6 py-3 text-slate-700">{{ $dn->invoice->third->name }}</td>
+                                    <td class="px-6 py-3 text-slate-600 text-xs">{{ $dn->reason }}</td>
+                                    <td class="px-6 py-3 text-right font-mono text-sm text-slate-700">$ {{ number_format($dn->subtotal, 0, ',', '.') }}</td>
+                                    <td class="px-6 py-3 text-right font-mono text-sm text-slate-700">$ {{ number_format($dn->tax_amount, 0, ',', '.') }}</td>
+                                    <td class="px-6 py-3 text-right font-mono text-sm font-semibold text-rose-700">$ {{ number_format($dn->amount, 0, ',', '.') }}</td>
+                                    <td class="px-6 py-3">
+                                        @php $color = $dn->status->color(); @endphp
+                                        <span class="px-2 py-0.5 rounded text-xs font-medium bg-{{ $color }}-50 text-{{ $color }}-700">
+                                            {{ $dn->status->label() }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-3">
+                                        <div class="flex items-center gap-2">
+                                            @if($dn->isBorrador())
+                                                <button wire:click="confirmDebitNote({{ $dn->id }})"
+                                                    wire:confirm="¿Confirmar la nota débito? Se generará el asiento contable."
+                                                    class="text-xs px-2 py-1 rounded bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition">
+                                                    Confirmar
+                                                </button>
+                                            @endif
+                                            @if($dn->isEmitida())
+                                                <button wire:click="annulDebitNote({{ $dn->id }})"
+                                                    wire:confirm="¿Anular esta nota débito? Se generará un asiento de reverso."
+                                                    class="text-xs px-2 py-1 rounded bg-red-50 text-red-700 hover:bg-red-100 transition">
+                                                    Anular
+                                                </button>
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="10" class="px-6 py-10 text-center text-slate-400">
+                                        No hay notas débito. Ve a <button wire:click="$set('activeTab','facturas')" class="text-brand-600 hover:underline">Facturas</button> y usa "Nota débito" en una factura emitida.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+
         </div>
     </div>
+
+    {{-- ══════════════════════════════════ MODAL: NUEVA NOTA DÉBITO ══════════════════════════════════ --}}
+    @if($showDebitNoteForm)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-lg mx-4 p-8">
+                <div class="flex items-center justify-between mb-6">
+                    <h2 class="text-xl font-bold text-slate-800">Nueva Nota Débito</h2>
+                    <button wire:click="$set('showDebitNoteForm', false)" class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+                </div>
+
+                {{-- Factura de referencia --}}
+                <div class="mb-4 p-3 bg-rose-50 rounded-lg border border-rose-100">
+                    <p class="text-xs text-rose-600 font-medium uppercase tracking-wide mb-1">Factura origen</p>
+                    <p class="text-sm font-semibold text-rose-800">{{ $dn_invoice_ref }}</p>
+                </div>
+
+                <div class="space-y-4">
+                    {{-- Fecha --}}
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Fecha</label>
+                        <input type="date" wire:model="dn_date"
+                            class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                        @error('dn_date') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    {{-- Razón --}}
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Razón / Descripción</label>
+                        <textarea wire:model="dn_reason" rows="2"
+                            placeholder="Ej: Ajuste por diferencia en precio pactado, intereses de mora..."
+                            class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
+                        @error('dn_reason') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                    </div>
+
+                    {{-- Subtotal + IVA --}}
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Subtotal (sin IVA)</label>
+                            <input type="number" wire:model="dn_subtotal" min="0.01" step="0.01"
+                                placeholder="0.00"
+                                class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            @error('dn_subtotal') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Tarifa IVA</label>
+                            <select wire:model="dn_tax_rate"
+                                class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                <option value="0">0% — Excluido / Exento</option>
+                                <option value="5">5%</option>
+                                <option value="19">19% — General</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {{-- Preview total --}}
+                    @php
+                        $previewIva   = round((float) $dn_subtotal * ((int) $dn_tax_rate / 100), 2);
+                        $previewTotal = (float) $dn_subtotal + $previewIva;
+                    @endphp
+                    @if($dn_subtotal > 0)
+                        <div class="bg-rose-50 rounded-lg p-3 border border-rose-100 text-sm space-y-1">
+                            <div class="flex justify-between text-slate-600">
+                                <span>Subtotal</span>
+                                <span class="font-mono">$ {{ number_format($dn_subtotal, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="flex justify-between text-slate-600">
+                                <span>IVA ({{ $dn_tax_rate }}%)</span>
+                                <span class="font-mono">$ {{ number_format($previewIva, 0, ',', '.') }}</span>
+                            </div>
+                            <div class="flex justify-between font-bold text-rose-800 border-t border-rose-200 pt-1 mt-1">
+                                <span>Total nota débito</span>
+                                <span class="font-mono">$ {{ number_format($previewTotal, 0, ',', '.') }}</span>
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Nota educativa --}}
+                    <div class="bg-amber-50 rounded-lg p-3 border border-amber-100">
+                        <p class="text-xs text-amber-700">
+                            <strong>Nota contable:</strong> Al confirmar la nota débito se genera el asiento:
+                            <br>Débito 1305 Cuentas por cobrar — Crédito 4135 Ingresos + Crédito 2408 IVA por pagar.
+                            Esto incrementa la deuda del cliente.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3 mt-6">
+                    <button wire:click="$set('showDebitNoteForm', false)"
+                        class="px-4 py-2 text-sm rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">
+                        Cancelar
+                    </button>
+                    <button wire:click="saveDebitNote"
+                        class="px-5 py-2 text-sm rounded-lg bg-rose-600 text-white font-semibold hover:bg-rose-700 transition">
+                        Guardar borrador
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
 </div>

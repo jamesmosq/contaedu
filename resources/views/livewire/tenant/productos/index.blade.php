@@ -1,25 +1,21 @@
 <div>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <div>
-                <h2 class="text-xl font-bold text-slate-800">Productos</h2>
-                <p class="text-sm text-slate-500 mt-0.5">Inventario con cuentas contables vinculadas</p>
-            </div>
-            @if(!session('audit_mode'))
-            <button wire:click="openCreate" class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">
-                + Nuevo producto
-            </button>
-            @endif
-        </div>
+        <h2 class="text-xl font-bold text-slate-800">Productos</h2>
+        <p class="text-sm text-slate-500 mt-0.5">Inventario con cuentas contables vinculadas</p>
     </x-slot>
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            {{-- Buscador --}}
-            <div class="mb-5">
+            {{-- Buscador + acción --}}
+            <div class="flex items-center justify-between mb-5">
                 <input wire:model.live.debounce.300ms="search" type="text" placeholder="Buscar producto..."
                     class="w-72 rounded-lg border-slate-200 text-sm shadow-sm focus:ring-brand-500 focus:border-brand-500" />
+                @if(!session('audit_mode'))
+                <button wire:click="openCreate" class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">
+                    + Nuevo producto
+                </button>
+                @endif
             </div>
 
             {{-- Modal --}}
@@ -149,7 +145,7 @@
                                     @if(!session('audit_mode'))
                                     <div class="flex items-center justify-end gap-3">
                                         <button wire:click="openEdit({{ $product->id }})" class="text-xs text-brand-600 hover:text-brand-800 font-medium transition">Editar</button>
-                                        <button wire:click="delete({{ $product->id }})" wire:confirm="¿Eliminar este producto?" class="text-xs text-red-500 hover:text-red-700 font-medium transition">Eliminar</button>
+                                        <button x-on:click="confirmAction('¿Eliminar este producto?', () => $wire.delete({{ $product->id }}), {danger: true, confirmText: 'Sí, eliminar'})" class="text-xs text-red-500 hover:text-red-700 font-medium transition">Eliminar</button>
                                     </div>
                                     @endif
                                 </td>

@@ -30,13 +30,17 @@ class Tenant extends Authenticatable implements TenantWithDatabase
 
     protected $fillable = [
         'id',
+        'type',
         'group_id',
+        'teacher_id',
         'student_name',
         'company_name',
         'nit_empresa',
         'password',
         'tenancy_db_name',
         'active',
+        'published',
+        'sector',
     ];
 
     protected $hidden = [
@@ -47,6 +51,7 @@ class Tenant extends Authenticatable implements TenantWithDatabase
     {
         return [
             'active' => 'boolean',
+            'published' => 'boolean',
             'password' => 'hashed',
         ];
     }
@@ -55,13 +60,17 @@ class Tenant extends Authenticatable implements TenantWithDatabase
     {
         return [
             'id',
+            'type',
             'group_id',
+            'teacher_id',
             'student_name',
             'company_name',
             'nit_empresa',
             'password',
             'tenancy_db_name',
             'active',
+            'published',
+            'sector',
         ];
     }
 
@@ -96,8 +105,23 @@ class Tenant extends Authenticatable implements TenantWithDatabase
         return $this->belongsTo(Group::class);
     }
 
+    public function teacher(): BelongsTo
+    {
+        return $this->belongsTo(\App\Models\User::class, 'teacher_id');
+    }
+
     public function scores(): HasMany
     {
         return $this->hasMany(StudentScore::class);
+    }
+
+    public function isDemo(): bool
+    {
+        return $this->type === 'demo';
+    }
+
+    public function isStudent(): bool
+    {
+        return $this->type === 'student';
     }
 }

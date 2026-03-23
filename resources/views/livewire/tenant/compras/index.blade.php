@@ -1,33 +1,21 @@
 <div>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <div>
-                <h2 class="text-xl font-bold text-slate-800">Compras</h2>
-                <p class="text-sm text-slate-500 mt-0.5">Facturas de proveedores y pagos</p>
-            </div>
-            <div class="flex gap-2">
-                @if($view === 'orders' && !session('audit_mode'))
-                    <button wire:click="openCreateOrder" class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">+ Nueva orden</button>
-                @endif
-                @if($view === 'invoices' && !session('audit_mode'))
-                    <button wire:click="openCreate" class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">+ Nueva factura</button>
-                @endif
-            </div>
-        </div>
+        <h2 class="text-xl font-bold text-slate-800">Compras</h2>
+        <p class="text-sm text-slate-500 mt-0.5">Facturas de proveedores y pagos</p>
     </x-slot>
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            {{-- Flash --}}
-            @if(session('success'))
-                <div class="mb-4 p-4 bg-accent-50 border border-accent-200 rounded-xl text-accent-700 text-sm flex items-center gap-2">
-                    <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" /></svg>
-                    {{ session('success') }}
-                </div>
-            @endif
-            @if(session('error'))
-                <div class="mb-4 p-4 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm">{{ session('error') }}</div>
+            {{-- Barra de acción --}}
+            @if(!session('audit_mode'))
+            <div class="flex justify-end mb-4">
+                @if($view === 'orders')
+                    <button wire:click="openCreateOrder" class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">+ Nueva orden</button>
+                @elseif($view === 'invoices')
+                    <button wire:click="openCreate" class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">+ Nueva factura</button>
+                @endif
+            </div>
             @endif
 
             {{-- Tabs --}}
@@ -341,8 +329,8 @@
                                             <div class="flex items-center justify-end gap-3">
                                                 @if($ord->status === \App\Enums\PurchaseOrderStatus::Pendiente)
                                                     <button wire:click="openEditOrder({{ $ord->id }})" class="text-xs text-brand-600 hover:text-brand-800 font-medium">Editar</button>
-                                                    <button wire:click="receiveOrder({{ $ord->id }})" wire:confirm="¿Confirmar recepción de mercancía? Se creará una factura de compra en borrador." class="text-xs text-accent-600 hover:text-accent-800 font-medium">Recibir mercancía</button>
-                                                    <button wire:click="cancelOrder({{ $ord->id }})" wire:confirm="¿Cancelar esta orden?" class="text-xs text-red-500 hover:text-red-700 font-medium">Cancelar</button>
+                                                    <button x-on:click="confirmAction('¿Confirmar recepción de mercancía? Se creará una factura de compra en borrador.', () => $wire.receiveOrder({{ $ord->id }}), {confirmText: 'Sí, recibir'})" class="text-xs text-accent-600 hover:text-accent-800 font-medium">Recibir mercancía</button>
+                                                    <button x-on:click="confirmAction('¿Cancelar esta orden?', () => $wire.cancelOrder({{ $ord->id }}), {danger: true, confirmText: 'Sí, cancelar'})" class="text-xs text-red-500 hover:text-red-700 font-medium">Cancelar</button>
                                                 @endif
                                             </div>
                                         @endif
@@ -379,8 +367,9 @@
                                 <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Nro. proveedor</th>
                                 <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Fecha</th>
                                 <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Proveedor</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Saldo</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total bruto</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Retenciones</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Neto proveedor</th>
                                 <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Estado</th>
                                 <th class="px-6 py-3"></th>
                             </tr>
@@ -391,8 +380,16 @@
                                     <td class="px-6 py-3 font-mono text-xs text-slate-600">{{ $inv->supplier_invoice_number ?? '—' }}</td>
                                     <td class="px-6 py-3 text-slate-600">{{ $inv->date->format('d/m/Y') }}</td>
                                     <td class="px-6 py-3 font-medium text-slate-700">{{ $inv->third->name }}</td>
-                                    <td class="px-6 py-3 text-right font-mono text-sm text-slate-800">$ {{ number_format($inv->total, 0, ',', '.') }}</td>
-                                    <td class="px-6 py-3 text-right font-mono text-sm {{ $inv->balance() > 0 ? 'text-red-600 font-semibold' : 'text-slate-400' }}">$ {{ number_format($inv->balance(), 0, ',', '.') }}</td>
+                                    @php $totalBruto = $inv->subtotal + $inv->tax_amount; @endphp
+                                    <td class="px-6 py-3 text-right font-mono text-sm text-slate-500">$ {{ number_format($totalBruto, 0, ',', '.') }}</td>
+                                    <td class="px-6 py-3 text-right font-mono text-sm">
+                                        @if($inv->tieneRetenciones())
+                                            <span class="text-red-600 font-semibold">- $ {{ number_format($inv->total_retenciones, 0, ',', '.') }}</span>
+                                        @else
+                                            <span class="text-slate-300">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-3 text-right font-mono text-sm text-slate-800 font-semibold">$ {{ number_format($inv->total, 0, ',', '.') }}</td>
                                     <td class="px-6 py-3">
                                         <span class="px-2 py-0.5 rounded text-xs font-medium {{ $inv->status->color() }}">{{ $inv->status->label() }}</span>
                                     </td>
@@ -401,8 +398,8 @@
                                         <div class="flex items-center justify-end gap-3">
                                             @if($inv->status->value === 'borrador')
                                                 <button wire:click="openEdit({{ $inv->id }})" class="text-xs text-brand-600 hover:text-brand-800 font-medium">Editar</button>
-                                                <button wire:click="confirm({{ $inv->id }})" wire:confirm="¿Confirmar esta factura? Se generará el asiento contable." class="text-xs text-accent-600 hover:text-accent-800 font-medium">Confirmar</button>
-                                                <button wire:click="delete({{ $inv->id }})" wire:confirm="¿Eliminar este borrador?" class="text-xs text-red-500 hover:text-red-700 font-medium">Eliminar</button>
+                                                <button wire:click="openConfirm({{ $inv->id }})" class="text-xs text-accent-600 hover:text-accent-800 font-medium">Confirmar</button>
+                                                <button x-on:click="confirmAction('¿Eliminar este borrador?', () => $wire.delete({{ $inv->id }}), {danger: true, confirmText: 'Sí, eliminar'})" class="text-xs text-red-500 hover:text-red-700 font-medium">Eliminar</button>
                                             @elseif($inv->isPendiente() && $inv->balance() > 0)
                                                 <button wire:click="openPayment({{ $inv->third_id }})" class="text-xs text-brand-600 hover:text-brand-800 font-medium">Registrar pago</button>
                                             @endif
@@ -411,7 +408,7 @@
                                     </td>
                                 </tr>
                             @empty
-                                <tr><td colspan="7" class="px-6 py-10 text-center text-slate-400">No hay facturas de compra. <button wire:click="openCreate" class="ml-2 text-brand-600 hover:underline">Crear la primera</button></td></tr>
+                                <tr><td colspan="9" class="px-6 py-10 text-center text-slate-400">No hay facturas de compra. <button wire:click="openCreate" class="ml-2 text-brand-600 hover:underline">Crear la primera</button></td></tr>
                             @endforelse
                         </tbody>
                     </table>
@@ -455,4 +452,126 @@
 
         </div>
     </div>
+
+    {{-- ══════════════ MODAL CONFIRMAR FACTURA CON RETENCIONES ══════════════ --}}
+    @if($showConfirmModal && !session('audit_mode'))
+        <div class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4"
+             wire:click.self="$set('showConfirmModal', false)">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-lg">
+
+                <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div>
+                        <h3 class="font-semibold text-slate-800">Confirmar factura de compra</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Configura las retenciones antes de generar el asiento contable.</p>
+                    </div>
+                    <button wire:click="$set('showConfirmModal', false)" class="text-slate-400 hover:text-slate-600">✕</button>
+                </div>
+
+                <div class="px-6 py-5 space-y-4">
+
+                    {{-- Retención en la fuente --}}
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">
+                            Retención en la fuente
+                        </label>
+                        <select wire:model.live="retencion_concepto"
+                                wire:change="calcularRetenciones"
+                                class="block w-full rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500">
+                            <option value="">— No aplica —</option>
+                            @foreach($conceptosRetencion as $c)
+                                <option value="{{ $c->value }}">{{ $c->label() }}</option>
+                            @endforeach
+                        </select>
+                        <p class="text-xs text-slate-400 mt-1">
+                            Solo aplica si el subtotal supera la base mínima del concepto.
+                        </p>
+                    </div>
+
+                    {{-- Reteiva --}}
+                    <div class="flex items-start gap-3">
+                        <input type="checkbox" id="aplicar_reteiva"
+                               wire:model.live="aplicar_reteiva"
+                               wire:change="calcularRetenciones"
+                               class="mt-0.5 rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                        <label for="aplicar_reteiva" class="text-sm text-slate-700">
+                            Aplicar <strong>Reteiva</strong> (15% del IVA)
+                            <span class="block text-xs text-slate-400 font-normal">Aplica cuando el proveedor es del régimen simplificado.</span>
+                        </label>
+                    </div>
+
+                    {{-- Reteica --}}
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">
+                            Reteica — porcentaje <span class="text-slate-400 font-normal">(0 = no aplica)</span>
+                        </label>
+                        <div class="flex items-center gap-2">
+                            <input type="number" step="0.01" min="0" max="10"
+                                   wire:model.live="reteica_porcentaje"
+                                   wire:change="calcularRetenciones"
+                                   class="block w-32 rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500 text-right"
+                                   placeholder="0.00">
+                            <span class="text-sm text-slate-500">%</span>
+                        </div>
+                        <p class="text-xs text-slate-400 mt-1">Varía según el municipio y la actividad económica.</p>
+                    </div>
+
+                    {{-- Resumen de retenciones calculadas --}}
+                    @if(!empty($retencionesSummary))
+                        <div class="bg-amber-50 border border-amber-200 rounded-lg p-4 text-sm space-y-1">
+                            <p class="font-semibold text-amber-800 mb-2">Resumen de retenciones</p>
+                            @if($retencionesSummary['retefte_valor'] > 0)
+                                <div class="flex justify-between text-slate-700">
+                                    <span>RteFte ({{ $retencionesSummary['retefte_porcentaje'] }}% sobre $ {{ number_format($retencionesSummary['retefte_base'], 0, ',', '.') }}):</span>
+                                    <span class="font-mono text-red-600">- $ {{ number_format($retencionesSummary['retefte_valor'], 0, ',', '.') }}</span>
+                                </div>
+                            @endif
+                            @if($retencionesSummary['reteiva_valor'] > 0)
+                                <div class="flex justify-between text-slate-700">
+                                    <span>Reteiva (15% del IVA):</span>
+                                    <span class="font-mono text-red-600">- $ {{ number_format($retencionesSummary['reteiva_valor'], 0, ',', '.') }}</span>
+                                </div>
+                            @endif
+                            @if($retencionesSummary['reteica_valor'] > 0)
+                                <div class="flex justify-between text-slate-700">
+                                    <span>Reteica:</span>
+                                    <span class="font-mono text-red-600">- $ {{ number_format($retencionesSummary['reteica_valor'], 0, ',', '.') }}</span>
+                                </div>
+                            @endif
+                            <div class="flex justify-between font-semibold text-slate-800 border-t border-amber-200 pt-1 mt-1">
+                                <span>Total retenciones:</span>
+                                <span class="font-mono text-red-700">- $ {{ number_format($retencionesSummary['total_retenciones'], 0, ',', '.') }}</span>
+                            </div>
+                            <div class="flex justify-between font-bold text-slate-900 text-base">
+                                <span>Neto a pagar al proveedor:</span>
+                                <span class="font-mono">$ {{ number_format($retencionesSummary['total_a_pagar'], 0, ',', '.') }}</span>
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Nota educativa --}}
+                    <div class="p-3 bg-blue-50 border border-blue-100 rounded-lg text-xs text-blue-700">
+                        <strong>Contexto colombiano:</strong> Las retenciones son pagadas directamente a la DIAN por la empresa compradora.
+                        Se acreditan en las cuentas 2365 (RteFte), 2367 (Reteiva) y 2368 (Reteica) del pasivo.
+                    </div>
+
+                </div>
+
+                <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-white rounded-b-xl">
+                    <button wire:click="$set('showConfirmModal', false)"
+                            type="button"
+                            class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800">
+                        Cancelar
+                    </button>
+                    <button wire:click="confirmarConRetenciones"
+                            type="button"
+                            class="px-4 py-2 bg-accent-700 text-white text-sm font-semibold rounded-lg hover:bg-accent-600 transition">
+                        <span wire:loading.remove wire:target="confirmarConRetenciones">Confirmar y generar asiento</span>
+                        <span wire:loading wire:target="confirmarConRetenciones">Procesando...</span>
+                    </button>
+                </div>
+
+            </div>
+        </div>
+    @endif
+
 </div>

@@ -1,31 +1,29 @@
 <div>
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <div>
-                <h2 class="text-xl font-bold text-slate-800">Terceros</h2>
-                <p class="text-sm text-slate-500 mt-0.5">Clientes y proveedores de la empresa</p>
-            </div>
-            @if(!session('audit_mode'))
-            <button wire:click="openCreate" class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">
-                + Nuevo tercero
-            </button>
-            @endif
-        </div>
+        <h2 class="text-xl font-bold text-slate-800">Terceros</h2>
+        <p class="text-sm text-slate-500 mt-0.5">Clientes y proveedores de la empresa</p>
     </x-slot>
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            {{-- Filtros --}}
-            <div class="flex flex-wrap gap-3 mb-5">
-                <input wire:model.live.debounce.300ms="search" type="text" placeholder="Buscar por nombre o documento..."
-                    class="rounded-lg border-slate-200 text-sm shadow-sm focus:ring-brand-500 focus:border-brand-500 w-72" />
-                <select wire:model.live="filterType" class="rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500">
-                    <option value="">Todos los tipos</option>
-                    <option value="cliente">Clientes</option>
-                    <option value="proveedor">Proveedores</option>
-                    <option value="ambos">Ambos</option>
-                </select>
+            {{-- Barra de acciones --}}
+            <div class="flex items-center justify-between mb-5">
+                <div class="flex flex-wrap gap-3">
+                    <input wire:model.live.debounce.300ms="search" type="text" placeholder="Buscar por nombre o documento..."
+                        class="rounded-lg border-slate-200 text-sm shadow-sm focus:ring-brand-500 focus:border-brand-500 w-72" />
+                    <select wire:model.live="filterType" class="rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500">
+                        <option value="">Todos los tipos</option>
+                        <option value="cliente">Clientes</option>
+                        <option value="proveedor">Proveedores</option>
+                        <option value="ambos">Ambos</option>
+                    </select>
+                </div>
+                @if(!session('audit_mode'))
+                <button wire:click="openCreate" class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">
+                    + Nuevo tercero
+                </button>
+                @endif
             </div>
 
             {{-- Modal --}}
@@ -134,7 +132,7 @@
                                     @if(!session('audit_mode'))
                                     <div class="flex items-center justify-end gap-3">
                                         <button wire:click="openEdit({{ $third->id }})" class="text-xs text-brand-600 hover:text-brand-800 font-medium transition">Editar</button>
-                                        <button wire:click="delete({{ $third->id }})" wire:confirm="¿Eliminar este tercero?" class="text-xs text-red-500 hover:text-red-700 font-medium transition">Eliminar</button>
+                                        <button x-on:click="confirmAction('¿Eliminar este tercero?', () => $wire.delete({{ $third->id }}), {danger: true, confirmText: 'Sí, eliminar'})" class="text-xs text-red-500 hover:text-red-700 font-medium transition">Eliminar</button>
                                     </div>
                                     @endif
                                 </td>
