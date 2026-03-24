@@ -9,6 +9,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 #[Layout('layouts.tenant')]
+#[Title('Conciliación bancaria')]
 class Index extends Component
 {
     // ── Formulario nueva conciliación ────────────────────────────────────────

@@ -7,6 +7,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 #[Layout('layouts.tenant')]
+#[Title('Plan de cuentas')]
 class PlanDeCuentas extends Component
 {
     public bool $showForm = false;

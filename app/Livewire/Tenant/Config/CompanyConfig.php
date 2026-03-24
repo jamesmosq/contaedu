@@ -8,6 +8,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 #[Layout('layouts.tenant')]
+#[Title('Configuración')]
 class CompanyConfig extends Component
 {
     public string $nit = '';
@@ -44,9 +45,11 @@ class CompanyConfig extends Component
             $this->email = $config->email ?? '';
             $this->resolucion_dian = $config->resolucion_dian ?? '';
         } else {
-            $student = auth('student')->user();
-            $this->nit = $student->nit_empresa;
-            $this->razon_social = $student->company_name;
+            // Funciona en modo estudiante, demo y auditoría porque tenancy()->tenant
+            // siempre está inicializado cuando se llega a este componente.
+            $tenant = tenancy()->tenant;
+            $this->nit = $tenant?->nit_empresa ?? '';
+            $this->razon_social = $tenant?->company_name ?? '';
         }
     }
 

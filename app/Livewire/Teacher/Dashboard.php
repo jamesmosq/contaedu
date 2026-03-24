@@ -6,13 +6,15 @@ use App\Models\Central\Group;
 use App\Models\Central\Institution;
 use App\Models\Central\StudentScore;
 use App\Models\Central\Tenant;
-use App\Models\Tenant\Invoice;
+use App\Models\Tenant\CompanySummary;
 use App\Services\TenantProvisionService;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
 
 #[Layout('layouts.teacher')]
+#[Title('Mis grupos')]
 class Dashboard extends Component
 {
     use WithFileUploads;
@@ -68,6 +70,24 @@ class Dashboard extends Component
     {
         $this->selectedGroupId = null;
         $this->showCreateForm = false;
+    }
+
+    // ─── Paginación de la grid de grupos ─────────────────────────────────────
+
+    public int $groupPage = 1;
+
+    public int $groupsPerPage = 6;
+
+    public function groupNextPage(): void
+    {
+        $this->groupPage++;
+    }
+
+    public function groupPrevPage(): void
+    {
+        if ($this->groupPage > 1) {
+            $this->groupPage--;
+        }
     }
 
     // ─── Formulario: crear/editar grupo ──────────────────────────────────────
@@ -417,15 +437,18 @@ class Dashboard extends Component
     public function render(): mixed
     {
         $teacher = auth()->user();
-        $groups = $teacher->teacherGroups()->with(['institution', 'tenants'])->orderBy('created_at')->get();
+        $allGroups = $teacher->teacherGroups()->with(['institution', 'tenants'])->orderBy('created_at')->get();
+        $groupsTotalPages = max(1, (int) ceil($allGroups->count() / $this->groupsPerPage));
+        $this->groupPage = min($this->groupPage, $groupsTotalPages);
+        $groups = $allGroups->forPage($this->groupPage, $this->groupsPerPage);
 
-        $allTenants = $groups->flatMap(fn ($g) => $g->tenants);
+        $allTenants = $allGroups->flatMap(fn ($g) => $g->tenants);
         $totalStudents = $allTenants->count();
         $activeStudents = $allTenants->where('active', true)->count();
         $institution = $groups->first()?->institution;
 
         $stats = [
-            'grupos' => $groups->count(),
+            'grupos' => $allGroups->count(),
             'estudiantes' => $totalStudents,
             'activos' => $activeStudents,
             'institucion' => $institution?->name ?? '—',
@@ -435,7 +458,7 @@ class Dashboard extends Component
         $students = [];
 
         if ($this->selectedGroupId) {
-            $selectedGroup = $groups->firstWhere('id', $this->selectedGroupId);
+            $selectedGroup = $allGroups->firstWhere('id', $this->selectedGroupId);
 
             if ($selectedGroup) {
                 $tenantIds = $selectedGroup->tenants->pluck('id');
@@ -444,10 +467,11 @@ class Dashboard extends Component
                     : collect();
 
                 foreach ($selectedGroup->tenants as $tenant) {
-                    $metrics = $tenant->run(fn () => [
-                        'invoices_count' => Invoice::where('type', 'venta')->where('status', 'emitida')->count(),
-                        'invoices_total' => (float) Invoice::where('type', 'venta')->where('status', 'emitida')->sum('total'),
-                    ]);
+                    $summary = $tenant->run(fn () => CompanySummary::first());
+                    $metrics = [
+                        'invoices_count' => $summary?->total_facturas_venta ?? 0,
+                        'invoices_total' => $summary?->monto_total_ventas ?? 0.0,
+                    ];
 
                     $tenantScores = $scoresByTenant->get($tenant->id, collect());
 
@@ -461,7 +485,7 @@ class Dashboard extends Component
             }
         }
 
-        return view('livewire.teacher.dashboard', compact('groups', 'selectedGroup', 'students', 'stats'))
+        return view('livewire.teacher.dashboard', compact('groups', 'selectedGroup', 'students', 'stats', 'groupsTotalPages'))
             ->title('Panel Docente');
     }
 }

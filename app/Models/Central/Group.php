@@ -5,6 +5,7 @@ namespace App\Models\Central;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Group extends Model
@@ -37,5 +38,11 @@ class Group extends Model
     public function tenants(): HasMany
     {
         return $this->hasMany(Tenant::class);
+    }
+
+    /** Empresas demo asignadas a este grupo. */
+    public function demosAsignados(): BelongsToMany
+    {
+        return $this->belongsToMany(Tenant::class, 'demo_group', 'group_id', 'demo_tenant_id');
     }
 }

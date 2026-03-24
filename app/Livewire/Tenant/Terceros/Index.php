@@ -2,43 +2,53 @@
 
 namespace App\Livewire\Tenant\Terceros;
 
-use App\Enums\ThirdType;
 use App\Models\Tenant\Third;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
 
 #[Layout('layouts.tenant')]
+#[Title('Terceros')]
 class Index extends Component
 {
     use WithPagination;
 
     public string $search = '';
+
     public string $filterType = '';
+
     public bool $showForm = false;
 
     // Form fields
     public ?int $editingId = null;
+
     public string $document_type = 'nit';
+
     public string $document = '';
+
     public string $name = '';
+
     public string $type = 'cliente';
+
     public string $regimen = 'simplificado';
+
     public string $address = '';
+
     public string $phone = '';
+
     public string $email = '';
 
     public function rules(): array
     {
         return [
             'document_type' => ['required', 'in:cc,nit,ce,pasaporte'],
-            'document'      => ['required', 'string', 'max:20'],
-            'name'          => ['required', 'string', 'max:150'],
-            'type'          => ['required', 'in:cliente,proveedor,ambos'],
-            'regimen'       => ['required', 'in:simplificado,comun'],
-            'address'       => ['nullable', 'string', 'max:200'],
-            'phone'         => ['nullable', 'string', 'max:20'],
-            'email'         => ['nullable', 'email', 'max:100'],
+            'document' => ['required', 'string', 'max:20'],
+            'name' => ['required', 'string', 'max:150'],
+            'type' => ['required', 'in:cliente,proveedor,ambos'],
+            'regimen' => ['required', 'in:simplificado,comun'],
+            'address' => ['nullable', 'string', 'max:200'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'email' => ['nullable', 'email', 'max:100'],
         ];
     }
 
@@ -74,14 +84,14 @@ class Index extends Component
             ['id' => $this->editingId],
             [
                 'document_type' => $this->document_type,
-                'document'      => $this->document,
-                'name'          => $this->name,
-                'type'          => $this->type,
-                'regimen'       => $this->regimen,
-                'address'       => $this->address ?: null,
-                'phone'         => $this->phone ?: null,
-                'email'         => $this->email ?: null,
-                'active'        => true,
+                'document' => $this->document,
+                'name' => $this->name,
+                'type' => $this->type,
+                'regimen' => $this->regimen,
+                'address' => $this->address ?: null,
+                'phone' => $this->phone ?: null,
+                'email' => $this->email ?: null,
+                'active' => true,
             ]
         );
 

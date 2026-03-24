@@ -2,46 +2,54 @@
 
 namespace App\Livewire\Teacher;
 
-use App\Models\Tenant\Invoice;
-use App\Models\Tenant\JournalLine;
-use App\Models\Tenant\PurchaseInvoice;
+use App\Models\Tenant\CompanySummary;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('layouts.teacher')]
+#[Title('Panel comparativo')]
 class Comparativo extends Component
 {
+    public ?int $selectedGroupId = null;
+
+    public function selectGroup(int $id): void
+    {
+        $this->selectedGroupId = $id;
+    }
+
+    public function clearGroup(): void
+    {
+        $this->selectedGroupId = null;
+    }
+
     public function render(): mixed
     {
         $teacher = auth()->user();
-        $groups = $teacher->teacherGroups()->with(['institution', 'tenants'])->get();
+        $groups = $teacher->teacherGroups()->with('institution')->orderBy('created_at')->get();
 
+        $selectedGroup = null;
         $rows = [];
-        foreach ($groups as $group) {
-            foreach ($group->tenants as $tenant) {
-                $data = $tenant->run(function () {
-                    $ventasCount = Invoice::where('type', 'venta')->where('status', 'emitida')->count();
-                    $ventasTotal = (float) Invoice::where('type', 'venta')->where('status', 'emitida')->sum('total');
-                    $comprasCount = PurchaseInvoice::whereIn('status', ['pendiente', 'pagada'])->count();
-                    $comprasTotal = (float) PurchaseInvoice::whereIn('status', ['pendiente', 'pagada'])->sum('total');
 
-                    // Verificar si balance cuadra: sum(debit) == sum(credit) en journal_lines
-                    $totalDebit = (float) JournalLine::sum('debit');
-                    $totalCredit = (float) JournalLine::sum('credit');
-                    $balanced = abs($totalDebit - $totalCredit) < 0.02;
+        if ($this->selectedGroupId) {
+            $selectedGroup = $groups->firstWhere('id', $this->selectedGroupId);
 
-                    return compact('ventasCount', 'ventasTotal', 'comprasCount', 'comprasTotal', 'balanced', 'totalDebit');
-                });
+            if ($selectedGroup) {
+                $tenants = $selectedGroup->load('tenants')->tenants;
 
-                $rows[] = [
-                    'tenant' => $tenant,
-                    'group' => $group,
-                    'data' => $data,
-                ];
+                foreach ($tenants as $tenant) {
+                    // Leer el resumen materializado: 1 sola query, sin cambio de schema
+                    $summary = $tenant->run(fn () => CompanySummary::first());
+
+                    $rows[] = [
+                        'tenant' => $tenant,
+                        'group' => $selectedGroup,
+                        'summary' => $summary,
+                    ];
+                }
             }
         }
 
-        return view('livewire.teacher.comparativo', compact('groups', 'rows'))
-            ->title('Panel comparativo');
+        return view('livewire.teacher.comparativo', compact('groups', 'selectedGroup', 'rows'));
     }
 }

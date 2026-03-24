@@ -1,0 +1,38 @@
+  ┌─────────────────────────────┬─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │           Feature           │                                                       Descripción                                                       │
+  ├─────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Anuncios del docente        │ El docente publica avisos al grupo (texto + fecha límite). Aparecen en el dashboard del estudiante como cards. Tabla    │
+  │                             │ central simple.                                                                                                         │
+  ├─────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Indicador de progreso del   │ En el dashboard del estudiante, una barra o checklist que muestra qué módulos ha usado (tiene facturas, tiene terceros, │
+  │ estudiante                  │  etc.). Se alimenta del resumen materializado que ya existe.                                                            │
+  ├─────────────────────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Comentarios del docente en  │ Ya existe la rúbrica de calificación. Agregar un campo de texto por módulo para que el docente deje retroalimentación   │
+  │ la rúbrica                  │ escrita.                                                                                                                │
+  └─────────────────────────────┴─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  Alto impacto, esfuerzo medio
+
+  ┌───────────────────────────┬───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │          Feature          │                                                        Descripción                                                        │
+  ├───────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Fecha límite por módulo   │ El docente asigna fechas límite (ej: "Terceros listos para el 15 de abril"). El estudiante ve cuántos días le quedan. El  │
+  │                           │ comparativo muestra quién cumplió.                                                                                        │
+  ├───────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Exportar a Excel          │ Botón en reportes para descargar el balance, estado de resultados o libro diario en .xlsx con maatwebsite/excel.          │
+  ├───────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Dashboard del estudiante  │ El inicio del estudiante hoy está vacío. Mostrar: total facturado, total comprado, última factura, balance cuadrado sí/no │
+  │ con KPIs                  │  — igual que el comparativo pero desde adentro.                                                                           │
+  └───────────────────────────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  Esfuerzo alto, valor diferencial
+
+  ┌───────────────────────────────────┬───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┐
+  │              Feature              │                                                    Descripción                                                    │
+  ├───────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Comparativo estudiante vs.        │ El estudiante puede ver sus propios números al lado de los de la empresa maestra asignada a su grupo. Útil para   │
+  │ referencia                        │ autoevaluación.                                                                                                   │
+  ├───────────────────────────────────┼───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+  │ Cierre contable guiado            │ Asistente paso a paso: verificar balance → generar estado de resultados → transferir utilidad a patrimonio →      │
+  │                                   │ confirmar cierre.                                                                                                 │
+  └───────────────────────────────────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘

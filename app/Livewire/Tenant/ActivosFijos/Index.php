@@ -10,6 +10,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 #[Layout('layouts.tenant')]
+#[Title('Activos fijos')]
 class Index extends Component
 {
     // ── Formulario nuevo activo ──────────────────────────────────────────────

@@ -11,39 +11,51 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 #[Layout('layouts.tenant')]
+#[Title('Productos')]
 class Index extends Component
 {
     use WithPagination;
 
     public string $search = '';
+
     public bool $showForm = false;
+
     public ?int $editingId = null;
 
     // Form
     public string $code = '';
+
     public string $name = '';
+
     public string $description = '';
+
     public string $unit = 'und';
+
     public string $sale_price = '0';
+
     public string $cost_price = '0';
+
     public string $tax_rate = '19';
+
     public ?int $inventory_account_id = null;
+
     public ?int $revenue_account_id = null;
+
     public ?int $cogs_account_id = null;
 
     public function rules(): array
     {
         return [
-            'code'                 => ['required', 'string', 'max:20'],
-            'name'                 => ['required', 'string', 'max:150'],
-            'description'          => ['nullable', 'string'],
-            'unit'                 => ['required', 'in:und,kg,lt,m,caja,par,otro'],
-            'sale_price'           => ['required', 'numeric', 'min:0'],
-            'cost_price'           => ['required', 'numeric', 'min:0'],
-            'tax_rate'             => ['required', 'in:0,5,19'],
+            'code' => ['required', 'string', 'max:20'],
+            'name' => ['required', 'string', 'max:150'],
+            'description' => ['nullable', 'string'],
+            'unit' => ['required', 'in:und,kg,lt,m,caja,par,otro'],
+            'sale_price' => ['required', 'numeric', 'min:0'],
+            'cost_price' => ['required', 'numeric', 'min:0'],
+            'tax_rate' => ['required', 'in:0,5,19'],
             'inventory_account_id' => ['nullable', 'exists:accounts,id'],
-            'revenue_account_id'   => ['nullable', 'exists:accounts,id'],
-            'cogs_account_id'      => ['nullable', 'exists:accounts,id'],
+            'revenue_account_id' => ['nullable', 'exists:accounts,id'],
+            'cogs_account_id' => ['nullable', 'exists:accounts,id'],
         ];
     }
 
@@ -57,8 +69,8 @@ class Index extends Component
 
         // Preseleccionar cuentas por defecto del PUC
         $this->inventory_account_id = Account::where('code', '1435')->value('id');
-        $this->revenue_account_id   = Account::where('code', '4135')->value('id');
-        $this->cogs_account_id      = Account::where('code', '6135')->value('id');
+        $this->revenue_account_id = Account::where('code', '4135')->value('id');
+        $this->cogs_account_id = Account::where('code', '6135')->value('id');
 
         $this->showForm = true;
     }
@@ -87,17 +99,17 @@ class Index extends Component
         Product::updateOrCreate(
             ['id' => $this->editingId],
             [
-                'code'                 => $this->code,
-                'name'                 => $this->name,
-                'description'          => $this->description ?: null,
-                'unit'                 => $this->unit,
-                'sale_price'           => $this->sale_price,
-                'cost_price'           => $this->cost_price,
-                'tax_rate'             => (int) $this->tax_rate,
+                'code' => $this->code,
+                'name' => $this->name,
+                'description' => $this->description ?: null,
+                'unit' => $this->unit,
+                'sale_price' => $this->sale_price,
+                'cost_price' => $this->cost_price,
+                'tax_rate' => (int) $this->tax_rate,
                 'inventory_account_id' => $this->inventory_account_id,
-                'revenue_account_id'   => $this->revenue_account_id,
-                'cogs_account_id'      => $this->cogs_account_id,
-                'active'               => true,
+                'revenue_account_id' => $this->revenue_account_id,
+                'cogs_account_id' => $this->cogs_account_id,
+                'active' => true,
             ]
         );
 

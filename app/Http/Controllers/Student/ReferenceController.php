@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Models\Central\ReferenceAccessLog;
 use App\Models\Central\Tenant;
+use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
@@ -15,24 +17,31 @@ class ReferenceController extends Controller
         $student = auth('student')->user();
         $centralConn = config('tenancy.database.central_connection', 'pgsql');
 
-        // La empresa demo debe estar publicada y pertenecer al docente del grupo del estudiante
+        // La empresa demo debe existir y estar asignada al grupo del estudiante
         $demo = Tenant::on($centralConn)
             ->where('id', $demoId)
             ->where('type', 'demo')
-            ->where('published', true)
+            ->whereHas('assignedGroups', fn ($q) => $q->where('groups.id', $student->group_id))
             ->first();
 
-        abort_if(! $demo, 404, 'Empresa de referencia no encontrada.');
+        abort_if(! $demo, 404, 'Empresa de referencia no encontrada o sin acceso para tu grupo.');
 
-        // Verificar que el docente de la empresa demo es el docente del grupo del estudiante
-        $studentGroup = \App\Models\Central\Group::on($centralConn)->find($student->group_id);
-        abort_if(! $studentGroup || $studentGroup->teacher_id !== $demo->teacher_id, 403, 'Sin acceso.');
+        $teacher = User::on($centralConn)->find($demo->teacher_id);
 
-        $teacher = \App\Models\User::on($centralConn)->find($demo->teacher_id);
+        // Registrar acceso (upsert — actualiza timestamp si ya existía)
+        ReferenceAccessLog::on($centralConn)->upsert(
+            [
+                'student_tenant_id' => $student->id,
+                'demo_tenant_id' => $demo->id,
+                'accessed_at' => now(),
+            ],
+            ['student_tenant_id', 'demo_tenant_id'],
+            ['accessed_at'],
+        );
 
         session([
-            'reference_mode'         => true,
-            'reference_tenant_id'    => $demo->id,
+            'reference_mode' => true,
+            'reference_tenant_id' => $demo->id,
             'reference_company_name' => $demo->company_name,
             'reference_teacher_name' => $teacher?->name ?? 'Docente',
         ]);

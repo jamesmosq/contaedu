@@ -21,6 +21,7 @@ use Livewire\Component;
 use Livewire\WithPagination;
 
 #[Layout('layouts.tenant')]
+#[Title('Facturas')]
 class Index extends Component
 {
     use WithPagination;

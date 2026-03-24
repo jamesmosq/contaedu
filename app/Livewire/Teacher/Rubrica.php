@@ -5,9 +5,11 @@ namespace App\Livewire\Teacher;
 use App\Models\Central\StudentScore;
 use App\Models\Central\Tenant;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('layouts.teacher')]
+#[Title('Rúbrica')]
 class Rubrica extends Component
 {
     public string $tenantId = '';

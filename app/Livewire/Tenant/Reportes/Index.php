@@ -9,6 +9,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 #[Layout('layouts.tenant')]
+#[Title('Reportes')]
 class Index extends Component
 {
     public string $report = 'cartera';

@@ -9,6 +9,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 #[Layout('layouts.tenant')]
+#[Title('Calendario tributario')]
 class Index extends Component
 {
     public int $year;

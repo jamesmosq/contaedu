@@ -180,6 +180,39 @@
                             </div>
                         @endforeach
                     </div>
+
+                    {{-- Paginación de grupos --}}
+                    @if($groupsTotalPages > 1)
+                        <div class="flex items-center justify-center gap-3 mt-6">
+                            <button wire:click="groupPrevPage" @disabled($groupPage <= 1)
+                                class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-600 bg-white border border-cream-200 rounded-xl hover:bg-cream-50 hover:border-forest-300 disabled:opacity-40 disabled:cursor-not-allowed transition">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                                </svg>
+                                Anterior
+                            </button>
+
+                            <div class="flex items-center gap-1">
+                                @for($p = 1; $p <= $groupsTotalPages; $p++)
+                                    <button wire:click="$set('groupPage', {{ $p }})"
+                                        class="w-8 h-8 text-xs font-semibold rounded-lg transition
+                                               {{ $groupPage === $p
+                                                   ? 'bg-forest-800 text-white'
+                                                   : 'text-slate-500 hover:bg-cream-100' }}">
+                                        {{ $p }}
+                                    </button>
+                                @endfor
+                            </div>
+
+                            <button wire:click="groupNextPage" @disabled($groupPage >= $groupsTotalPages)
+                                class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-slate-600 bg-white border border-cream-200 rounded-xl hover:bg-cream-50 hover:border-forest-300 disabled:opacity-40 disabled:cursor-not-allowed transition">
+                                Siguiente
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                                </svg>
+                            </button>
+                        </div>
+                    @endif
                 @endif
 
             {{-- ══════════════════════════════════════════════════════════

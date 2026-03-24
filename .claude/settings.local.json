@@ -33,7 +33,8 @@
       "Bash(node -e \"const p = require\\(''./node_modules/tailwindcss/package.json''\\); console.log\\(p.version\\)\")",
       "Bash(vendor/bin/pint bootstrap/app.php 2>&1)",
       "Bash(vendor/bin/pint app/Livewire/Tenant/Config/CompanyConfig.php app/Models/Central/CiiuCode.php bootstrap/app.php 2>&1)",
-      "Bash(vendor/bin/pint routes/web.php)"
+      "Bash(vendor/bin/pint routes/web.php)",
+      "Bash(ls /c/Users/jmosquerarei/Herd/contaedu/database/migrations/*.php)"
     ]
   },
   "enableAllProjectMcpServers": true,

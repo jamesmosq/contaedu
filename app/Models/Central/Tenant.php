@@ -2,7 +2,9 @@
 
 namespace App\Models\Central;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -25,7 +27,9 @@ class Tenant extends Authenticatable implements TenantWithDatabase
     }
 
     protected $primaryKey = 'id';
+
     public $incrementing = false;
+
     protected $keyType = 'string';
 
     protected $fillable = [
@@ -107,12 +111,18 @@ class Tenant extends Authenticatable implements TenantWithDatabase
 
     public function teacher(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'teacher_id');
+        return $this->belongsTo(User::class, 'teacher_id');
     }
 
     public function scores(): HasMany
     {
         return $this->hasMany(StudentScore::class);
+    }
+
+    /** Grupos a los que está asignada esta empresa demo. */
+    public function assignedGroups(): BelongsToMany
+    {
+        return $this->belongsToMany(Group::class, 'demo_group', 'demo_tenant_id', 'group_id');
     }
 
     public function isDemo(): bool
