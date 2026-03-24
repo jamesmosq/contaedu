@@ -1,37 +1,39 @@
 <div>
-    <x-slot name="header">
-        <div class="flex items-center justify-between">
+    {{-- ── Hero ───────────────────────────────────────────────────────────── --}}
+    <div class="bg-gradient-to-br from-forest-900 via-forest-800 to-forest-950 px-6 py-8 lg:px-10">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-end justify-between gap-4">
             <div>
-                <h2 class="text-xl font-bold text-slate-800">Calendario tributario</h2>
-                <p class="text-sm text-slate-500 mt-0.5">Obligaciones fiscales colombianas — día límite NIT: <strong>{{ $diaLimite }}</strong></p>
+                <p class="text-forest-400 text-xs font-medium uppercase tracking-widest mb-1">Herramientas</p>
+                <h1 class="font-display text-2xl font-bold text-white">Calendario de obligaciones</h1>
+                <p class="text-forest-300 text-sm mt-1">Vencimientos fiscales y financieros</p>
             </div>
             <div class="flex items-center gap-3">
-                <select wire:model.live="year" class="rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500">
+                <select wire:model.live="year" class="rounded-xl border-forest-700 bg-forest-800 text-white text-sm focus:ring-gold-500 focus:border-gold-500">
                     @foreach([now()->year - 1, now()->year, now()->year + 1] as $y)
                         <option value="{{ $y }}">{{ $y }}</option>
                     @endforeach
                 </select>
             </div>
         </div>
-    </x-slot>
+    </div>
 
-    <div class="py-8">
-        <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
+    <div class="px-6 py-8 lg:px-10">
+        <div class="max-w-5xl mx-auto space-y-6">
 
             {{-- Resumen de estado --}}
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <button wire:click="$set('filtro', 'todos')"
-                    class="text-left p-4 rounded-xl border-2 transition {{ $filtro === 'todos' ? 'border-brand-500 bg-brand-50' : 'border-slate-200 bg-white hover:border-slate-300' }}">
+                    class="text-left p-4 rounded-2xl border-2 transition {{ $filtro === 'todos' ? 'border-forest-500 bg-forest-50' : 'border-cream-200 bg-white hover:border-slate-300' }}">
                     <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Todas las obligaciones</p>
                     <p class="text-2xl font-bold text-slate-800 mt-1">{{ $eventos->count() }}</p>
                 </button>
                 <button wire:click="$set('filtro', 'proximo')"
-                    class="text-left p-4 rounded-xl border-2 transition {{ $filtro === 'proximo' ? 'border-amber-500 bg-amber-50' : 'border-slate-200 bg-white hover:border-amber-200' }}">
+                    class="text-left p-4 rounded-2xl border-2 transition {{ $filtro === 'proximo' ? 'border-amber-500 bg-amber-50' : 'border-cream-200 bg-white hover:border-amber-200' }}">
                     <p class="text-xs font-semibold text-amber-600 uppercase tracking-wide">Próximas (30 días)</p>
                     <p class="text-2xl font-bold text-amber-700 mt-1">{{ $proximos }}</p>
                 </button>
                 <button wire:click="$set('filtro', 'vencido')"
-                    class="text-left p-4 rounded-xl border-2 transition {{ $filtro === 'vencido' ? 'border-red-500 bg-red-50' : 'border-slate-200 bg-white hover:border-red-200' }}">
+                    class="text-left p-4 rounded-2xl border-2 transition {{ $filtro === 'vencido' ? 'border-red-500 bg-red-50' : 'border-cream-200 bg-white hover:border-red-200' }}">
                     <p class="text-xs font-semibold text-red-600 uppercase tracking-wide">Vencidas (aplican)</p>
                     <p class="text-2xl font-bold text-red-700 mt-1">{{ $vencidos }}</p>
                 </button>
@@ -39,22 +41,22 @@
 
             {{-- Nota educativa sobre régimen --}}
             @if($regimen === 'simplificado')
-                <div class="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4 text-sm text-blue-800">
+                <div class="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4 text-sm text-blue-800">
                     <strong>Régimen Simplificado:</strong> No eres responsable de IVA, no presentas declaración de IVA ni retenciones como agente retenedor. Tu principal obligación es la Declaración de Renta anual y el ICA municipal.
                 </div>
             @elseif($regimen === 'comun')
-                <div class="bg-violet-50 border border-violet-200 rounded-xl px-5 py-4 text-sm text-violet-800">
+                <div class="bg-violet-50 border border-violet-200 rounded-2xl px-5 py-4 text-sm text-violet-800">
                     <strong>Régimen Común:</strong> Eres responsable de IVA cuatrimestral, debes declarar y pagar retención en la fuente mensualmente, y presentar declaración de renta anual.
                 </div>
             @else
-                <div class="bg-red-50 border border-red-200 rounded-xl px-5 py-4 text-sm text-red-800">
+                <div class="bg-red-50 border border-red-200 rounded-2xl px-5 py-4 text-sm text-red-800">
                     <strong>Gran Contribuyente:</strong> Declaras IVA bimestral, retención en la fuente mensual y tienes obligaciones adicionales de información exógena.
                 </div>
             @endif
 
             {{-- Lista de eventos --}}
-            <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
-                <div class="px-6 py-4 border-b border-slate-100">
+            <div class="bg-white rounded-2xl border border-cream-200 shadow-card overflow-hidden">
+                <div class="px-6 py-4 border-b border-cream-100">
                     <h3 class="font-semibold text-slate-800">Obligaciones tributarias {{ $year }}</h3>
                     <p class="text-xs text-slate-400 mt-0.5">Tu día límite es el <strong>día {{ $diaLimite }}</strong> del mes correspondiente (basado en los 2 últimos dígitos de tu NIT).</p>
                 </div>
@@ -141,7 +143,7 @@
             </div>
 
             {{-- Nota legal --}}
-            <div class="bg-slate-50 border border-slate-200 rounded-xl px-5 py-4 text-xs text-slate-500">
+            <div class="bg-slate-50 border border-cream-200 rounded-2xl px-5 py-4 text-xs text-slate-500">
                 <strong>Nota educativa:</strong> Este calendario es una guía general basada en el calendario tributario colombiano 2025. Las fechas exactas dependen del último dígito del NIT y pueden variar por resolución DIAN cada año. En la práctica, siempre verifica las fechas oficiales en el sitio de la DIAN (dian.gov.co).
             </div>
 

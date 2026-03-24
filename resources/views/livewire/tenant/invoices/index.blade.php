@@ -1,32 +1,36 @@
 <div>
-    <x-slot name="header">
-        <h2 class="text-xl font-bold text-slate-800">Facturación</h2>
-        <p class="text-sm text-slate-500 mt-0.5">Facturas de venta, recibos de caja y notas de crédito</p>
-    </x-slot>
-
-    <div class="py-8">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-
-            {{-- Barra de acción + tabs --}}
-            @if(!session('audit_mode') && $activeTab === 'facturas')
-            <div class="flex justify-end mb-4">
-                <button wire:click="openCreate" class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">
-                    + Nueva factura
-                </button>
+    {{-- ── Hero ───────────────────────────────────────────────────────────── --}}
+    <div class="bg-gradient-to-br from-forest-900 via-forest-800 to-forest-950 px-6 py-8 lg:px-10">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+            <div>
+                <p class="text-forest-400 text-xs font-medium uppercase tracking-widest mb-1">Operaciones</p>
+                <h1 class="font-display text-2xl font-bold text-white">Facturas de venta</h1>
+                <p class="text-forest-300 text-sm mt-1">Ciclo de facturación y cobro</p>
             </div>
+            @if(!session('audit_mode') && !session('reference_mode') && $activeTab === 'facturas')
+                <div>
+                    <button wire:click="openCreate" class="px-4 py-2 bg-gold-500 text-white text-sm font-semibold rounded-xl hover:bg-gold-400 transition">
+                        + Nueva factura
+                    </button>
+                </div>
             @endif
+        </div>
+    </div>
 
-            <div class="flex gap-1 mb-6 border-b border-slate-200">
-                <button wire:click="$set('activeTab','facturas')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'facturas' ? 'border-b-2 border-brand-700 text-brand-800' : 'text-slate-500 hover:text-slate-700' }}">
+    <div class="px-6 py-8 lg:px-10">
+        <div class="max-w-7xl mx-auto">
+
+            <div class="flex gap-1 mb-6 border-b border-cream-200">
+                <button wire:click="$set('activeTab','facturas')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'facturas' ? 'border-b-2 border-forest-700 text-forest-800' : 'text-slate-500 hover:text-slate-700' }}">
                     Facturas de venta
                 </button>
-                <button wire:click="$set('activeTab','recibos')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'recibos' ? 'border-b-2 border-brand-700 text-brand-800' : 'text-slate-500 hover:text-slate-700' }}">
+                <button wire:click="$set('activeTab','recibos')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'recibos' ? 'border-b-2 border-forest-700 text-forest-800' : 'text-slate-500 hover:text-slate-700' }}">
                     Recibos de caja
                 </button>
-                <button wire:click="$set('activeTab','notas')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'notas' ? 'border-b-2 border-brand-700 text-brand-800' : 'text-slate-500 hover:text-slate-700' }}">
+                <button wire:click="$set('activeTab','notas')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'notas' ? 'border-b-2 border-forest-700 text-forest-800' : 'text-slate-500 hover:text-slate-700' }}">
                     Notas de crédito
                 </button>
-                <button wire:click="$set('activeTab','notas_debito')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'notas_debito' ? 'border-b-2 border-brand-700 text-brand-800' : 'text-slate-500 hover:text-slate-700' }}">
+                <button wire:click="$set('activeTab','notas_debito')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'notas_debito' ? 'border-b-2 border-forest-700 text-forest-800' : 'text-slate-500 hover:text-slate-700' }}">
                     Notas débito
                 </button>
             </div>
@@ -34,8 +38,8 @@
             {{-- ══════════════════════════════════ MODAL FACTURA ══════════════════════════════════ --}}
             @if($showForm && !session('audit_mode'))
                 <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto" wire:click.self="cancelForm">
-                    <div class="bg-white rounded-xl shadow-xl w-full max-w-4xl my-8">
-                        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white rounded-t-xl z-10">
+                    <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl my-8">
+                        <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-10">
                             <h3 class="font-semibold text-slate-800">{{ $editingId ? 'Editar factura' : 'Nueva factura de venta' }}</h3>
                             <button wire:click="cancelForm" class="text-slate-400 hover:text-slate-600">✕</button>
                         </div>
@@ -43,7 +47,7 @@
                             <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
                                 <div class="col-span-2">
                                     <label class="block text-sm font-medium text-slate-700 mb-1">Cliente</label>
-                                    <select wire:model="third_id" class="block w-full rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500">
+                                    <select wire:model="third_id" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
                                         <option value="0">— Seleccionar —</option>
                                         @foreach($thirds as $t)
                                             <option value="{{ $t->id }}">{{ $t->name }} ({{ $t->document }})</option>
@@ -53,23 +57,23 @@
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-1">Fecha</label>
-                                    <input wire:model="date" type="date" class="block w-full rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500" />
+                                    <input wire:model="date" type="date" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-1">Vencimiento</label>
-                                    <input wire:model="due_date" type="date" class="block w-full rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500" />
+                                    <input wire:model="due_date" type="date" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                                 </div>
                             </div>
 
                             <div>
                                 <div class="flex items-center justify-between mb-2">
                                     <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Líneas</p>
-                                    <button wire:click="addLine" type="button" class="text-xs text-brand-600 hover:text-brand-800 font-medium transition">+ Agregar línea</button>
+                                    <button wire:click="addLine" type="button" class="text-xs text-forest-600 hover:text-forest-800 font-medium transition">+ Agregar línea</button>
                                 </div>
                                 @error('lines') <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
-                                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                                <div class="border border-cream-200 rounded-xl overflow-hidden">
                                     <table class="w-full text-sm">
-                                        <thead class="bg-slate-50 border-b border-slate-200">
+                                        <thead class="bg-slate-50 border-b border-cream-200">
                                             <tr>
                                                 <th class="text-left px-3 py-2 text-xs font-semibold text-slate-500">Producto</th>
                                                 <th class="text-left px-3 py-2 text-xs font-semibold text-slate-500">Descripción</th>
@@ -92,7 +96,7 @@
                                                 @endphp
                                                 <tr wire:key="line-{{ $i }}">
                                                     <td class="px-3 py-2">
-                                                        <select wire:model.live="lines.{{ $i }}.product_id" class="block w-full rounded border-slate-200 text-xs focus:ring-brand-500 focus:border-brand-500">
+                                                        <select wire:model.live="lines.{{ $i }}.product_id" class="block w-full rounded border-cream-200 text-xs focus:ring-forest-500 focus:border-forest-500">
                                                             <option value="">— Libre —</option>
                                                             @foreach($products as $p)
                                                                 <option value="{{ $p->id }}">{{ $p->code }} {{ $p->name }}</option>
@@ -100,20 +104,20 @@
                                                         </select>
                                                     </td>
                                                     <td class="px-3 py-2">
-                                                        <input wire:model="lines.{{ $i }}.description" type="text" class="block w-full rounded border-slate-200 text-xs focus:ring-brand-500 focus:border-brand-500" />
+                                                        <input wire:model="lines.{{ $i }}.description" type="text" class="block w-full rounded border-cream-200 text-xs focus:ring-forest-500 focus:border-forest-500" />
                                                         @error("lines.{$i}.description") <p class="text-red-500 text-xs">{{ $message }}</p> @enderror
                                                     </td>
                                                     <td class="px-3 py-2">
-                                                        <input wire:model.live="lines.{{ $i }}.qty" type="number" step="0.01" min="0.01" class="block w-full rounded border-slate-200 text-xs text-right focus:ring-brand-500 focus:border-brand-500" />
+                                                        <input wire:model.live="lines.{{ $i }}.qty" type="number" step="0.01" min="0.01" class="block w-full rounded border-cream-200 text-xs text-right focus:ring-forest-500 focus:border-forest-500" />
                                                     </td>
                                                     <td class="px-3 py-2">
-                                                        <input wire:model.live="lines.{{ $i }}.unit_price" type="number" step="0.01" min="0" class="block w-full rounded border-slate-200 text-xs text-right focus:ring-brand-500 focus:border-brand-500" />
+                                                        <input wire:model.live="lines.{{ $i }}.unit_price" type="number" step="0.01" min="0" class="block w-full rounded border-cream-200 text-xs text-right focus:ring-forest-500 focus:border-forest-500" />
                                                     </td>
                                                     <td class="px-3 py-2">
-                                                        <input wire:model.live="lines.{{ $i }}.discount_pct" type="number" step="0.01" min="0" max="100" class="block w-full rounded border-slate-200 text-xs text-right focus:ring-brand-500 focus:border-brand-500" />
+                                                        <input wire:model.live="lines.{{ $i }}.discount_pct" type="number" step="0.01" min="0" max="100" class="block w-full rounded border-cream-200 text-xs text-right focus:ring-forest-500 focus:border-forest-500" />
                                                     </td>
                                                     <td class="px-3 py-2">
-                                                        <select wire:model.live="lines.{{ $i }}.tax_rate" class="block w-full rounded border-slate-200 text-xs focus:ring-brand-500 focus:border-brand-500">
+                                                        <select wire:model.live="lines.{{ $i }}.tax_rate" class="block w-full rounded border-cream-200 text-xs focus:ring-forest-500 focus:border-forest-500">
                                                             <option value="0">0%</option>
                                                             <option value="5">5%</option>
                                                             <option value="19">19%</option>
@@ -129,7 +133,7 @@
                                             @empty
                                                 <tr>
                                                     <td colspan="8" class="px-3 py-6 text-center text-slate-400 text-xs">
-                                                        Sin líneas. <button wire:click="addLine" type="button" class="text-brand-600 hover:underline">Agregar la primera</button>
+                                                        Sin líneas. <button wire:click="addLine" type="button" class="text-forest-600 hover:underline">Agregar la primera</button>
                                                     </td>
                                                 </tr>
                                             @endforelse
@@ -146,7 +150,7 @@
                                         <div class="text-sm space-y-1 w-64">
                                             <div class="flex justify-between text-slate-600"><span>Subtotal:</span><span class="font-mono">$ {{ number_format($totalSubtotal, 0, ',', '.') }}</span></div>
                                             <div class="flex justify-between text-slate-600"><span>IVA:</span><span class="font-mono">$ {{ number_format($totalTax, 0, ',', '.') }}</span></div>
-                                            <div class="flex justify-between font-bold text-slate-800 border-t border-slate-200 pt-1"><span>Total:</span><span class="font-mono">$ {{ number_format($grandTotal, 0, ',', '.') }}</span></div>
+                                            <div class="flex justify-between font-bold text-slate-800 border-t border-cream-200 pt-1"><span>Total:</span><span class="font-mono">$ {{ number_format($grandTotal, 0, ',', '.') }}</span></div>
                                         </div>
                                     </div>
                                 @endif
@@ -154,12 +158,12 @@
 
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1">Notas <span class="text-slate-400">(opcional)</span></label>
-                                <textarea wire:model="notes" rows="2" class="block w-full rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500"></textarea>
+                                <textarea wire:model="notes" rows="2" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500"></textarea>
                             </div>
                         </div>
-                        <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-white rounded-b-xl">
+                        <div class="px-6 py-4 border-t border-cream-100 flex justify-end gap-3 bg-white rounded-b-2xl">
                             <button wire:click="cancelForm" type="button" class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 transition">Cancelar</button>
-                            <button wire:click="save" type="button" class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">
+                            <button wire:click="save" type="button" class="px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition">
                                 <span wire:loading.remove wire:target="save">Guardar borrador</span>
                                 <span wire:loading wire:target="save">Guardando...</span>
                             </button>
@@ -171,36 +175,36 @@
             {{-- ══════════════════════════════════ MODAL RECIBO DE CAJA ══════════════════════════════════ --}}
             @if($showReceiptForm && !session('audit_mode'))
                 <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4" wire:click.self="$set('showReceiptForm',false)">
-                    <div class="bg-white rounded-xl shadow-xl w-full max-w-md">
-                        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between">
+                    <div class="bg-white rounded-2xl shadow-xl w-full max-w-md">
+                        <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
                             <h3 class="font-semibold text-slate-800">Registrar recibo de caja</h3>
                             <button wire:click="$set('showReceiptForm',false)" class="text-slate-400 hover:text-slate-600">✕</button>
                         </div>
                         <div class="px-6 py-5 space-y-4">
-                            <div class="p-3 bg-slate-50 rounded-lg text-sm text-slate-600">
+                            <div class="p-3 bg-slate-50 rounded-xl text-sm text-slate-600">
                                 <span class="font-medium text-slate-800">Factura:</span> {{ $receipt_ref }}
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1">Fecha de cobro</label>
-                                <input wire:model="receipt_date" type="date" class="block w-full rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500" />
+                                <input wire:model="receipt_date" type="date" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                                 @error('receipt_date') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1">Monto a cobrar</label>
-                                <input wire:model="receipt_amount" type="number" step="0.01" min="0.01" class="block w-full rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500" />
+                                <input wire:model="receipt_amount" type="number" step="0.01" min="0.01" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                                 @error('receipt_amount') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1">Notas <span class="text-slate-400">(opcional)</span></label>
-                                <input wire:model="receipt_notes" type="text" class="block w-full rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500" />
+                                <input wire:model="receipt_notes" type="text" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                             </div>
                             <p class="text-xs text-slate-500">
                                 Se generará el asiento: Débito 1105 Caja / Crédito 1305 Cuentas por cobrar
                             </p>
                         </div>
-                        <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3">
+                        <div class="px-6 py-4 border-t border-cream-100 flex justify-end gap-3">
                             <button wire:click="$set('showReceiptForm',false)" class="px-4 py-2 text-sm text-slate-600">Cancelar</button>
-                            <button wire:click="saveReceipt" class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">
+                            <button wire:click="saveReceipt" class="px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition">
                                 <span wire:loading.remove wire:target="saveReceipt">Registrar cobro</span>
                                 <span wire:loading wire:target="saveReceipt">Procesando...</span>
                             </button>
@@ -212,24 +216,24 @@
             {{-- ══════════════════════════════════ MODAL NOTA DE CRÉDITO ══════════════════════════════════ --}}
             @if($showCreditNoteForm && !session('audit_mode'))
                 <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto" wire:click.self="$set('showCreditNoteForm',false)">
-                    <div class="bg-white rounded-xl shadow-xl w-full max-w-3xl my-8">
-                        <div class="px-6 py-4 border-b border-slate-100 flex items-center justify-between sticky top-0 bg-white rounded-t-xl z-10">
+                    <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl my-8">
+                        <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-10">
                             <h3 class="font-semibold text-slate-800">Nueva nota de crédito</h3>
                             <button wire:click="$set('showCreditNoteForm',false)" class="text-slate-400 hover:text-slate-600">✕</button>
                         </div>
                         <div class="px-6 py-5 space-y-4">
-                            <div class="p-3 bg-slate-50 rounded-lg text-sm text-slate-600">
+                            <div class="p-3 bg-slate-50 rounded-xl text-sm text-slate-600">
                                 <span class="font-medium text-slate-800">Factura origen:</span> {{ $cn_invoice_ref }}
                             </div>
                             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-1">Fecha</label>
-                                    <input wire:model="cn_date" type="date" class="block w-full rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500" />
+                                    <input wire:model="cn_date" type="date" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                                     @error('cn_date') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-1">Razón de la nota</label>
-                                    <input wire:model="cn_reason" type="text" placeholder="ej: Devolución de mercancía" class="block w-full rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500" />
+                                    <input wire:model="cn_reason" type="text" placeholder="ej: Devolución de mercancía" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                                     @error('cn_reason') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
                             </div>
@@ -239,9 +243,9 @@
                                     Líneas a devolver <span class="font-normal normal-case text-slate-400">(ajusta la cantidad; pon 0 para excluir)</span>
                                 </p>
                                 @error('cn_lines') <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
-                                <div class="border border-slate-200 rounded-lg overflow-hidden">
+                                <div class="border border-cream-200 rounded-xl overflow-hidden">
                                     <table class="w-full text-sm">
-                                        <thead class="bg-slate-50 border-b border-slate-200">
+                                        <thead class="bg-slate-50 border-b border-cream-200">
                                             <tr>
                                                 <th class="text-left px-3 py-2 text-xs font-semibold text-slate-500">Descripción</th>
                                                 <th class="text-right px-3 py-2 text-xs font-semibold text-slate-500 w-28">Precio unit.</th>
@@ -265,7 +269,7 @@
                                                     <td class="px-3 py-2 text-right text-xs text-slate-400">{{ number_format($cnl['max_qty'] ?? 0, 2) }}</td>
                                                     <td class="px-3 py-2">
                                                         <input wire:model.live="cn_lines.{{ $i }}.qty" type="number" step="0.01" min="0" max="{{ $cnl['max_qty'] ?? 0 }}"
-                                                            class="block w-full rounded border-slate-200 text-xs text-right focus:ring-brand-500 focus:border-brand-500" />
+                                                            class="block w-full rounded border-cream-200 text-xs text-right focus:ring-forest-500 focus:border-forest-500" />
                                                     </td>
                                                     <td class="px-3 py-2 text-right font-mono text-xs font-semibold {{ $cnTotal > 0 ? 'text-slate-800' : 'text-slate-300' }}">
                                                         $ {{ number_format($cnTotal, 0, ',', '.') }}
@@ -285,7 +289,7 @@
                                         <div class="text-sm space-y-1 w-64">
                                             <div class="flex justify-between text-slate-600"><span>Subtotal NC:</span><span class="font-mono">$ {{ number_format($cnGrandSub, 0, ',', '.') }}</span></div>
                                             <div class="flex justify-between text-slate-600"><span>IVA NC:</span><span class="font-mono">$ {{ number_format($cnGrandTax, 0, ',', '.') }}</span></div>
-                                            <div class="flex justify-between font-bold text-slate-800 border-t border-slate-200 pt-1"><span>Total NC:</span><span class="font-mono">$ {{ number_format($cnGrandTotal, 0, ',', '.') }}</span></div>
+                                            <div class="flex justify-between font-bold text-slate-800 border-t border-cream-200 pt-1"><span>Total NC:</span><span class="font-mono">$ {{ number_format($cnGrandTotal, 0, ',', '.') }}</span></div>
                                         </div>
                                     </div>
                                 @endif
@@ -295,9 +299,9 @@
                                 Se generará el asiento: Débito 4135 Ingresos + Débito 2408 IVA / Crédito 1305 Cuentas por cobrar
                             </p>
                         </div>
-                        <div class="px-6 py-4 border-t border-slate-100 flex justify-end gap-3 bg-white rounded-b-xl">
+                        <div class="px-6 py-4 border-t border-cream-100 flex justify-end gap-3 bg-white rounded-b-2xl">
                             <button wire:click="$set('showCreditNoteForm',false)" class="px-4 py-2 text-sm text-slate-600">Cancelar</button>
-                            <button wire:click="saveCreditNote" class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">
+                            <button wire:click="saveCreditNote" class="px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition">
                                 <span wire:loading.remove wire:target="saveCreditNote">Aplicar nota de crédito</span>
                                 <span wire:loading wire:target="saveCreditNote">Procesando...</span>
                             </button>
@@ -310,8 +314,8 @@
             @if($activeTab === 'facturas')
                 <div class="mb-5 flex flex-wrap gap-3">
                     <input wire:model.live.debounce.300ms="search" type="text" placeholder="Buscar cliente..."
-                        class="w-64 rounded-lg border-slate-200 text-sm shadow-sm focus:ring-brand-500 focus:border-brand-500" />
-                    <select wire:model.live="filterStatus" class="rounded-lg border-slate-200 text-sm focus:ring-brand-500 focus:border-brand-500">
+                        class="w-64 rounded-xl border-cream-200 text-sm shadow-sm focus:ring-forest-500 focus:border-forest-500" />
+                    <select wire:model.live="filterStatus" class="rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
                         <option value="">Todos los estados</option>
                         @foreach($statuses as $s)
                             <option value="{{ $s->value }}">{{ $s->label() }}</option>
@@ -319,16 +323,16 @@
                     </select>
                 </div>
 
-                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div class="bg-white rounded-2xl border border-cream-200 shadow-card overflow-hidden">
                     <table class="w-full text-sm">
                         <thead>
-                            <tr class="bg-slate-50 border-b border-slate-100">
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Nro.</th>
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Fecha</th>
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Cliente</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Saldo</th>
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Estado</th>
+                            <tr class="bg-forest-950 border-b border-forest-800">
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Nro.</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Fecha</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Cliente</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Total</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Saldo</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Estado</th>
                                 <th class="px-6 py-3"></th>
                             </tr>
                         </thead>
@@ -348,15 +352,15 @@
                                         </span>
                                     </td>
                                     <td class="px-6 py-3">
-                                        @if(!session('audit_mode'))
+                                        @if(!session('audit_mode') && !session('reference_mode'))
                                             <div class="flex items-center justify-end gap-3">
                                                 @if($invoice->isBorrador())
-                                                    <button wire:click="openEdit({{ $invoice->id }})" class="text-xs text-brand-600 hover:text-brand-800 font-medium">Editar</button>
-                                                    <button x-on:click="confirmAction('¿Confirmar esta factura? Se generará el asiento contable.', () => $wire.confirm({{ $invoice->id }}), {confirmText: 'Sí, confirmar'})" class="text-xs text-accent-600 hover:text-accent-800 font-medium">Confirmar</button>
+                                                    <button wire:click="openEdit({{ $invoice->id }})" class="text-xs text-forest-600 hover:text-forest-800 font-medium">Editar</button>
+                                                    <button x-on:click="confirmAction('¿Confirmar esta factura? Se generará el asiento contable.', () => $wire.confirm({{ $invoice->id }}), {confirmText: 'Sí, confirmar'})" class="text-xs text-gold-600 hover:text-gold-800 font-medium">Confirmar</button>
                                                     <button x-on:click="confirmAction('¿Eliminar este borrador?', () => $wire.delete({{ $invoice->id }}), {danger: true, confirmText: 'Sí, eliminar'})" class="text-xs text-red-500 hover:text-red-700 font-medium">Eliminar</button>
                                                 @elseif($invoice->isEmitida())
                                                     @if($invoice->balance() > 0)
-                                                        <button wire:click="openReceipt({{ $invoice->id }})" class="text-xs text-accent-600 hover:text-accent-800 font-medium">Cobrar</button>
+                                                        <button wire:click="openReceipt({{ $invoice->id }})" class="text-xs text-gold-600 hover:text-gold-800 font-medium">Cobrar</button>
                                                         <button wire:click="openCreditNote({{ $invoice->id }})" class="text-xs text-orange-600 hover:text-orange-800 font-medium">Nota crédito</button>
                                                         <button wire:click="openDebitNote({{ $invoice->id }})" class="text-xs text-rose-600 hover:text-rose-800 font-medium">Nota débito</button>
                                                     @endif
@@ -370,29 +374,29 @@
                                 <tr>
                                     <td colspan="7" class="px-6 py-10 text-center text-slate-400">
                                         No hay facturas registradas.
-                                        <button wire:click="openCreate" class="ml-2 text-brand-600 hover:underline">Crear la primera</button>
+                                        <button wire:click="openCreate" class="ml-2 text-forest-600 hover:underline">Crear la primera</button>
                                     </td>
                                 </tr>
                             @endforelse
                         </tbody>
                     </table>
                     @if($invoices->hasPages())
-                        <div class="px-6 py-4 border-t border-slate-100">{{ $invoices->links() }}</div>
+                        <div class="px-6 py-4 border-t border-cream-100">{{ $invoices->links() }}</div>
                     @endif
                 </div>
             @endif
 
             {{-- ══════════════════════════════════ TAB: RECIBOS DE CAJA ══════════════════════════════════ --}}
             @if($activeTab === 'recibos')
-                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div class="bg-white rounded-2xl border border-cream-200 shadow-card overflow-hidden">
                     <table class="w-full text-sm">
                         <thead>
-                            <tr class="bg-slate-50 border-b border-slate-100">
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Referencia</th>
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Fecha</th>
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Cliente</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Monto</th>
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Estado</th>
+                            <tr class="bg-forest-950 border-b border-forest-800">
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Referencia</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Fecha</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Cliente</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Monto</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Estado</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -403,13 +407,13 @@
                                     <td class="px-6 py-3 text-slate-700">{{ $rc->third->name }}</td>
                                     <td class="px-6 py-3 text-right font-mono text-sm font-semibold text-slate-800">$ {{ number_format($rc->total, 0, ',', '.') }}</td>
                                     <td class="px-6 py-3">
-                                        <span class="px-2 py-0.5 rounded text-xs font-medium bg-accent-50 text-accent-700">{{ $rc->status->label() }}</span>
+                                        <span class="px-2 py-0.5 rounded text-xs font-medium bg-gold-50 text-gold-700">{{ $rc->status->label() }}</span>
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
                                     <td colspan="5" class="px-6 py-10 text-center text-slate-400">
-                                        No hay recibos de caja. Ve a <button wire:click="$set('activeTab','facturas')" class="text-brand-600 hover:underline">Facturas</button> y usa "Cobrar" en una factura emitida.
+                                        No hay recibos de caja. Ve a <button wire:click="$set('activeTab','facturas')" class="text-forest-600 hover:underline">Facturas</button> y usa "Cobrar" en una factura emitida.
                                     </td>
                                 </tr>
                             @endforelse
@@ -420,16 +424,16 @@
 
             {{-- ══════════════════════════════════ TAB: NOTAS DE CRÉDITO ══════════════════════════════════ --}}
             @if($activeTab === 'notas')
-                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div class="bg-white rounded-2xl border border-cream-200 shadow-card overflow-hidden">
                     <table class="w-full text-sm">
                         <thead>
-                            <tr class="bg-slate-50 border-b border-slate-100">
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Referencia</th>
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Fecha</th>
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Factura origen</th>
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Cliente</th>
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Razón</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total NC</th>
+                            <tr class="bg-forest-950 border-b border-forest-800">
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Referencia</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Fecha</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Factura origen</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Cliente</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Razón</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Total NC</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -445,7 +449,7 @@
                             @empty
                                 <tr>
                                     <td colspan="6" class="px-6 py-10 text-center text-slate-400">
-                                        No hay notas de crédito. Ve a <button wire:click="$set('activeTab','facturas')" class="text-brand-600 hover:underline">Facturas</button> y usa "Nota crédito" en una factura emitida.
+                                        No hay notas de crédito. Ve a <button wire:click="$set('activeTab','facturas')" class="text-forest-600 hover:underline">Facturas</button> y usa "Nota crédito" en una factura emitida.
                                     </td>
                                 </tr>
                             @endforelse
@@ -456,20 +460,20 @@
 
             {{-- ══════════════════════════════════ TAB: NOTAS DÉBITO ══════════════════════════════════ --}}
             @if($activeTab === 'notas_debito')
-                <div class="bg-white rounded-xl border border-slate-200 overflow-hidden">
+                <div class="bg-white rounded-2xl border border-cream-200 shadow-card overflow-hidden">
                     <table class="w-full text-sm">
                         <thead>
-                            <tr class="bg-slate-50 border-b border-slate-100">
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Referencia</th>
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Fecha</th>
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Factura origen</th>
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Cliente</th>
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Razón</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Subtotal</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">IVA</th>
-                                <th class="text-right px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total ND</th>
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Estado</th>
-                                <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Acciones</th>
+                            <tr class="bg-forest-950 border-b border-forest-800">
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Referencia</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Fecha</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Factura origen</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Cliente</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Razón</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Subtotal</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">IVA</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Total ND</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Estado</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Acciones</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -511,7 +515,7 @@
                             @empty
                                 <tr>
                                     <td colspan="10" class="px-6 py-10 text-center text-slate-400">
-                                        No hay notas débito. Ve a <button wire:click="$set('activeTab','facturas')" class="text-brand-600 hover:underline">Facturas</button> y usa "Nota débito" en una factura emitida.
+                                        No hay notas débito. Ve a <button wire:click="$set('activeTab','facturas')" class="text-forest-600 hover:underline">Facturas</button> y usa "Nota débito" en una factura emitida.
                                     </td>
                                 </tr>
                             @endforelse
@@ -533,7 +537,7 @@
                 </div>
 
                 {{-- Factura de referencia --}}
-                <div class="mb-4 p-3 bg-rose-50 rounded-lg border border-rose-100">
+                <div class="mb-4 p-3 bg-rose-50 rounded-xl border border-rose-100">
                     <p class="text-xs text-rose-600 font-medium uppercase tracking-wide mb-1">Factura origen</p>
                     <p class="text-sm font-semibold text-rose-800">{{ $dn_invoice_ref }}</p>
                 </div>
@@ -543,7 +547,7 @@
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1">Fecha</label>
                         <input type="date" wire:model="dn_date"
-                            class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                            class="w-full border border-cream-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500">
                         @error('dn_date') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                     </div>
 
@@ -552,7 +556,7 @@
                         <label class="block text-sm font-medium text-slate-700 mb-1">Razón / Descripción</label>
                         <textarea wire:model="dn_reason" rows="2"
                             placeholder="Ej: Ajuste por diferencia en precio pactado, intereses de mora..."
-                            class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 resize-none"></textarea>
+                            class="w-full border border-cream-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500 resize-none"></textarea>
                         @error('dn_reason') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                     </div>
 
@@ -562,13 +566,13 @@
                             <label class="block text-sm font-medium text-slate-700 mb-1">Subtotal (sin IVA)</label>
                             <input type="number" wire:model="dn_subtotal" min="0.01" step="0.01"
                                 placeholder="0.00"
-                                class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                class="w-full border border-cream-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500">
                             @error('dn_subtotal') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1">Tarifa IVA</label>
                             <select wire:model="dn_tax_rate"
-                                class="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500">
+                                class="w-full border border-cream-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-forest-500">
                                 <option value="0">0% — Excluido / Exento</option>
                                 <option value="5">5%</option>
                                 <option value="19">19% — General</option>
@@ -582,7 +586,7 @@
                         $previewTotal = (float) $dn_subtotal + $previewIva;
                     @endphp
                     @if($dn_subtotal > 0)
-                        <div class="bg-rose-50 rounded-lg p-3 border border-rose-100 text-sm space-y-1">
+                        <div class="bg-rose-50 rounded-xl p-3 border border-rose-100 text-sm space-y-1">
                             <div class="flex justify-between text-slate-600">
                                 <span>Subtotal</span>
                                 <span class="font-mono">$ {{ number_format($dn_subtotal, 0, ',', '.') }}</span>
@@ -599,7 +603,7 @@
                     @endif
 
                     {{-- Nota educativa --}}
-                    <div class="bg-amber-50 rounded-lg p-3 border border-amber-100">
+                    <div class="bg-amber-50 rounded-xl p-3 border border-amber-100">
                         <p class="text-xs text-amber-700">
                             <strong>Nota contable:</strong> Al confirmar la nota débito se genera el asiento:
                             <br>Débito 1305 Cuentas por cobrar — Crédito 4135 Ingresos + Crédito 2408 IVA por pagar.
@@ -610,11 +614,11 @@
 
                 <div class="flex justify-end gap-3 mt-6">
                     <button wire:click="$set('showDebitNoteForm', false)"
-                        class="px-4 py-2 text-sm rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 transition">
+                        class="px-4 py-2 text-sm rounded-xl border border-cream-200 text-slate-600 hover:bg-slate-50 transition">
                         Cancelar
                     </button>
                     <button wire:click="saveDebitNote"
-                        class="px-5 py-2 text-sm rounded-lg bg-rose-600 text-white font-semibold hover:bg-rose-700 transition">
+                        class="px-5 py-2 text-sm rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-700 transition">
                         Guardar borrador
                     </button>
                 </div>

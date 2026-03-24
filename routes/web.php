@@ -13,6 +13,7 @@ use App\Http\Controllers\Tenant\FacturacionElectronica\FeResolucionController;
 use App\Http\Controllers\Tenant\ReportPdfController;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Student\Referencias as StudentReferencias;
+use App\Livewire\Teacher\Announcements as TeacherAnnouncements;
 use App\Livewire\Teacher\Comparativo as TeacherComparativo;
 use App\Livewire\Teacher\Dashboard as TeacherDashboard;
 use App\Livewire\Teacher\DemoCompanies as TeacherDemoCompanies;
@@ -59,6 +60,7 @@ Route::middleware(['auth', 'role:teacher'])->prefix('docente')->name('teacher.')
     Route::get('/dashboard', TeacherDashboard::class)->name('dashboard');
     Route::get('/plantilla-estudiantes', BulkTemplateController::class)->name('plantilla');
     Route::get('/comparativo', TeacherComparativo::class)->name('comparativo');
+    Route::get('/anuncios', TeacherAnnouncements::class)->name('announcements');
     Route::get('/rubrica/{tenantId}', TeacherRubrica::class)->name('rubrica');
 
     // Iniciar / detener modo auditoría (salir ANTES del wildcard)
