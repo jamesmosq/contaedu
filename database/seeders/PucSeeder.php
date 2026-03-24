@@ -15,8 +15,9 @@ class PucSeeder extends Seeder
             $this->getPucAccounts()
         );
 
-        // Un solo INSERT en lote en vez de 57 queries individuales.
-        DB::table('accounts')->insert($accounts);
+        // insertOrIgnore para que las cuentas ya sembradas por migraciones
+        // (seed_retencion_accounts, seed_fixed_asset_accounts) no rompan en tenants nuevos.
+        DB::table('accounts')->insertOrIgnore($accounts);
     }
 
     private function getPucAccounts(): array
