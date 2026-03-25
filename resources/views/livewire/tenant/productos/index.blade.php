@@ -99,8 +99,8 @@
     </div>
 
     {{-- ═══ Modal: Nuevo / Editar producto ═══ --}}
-    @if($showForm && ! session('audit_mode') && ! session('reference_mode'))
-        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto" wire:click.self="cancelForm">
+    @if(! session('audit_mode') && ! session('reference_mode'))
+        <div x-show="$wire.showForm" x-cloak class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto" wire:click.self="cancelForm">
             <div class="bg-white rounded-2xl shadow-xl w-full max-w-2xl my-8">
                 <div class="px-6 py-5 border-b border-cream-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-10">
                     <h3 class="text-base font-semibold text-slate-800">{{ $editingId ? 'Editar producto' : 'Nuevo producto' }}</h3>

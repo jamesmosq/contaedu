@@ -113,7 +113,12 @@ class Index extends Component
             ]
         );
 
-        $this->reset(['showForm', 'editingId', 'code', 'name', 'description']);
+        $this->reset([
+            'showForm', 'editingId', 'code', 'name', 'description',
+            'unit', 'sale_price', 'cost_price', 'tax_rate',
+            'inventory_account_id', 'revenue_account_id', 'cogs_account_id',
+        ]);
+        $this->resetPage();
     }
 
     public function delete(int $id): void
@@ -123,7 +128,11 @@ class Index extends Component
 
     public function cancelForm(): void
     {
-        $this->reset(['showForm', 'editingId', 'code', 'name', 'description']);
+        $this->reset([
+            'showForm', 'editingId', 'code', 'name', 'description',
+            'unit', 'sale_price', 'cost_price', 'tax_rate',
+            'inventory_account_id', 'revenue_account_id', 'cogs_account_id',
+        ]);
     }
 
     public function updatingSearch(): void
