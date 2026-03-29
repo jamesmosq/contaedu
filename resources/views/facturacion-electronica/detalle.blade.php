@@ -15,20 +15,12 @@
     <div class="py-8">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
 
-            {{-- Alertas --}}
-            @if(session('success'))
-                <div class="p-4 bg-green-50 border border-green-200 text-green-800 rounded-lg text-sm">{{ session('success') }}</div>
-            @endif
-            @if(session('error'))
-                <div class="p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg text-sm">{{ session('error') }}</div>
-            @endif
 
             {{-- Panel de estado --}}
             <div class="bg-white rounded-xl border border-slate-200 p-6">
                 <div class="flex flex-wrap items-center gap-4 justify-between">
                     <div class="flex items-center gap-3">
-                        @php $color = $factura->estado->color(); @endphp
-                        <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold bg-{{ $color }}-100 text-{{ $color }}-800">
+                            <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-bold {{ $factura->estado->badgeClasses() }}">
                             {{ $factura->estado->label() }}
                         </span>
                         @if($factura->codigo_respuesta_dian)
@@ -40,13 +32,32 @@
                     @if(! session('audit_mode'))
                     <div class="flex gap-2 flex-wrap">
                         @if($factura->esBorrador())
-                            <form method="POST" action="{{ route('student.fe.emitir', $factura) }}"
-                                  onsubmit="return confirm('¿Emitir esta factura al simulador DIAN? Esta acción no se puede deshacer.')">
+                            <form id="form-emitir" method="POST" action="{{ route('student.fe.emitir', $factura) }}">
                                 @csrf
-                                <button type="submit" class="px-4 py-2 bg-green-700 text-white text-sm font-semibold rounded-lg hover:bg-green-600 transition">
+                                <button type="button"
+                                        onclick="confirmarEmision()"
+                                        class="px-4 py-2 bg-green-700 text-white text-sm font-semibold rounded-lg hover:bg-green-600 transition">
                                     Emitir al simulador DIAN
                                 </button>
                             </form>
+                            <script>
+                                function confirmarEmision() {
+                                    Swal.fire({
+                                        title: '¿Emitir factura?',
+                                        html: 'Se enviará al <strong>simulador DIAN</strong>.<br>Esta acción <strong>no se puede deshacer</strong>.',
+                                        icon: 'question',
+                                        showCancelButton: true,
+                                        confirmButtonColor: '#15803d',
+                                        cancelButtonColor: '#64748b',
+                                        confirmButtonText: 'Sí, emitir',
+                                        cancelButtonText: 'Cancelar',
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            document.getElementById('form-emitir').submit();
+                                        }
+                                    });
+                                }
+                            </script>
                         @endif
 
                         @if($factura->estado->value === 'rechazada')
@@ -80,7 +91,7 @@
                 </div>
 
                 @if($factura->mensaje_dian)
-                    <div class="mt-4 p-3 bg-{{ $color }}-50 border border-{{ $color }}-200 rounded-lg text-sm text-{{ $color }}-800">
+                    <div class="mt-4 p-3 border rounded-lg text-sm {{ $factura->estado->messageClasses() }}">
                         <strong>Mensaje DIAN:</strong> {{ $factura->mensaje_dian }}
                     </div>
                 @endif

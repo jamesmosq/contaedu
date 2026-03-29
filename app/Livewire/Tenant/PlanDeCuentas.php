@@ -4,6 +4,7 @@ namespace App\Livewire\Tenant;
 
 use App\Models\Tenant\Account;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('layouts.tenant')]

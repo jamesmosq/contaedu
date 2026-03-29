@@ -34,7 +34,15 @@
       "Bash(vendor/bin/pint bootstrap/app.php 2>&1)",
       "Bash(vendor/bin/pint app/Livewire/Tenant/Config/CompanyConfig.php app/Models/Central/CiiuCode.php bootstrap/app.php 2>&1)",
       "Bash(vendor/bin/pint routes/web.php)",
-      "Bash(ls /c/Users/jmosquerarei/Herd/contaedu/database/migrations/*.php)"
+      "Bash(ls /c/Users/jmosquerarei/Herd/contaedu/database/migrations/*.php)",
+      "Bash(cd /d C:UsersjmosquerareiHerdcontaedu)",
+      "Bash(vendor/bin/pint app/Console/Commands/TenantsMigrateAll.php app/Listeners/AutoMigrateTenant.php app/Http/Controllers/Tenant/FacturacionElectronica/FacturacionElectronicaController.php database/migrations/tenant/2026_03_25_000001_make_numero_nullable_in_fe_facturas.php)",
+      "Bash(while read:*)",
+      "Bash(do echo:*)",
+      "Read(//c/Users/jmosquerarei/Herd/contaedu/**)",
+      "Bash(done)",
+      "mcp__laravel-boost__list-routes",
+      "Bash(for file:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

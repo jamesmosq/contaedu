@@ -7,6 +7,7 @@ use App\Models\Tenant\FixedAsset;
 use App\Services\FixedAssetService;
 use Carbon\Carbon;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('layouts.tenant')]

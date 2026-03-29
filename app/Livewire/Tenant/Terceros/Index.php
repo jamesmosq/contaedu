@@ -4,6 +4,7 @@ namespace App\Livewire\Tenant\Terceros;
 
 use App\Models\Tenant\Third;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -95,12 +96,15 @@ class Index extends Component
             ]
         );
 
+        $label = $this->editingId ? 'actualizado' : 'guardado';
         $this->reset(['showForm', 'editingId', 'document', 'name', 'address', 'phone', 'email']);
+        $this->dispatch('notify', type: 'success', message: "Tercero {$label} correctamente.");
     }
 
     public function delete(int $id): void
     {
         Third::findOrFail($id)->delete();
+        $this->dispatch('notify', type: 'success', message: 'Tercero eliminado.');
     }
 
     public function cancelForm(): void

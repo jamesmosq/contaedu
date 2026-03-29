@@ -6,6 +6,7 @@ use App\Models\Tenant\BankReconciliation;
 use App\Models\Tenant\BankReconciliationItem;
 use App\Services\BankReconciliationService;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('layouts.tenant')]

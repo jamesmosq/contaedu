@@ -14,6 +14,7 @@ use App\Services\PurchaseService;
 use App\Services\RetencionService;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 

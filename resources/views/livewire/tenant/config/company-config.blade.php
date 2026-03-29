@@ -12,15 +12,6 @@
     <div class="px-6 py-8 lg:px-10">
         <div class="max-w-2xl mx-auto">
 
-            @if($saved)
-                <div class="mb-5 p-4 bg-forest-50 border border-forest-200 rounded-xl text-forest-700 text-sm flex items-center gap-2">
-                    <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-                    </svg>
-                    Configuración guardada correctamente.
-                </div>
-            @endif
-
             <div class="bg-white rounded-2xl border border-cream-200 shadow-card divide-y divide-cream-100">
 
                 {{-- Datos básicos --}}
@@ -30,7 +21,7 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1.5">NIT</label>
-                                <input wire:model="nit" type="text" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                <input wire:model="nit" type="text" inputmode="numeric" pattern="[0-9\-]+" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                                 @error('nit') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
@@ -108,7 +99,7 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Teléfono</label>
-                                <input wire:model="telefono" type="text" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                <input wire:model="telefono" type="tel" inputmode="tel" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Correo</label>

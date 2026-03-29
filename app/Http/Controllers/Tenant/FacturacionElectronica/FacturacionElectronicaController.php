@@ -117,7 +117,7 @@ class FacturacionElectronicaController extends Controller
 
         $factura = FeFactura::create([
             'resolucion_id' => $resolucion->id,
-            'numero' => 0, // se asignará al emitir
+            'numero' => null, // se asignará al emitir
             'numero_completo' => 'PENDIENTE',
             'tipo_operacion' => '10',
             'fecha_emision' => $request->fecha_emision,

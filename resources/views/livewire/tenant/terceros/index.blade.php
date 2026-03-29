@@ -132,7 +132,7 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">Número documento</label>
-                            <input wire:model="document" type="text" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                            <input wire:model="document" type="text" inputmode="numeric" pattern="[0-9\-]+" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                             @error('document') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>
@@ -161,7 +161,7 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">Teléfono</label>
-                            <input wire:model="phone" type="text" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                            <input wire:model="phone" type="tel" inputmode="tel" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">Correo</label>

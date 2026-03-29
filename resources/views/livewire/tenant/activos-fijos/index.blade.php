@@ -38,8 +38,7 @@
                         <input type="month" wire:model="dep_period"
                             class="rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                     </div>
-                    <button wire:click="runDepreciation"
-                        wire:confirm="¿Registrar depreciación para el período seleccionado? Se generarán los asientos contables."
+                    <button x-on:click="confirmAction('¿Registrar depreciación para el período seleccionado? Se generarán los asientos contables.', () => $wire.runDepreciation(), { confirmText: 'Sí, registrar' })"
                         class="px-4 py-2 bg-slate-800 text-white text-sm font-semibold rounded-xl hover:bg-slate-700 transition">
                         <span wire:loading.remove wire:target="runDepreciation">Calcular y registrar</span>
                         <span wire:loading wire:target="runDepreciation">Procesando...</span>
@@ -135,8 +134,7 @@
                                 @if(!session('audit_mode') && !session('reference_mode'))
                                     <td class="px-5 py-3">
                                         @if($asset->isActive())
-                                            <button wire:click="retire({{ $asset->id }})"
-                                                wire:confirm="¿Dar de baja este activo? No se puede revertir."
+                                            <button x-on:click="confirmAction('¿Dar de baja este activo? No se puede revertir.', () => $wire.retire({{ $asset->id }}), { danger: true, confirmText: 'Sí, dar de baja' })"
                                                 class="text-xs px-2 py-1 rounded bg-red-50 text-red-700 hover:bg-red-100 transition">
                                                 Dar de baja
                                             </button>

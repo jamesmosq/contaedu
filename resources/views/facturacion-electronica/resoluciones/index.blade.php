@@ -13,10 +13,6 @@
     <div class="py-8">
         <div class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            @if(session('success'))
-                <div class="mb-4 p-4 bg-green-50 border border-green-200 text-green-800 rounded-lg text-sm">{{ session('success') }}</div>
-            @endif
-
             @if(! session('audit_mode'))
             <div class="flex justify-end mb-6">
                 <a href="{{ route('student.fe.resoluciones.create') }}"

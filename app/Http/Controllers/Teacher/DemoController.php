@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Tenant\DashboardController;
 use App\Models\Central\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -22,8 +23,8 @@ class DemoController extends Controller
             ->firstOrFail();
 
         session([
-            'demo_mode'         => true,
-            'demo_tenant_id'    => $demo->id,
+            'demo_mode' => true,
+            'demo_tenant_id' => $demo->id,
             'demo_company_name' => $demo->company_name,
         ]);
 
@@ -48,6 +49,6 @@ class DemoController extends Controller
         $tenant = tenancy()->tenant;
         abort_if(! $tenant, 403, 'Tenancy no inicializada.');
 
-        return view('tenant.dashboard', ['student' => $tenant]);
+        return app(DashboardController::class)->index();
     }
 }

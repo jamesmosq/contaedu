@@ -8,18 +8,6 @@
     <div class="py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
 
-            {{-- Alertas --}}
-            @if(session('success'))
-                <div class="mb-4 p-4 bg-green-50 border border-green-200 text-green-800 rounded-lg text-sm">
-                    {{ session('success') }}
-                </div>
-            @endif
-            @if(session('error'))
-                <div class="mb-4 p-4 bg-red-50 border border-red-200 text-red-800 rounded-lg text-sm">
-                    {{ session('error') }}
-                </div>
-            @endif
-
             {{-- Resolución activa --}}
             @if($resolucionActiva)
                 <div class="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg flex flex-wrap gap-4 text-sm">
@@ -93,9 +81,7 @@
                                 ${{ number_format((float) $factura->total, 0, ',', '.') }}
                             </td>
                             <td class="px-4 py-3 text-center">
-                                @php $color = $factura->estado->color(); @endphp
-                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
-                                    bg-{{ $color }}-100 text-{{ $color }}-800">
+                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold {{ $factura->estado->badgeClasses() }}">
                                     {{ $factura->estado->label() }}
                                 </span>
                             </td>

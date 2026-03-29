@@ -6,6 +6,7 @@ use App\Models\Tenant\Account;
 use App\Models\Tenant\CompanyConfig;
 use App\Services\ReportService;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('layouts.tenant')]

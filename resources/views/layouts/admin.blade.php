@@ -67,5 +67,22 @@
         </div>
 
         @livewireScripts
+
+        {{-- SweetAlert2: flash messages globales --}}
+        @if(session('success') || session('error') || session('warning') || session('info'))
+        <script>
+            document.addEventListener('DOMContentLoaded', () => {
+                @if(session('success'))
+                    Swal.fire({ icon: 'success', title: '¡Listo!', text: @json(session('success')), confirmButtonColor: '#10472a', timer: 5000, timerProgressBar: true });
+                @elseif(session('error'))
+                    Swal.fire({ icon: 'error', title: 'Error', text: @json(session('error')), confirmButtonColor: '#dc2626' });
+                @elseif(session('warning'))
+                    Swal.fire({ icon: 'warning', title: 'Atención', text: @json(session('warning')), confirmButtonColor: '#d97706', timer: 5000, timerProgressBar: true });
+                @elseif(session('info'))
+                    Swal.fire({ icon: 'info', title: 'Información', text: @json(session('info')), confirmButtonColor: '#1e3a5f', timer: 5000, timerProgressBar: true });
+                @endif
+            });
+        </script>
+        @endif
     </body>
 </html>

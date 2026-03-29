@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Teacher;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Tenant\DashboardController;
 use App\Models\Central\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
@@ -24,8 +25,8 @@ class AuditController extends Controller
         $tenant = Tenant::on($centralConn)->findOrFail($tenantId);
 
         session([
-            'audit_mode'         => true,
-            'audit_tenant_id'    => $tenant->id,
+            'audit_mode' => true,
+            'audit_tenant_id' => $tenant->id,
             'audit_student_name' => $tenant->student_name,
             'audit_company_name' => $tenant->company_name,
         ]);
@@ -51,6 +52,6 @@ class AuditController extends Controller
         $tenant = tenancy()->tenant;
         abort_if(! $tenant, 403, 'Tenancy no inicializada.');
 
-        return view('tenant.dashboard', ['student' => $tenant]);
+        return app(DashboardController::class)->index();
     }
 }

@@ -17,6 +17,7 @@ use App\Services\DebitNoteService;
 use App\Services\InvoiceService;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 

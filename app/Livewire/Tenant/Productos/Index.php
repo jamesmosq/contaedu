@@ -7,6 +7,7 @@ use App\Enums\TaxRate;
 use App\Models\Tenant\Account;
 use App\Models\Tenant\Product;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -113,17 +114,21 @@ class Index extends Component
             ]
         );
 
+        $label = $this->editingId ? 'actualizado' : 'guardado';
+
         $this->reset([
             'showForm', 'editingId', 'code', 'name', 'description',
             'unit', 'sale_price', 'cost_price', 'tax_rate',
             'inventory_account_id', 'revenue_account_id', 'cogs_account_id',
         ]);
         $this->resetPage();
+        $this->dispatch('notify', type: 'success', message: "Producto {$label} correctamente.");
     }
 
     public function delete(int $id): void
     {
         Product::findOrFail($id)->delete();
+        $this->dispatch('notify', type: 'success', message: 'Producto eliminado.');
     }
 
     public function cancelForm(): void

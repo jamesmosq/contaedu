@@ -5,6 +5,7 @@ namespace App\Livewire\Tenant\Config;
 use App\Models\Central\CiiuCode;
 use App\Models\Tenant\CompanyConfig as CompanyConfigModel;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('layouts.tenant')]
@@ -30,8 +31,6 @@ class CompanyConfig extends Component
     public string $prefijo_factura = 'FV';
 
     public string $resolucion_dian = '';
-
-    public bool $saved = false;
 
     public function mount(): void
     {
@@ -101,7 +100,7 @@ class CompanyConfig extends Component
             ]
         );
 
-        $this->saved = true;
+        $this->dispatch('notify', type: 'success', message: 'Configuración guardada correctamente.');
     }
 
     public function render(): mixed

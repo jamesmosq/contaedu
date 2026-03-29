@@ -35,6 +35,30 @@ enum EstadoFacturaEnum: string
         };
     }
 
+    public function badgeClasses(): string
+    {
+        return match ($this) {
+            self::Borrador => 'bg-slate-100 text-slate-800',
+            self::Generada => 'bg-blue-100 text-blue-800',
+            self::Enviada => 'bg-yellow-100 text-yellow-800',
+            self::Validada => 'bg-green-100 text-green-800',
+            self::Rechazada => 'bg-red-100 text-red-800',
+            self::Anulada => 'bg-gray-100 text-gray-800',
+        };
+    }
+
+    public function messageClasses(): string
+    {
+        return match ($this) {
+            self::Borrador => 'bg-slate-50 border-slate-200 text-slate-800',
+            self::Generada => 'bg-blue-50 border-blue-200 text-blue-800',
+            self::Enviada => 'bg-yellow-50 border-yellow-200 text-yellow-800',
+            self::Validada => 'bg-green-50 border-green-200 text-green-800',
+            self::Rechazada => 'bg-red-50 border-red-200 text-red-800',
+            self::Anulada => 'bg-gray-50 border-gray-200 text-gray-800',
+        };
+    }
+
     public function esTerminal(): bool
     {
         return in_array($this, [self::Validada, self::Anulada]);
