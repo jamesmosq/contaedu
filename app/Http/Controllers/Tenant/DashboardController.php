@@ -26,13 +26,15 @@ class DashboardController extends Controller
             ->where('razon_social', '!=', '')
             ->exists();
 
+        // Las rutas del progreso se resuelven en la vista usando el array $r (que depende del modo activo).
+        // Aquí solo guardamos la clave de módulo.
         $progress = [
-            ['label' => 'Configuración de empresa', 'done' => $hasConfig, 'route' => 'student.config'],
-            ['label' => 'Terceros registrados', 'done' => Third::exists(), 'route' => 'student.terceros'],
-            ['label' => 'Productos registrados', 'done' => Product::exists(), 'route' => 'student.productos'],
-            ['label' => 'Facturas de venta emitidas', 'done' => ($summary?->total_facturas_venta ?? 0) > 0, 'route' => 'student.facturas'],
-            ['label' => 'Compras registradas', 'done' => ($summary?->total_facturas_compra ?? 0) > 0, 'route' => 'student.compras'],
-            ['label' => 'Balance cuadrado', 'done' => $summary?->balance_cuadrado ?? false, 'route' => 'student.reportes'],
+            ['label' => 'Configuración de empresa', 'done' => $hasConfig, 'key' => 'config'],
+            ['label' => 'Terceros registrados', 'done' => Third::exists(), 'key' => 'terceros'],
+            ['label' => 'Productos registrados', 'done' => Product::exists(), 'key' => 'productos'],
+            ['label' => 'Facturas de venta emitidas', 'done' => ($summary?->total_facturas_venta ?? 0) > 0, 'key' => 'facturas'],
+            ['label' => 'Compras registradas', 'done' => ($summary?->total_facturas_compra ?? 0) > 0, 'key' => 'compras'],
+            ['label' => 'Balance cuadrado', 'done' => $summary?->balance_cuadrado ?? false, 'key' => 'reportes'],
         ];
 
         $completedCount = collect($progress)->where('done', true)->count();
@@ -56,6 +58,7 @@ class DashboardController extends Controller
 
             $scores = StudentScore::on($centralConn)
                 ->where('tenant_id', $student->id)
+                ->current()
                 ->orderBy('module')
                 ->get()
                 ->keyBy('module');

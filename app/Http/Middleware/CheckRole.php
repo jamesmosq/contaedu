@@ -8,9 +8,15 @@ use Symfony\Component\HttpFoundation\Response;
 
 class CheckRole
 {
-    public function handle(Request $request, Closure $next, string $role): Response
+    public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        if (! auth()->check() || auth()->user()->role->value !== $role) {
+        if (! auth()->check()) {
+            abort(403, 'No tiene permisos para acceder a esta sección.');
+        }
+
+        $userRole = auth()->user()->role->value;
+
+        if (! in_array($userRole, $roles, true)) {
             abort(403, 'No tiene permisos para acceder a esta sección.');
         }
 

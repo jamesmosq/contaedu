@@ -412,6 +412,94 @@ Antes de cada fase, Claude Code debe:
 3. Confirmar que no hay conflictos con lo ya construido
 4. Proceder con la implementación
 
+---
+
+## Estado actual de implementación
+
+> Última actualización: 2026-03-29
+
+### Roles del sistema (actualizado)
+
+La jerarquía real implementada es de 4 niveles:
+
+| Rol | Guard | Acceso |
+|---|---|---|
+| `superadmin` | `web` | Panel central: CRUD de instituciones, coordinadores y docentes |
+| `coordinator` | `web` | Panel de institución: gestiona sus docentes y estudiantes, modo auditoría |
+| `teacher` | `web` | Panel de grupo: crea empresas, asigna estudiantes, auditoría, empresas demo, rúbrica |
+| `student` | `student` (guard propio) | Solo su empresa: todos los módulos contables |
+
+### Cambios en BD central
+
+- `institutions` tiene columna `coordinator_id` (FK nullable a `users`) — migración `2026_03_29_080410_add_coordinator_id_to_institutions`.
+- `student_scores` tiene columnas `period` (string nullable) y `archived_at` (timestamp nullable) — migración `2026_03_29_074932_add_period_to_student_scores`.
+- `UserRole` enum tiene los valores: `superadmin`, `coordinator`, `teacher`.
+
+### Funcionalidades implementadas
+
+#### Superadmin (`/admin`)
+- CRUD de instituciones
+- CRUD de docentes (asigna a institución, crea grupo inicial automáticamente)
+- CRUD de coordinadores (crea usuario rol=coordinator y asigna `coordinator_id` en la institución)
+- Transferencia de estudiantes entre grupos (3 modos: keep / reset / fresh)
+
+#### Coordinador (`/coordinador`)
+- Dashboard con tabs: Resumen, Docentes, Estudiantes
+- CRUD de docentes **scoped a su institución**
+- Transferencia de estudiantes **scoped a grupos de su institución**
+- Modo auditoría de empresas estudiantiles (rutas bajo `coordinator.auditoria.*`)
+- Layout propio: `layouts/coordinator.blade.php` + `layouts/coordinator-navigation.blade.php`
+- Componente: `app/Livewire/Coordinator/Dashboard.php`
+- Controlador auditoría: `app/Http/Controllers/Coordinator/AuditController.php`
+
+#### Docente (`/docente`)
+- Dashboard con métricas del grupo
+- Modo auditoría de empresas estudiantiles
+- Rúbrica de calificación con `period` y `archived_at` para historial por período
+- Panel comparativo entre estudiantes
+- Anuncios
+- **Empresas demo** (acceso completo): todos los módulos incluyendo Facturación Electrónica
+
+#### Estudiante (`/empresa`)
+- Todos los módulos contables: configuración, plan de cuentas, terceros, productos, facturas, compras, reportes, calendario tributario, activos fijos, conciliación bancaria
+- **Facturación Electrónica simulada** (módulo completo)
+- Empresas de referencia (empresas demo del docente en solo lectura)
+
+### Middlewares clave
+
+- `CheckRole` soporta roles múltiples con sintaxis variádica: `role:coordinator,superadmin`
+- `InitializeTenancyByStudent` reconoce 4 modos de sesión: normal (student), audit (teacher), demo (teacher), reference (student)
+
+### Archivos de navegación tenant
+
+`resources/views/layouts/tenant-navigation.blade.php` maneja los 4 modos de navegación:
+- `demo_mode` → nav del docente en su empresa demo (incluye F. Electrónica)
+- `reference_mode` → nav del estudiante viendo empresa de referencia
+- `audit_mode` → nav del docente auditando empresa de estudiante
+- Sin sesión especial → nav normal del estudiante (incluye F. Electrónica)
+
+### Transferencia de estudiantes
+
+`app/Services/TransferStudentService.php` soporta 3 modos:
+- `keep` — solo cambia de grupo, datos intactos
+- `reset` — trunca tablas transaccionales (facturas, compras, asientos), conserva PUC/config/terceros/productos
+- `fresh` — recrea el schema completo desde cero
+
+Las notas del período anterior quedan archivadas (`archived_at`) al transferir. `StudentScore::scopeCurrent()` filtra solo las activas.
+
+### Inputs numéricos
+
+Campos de cédula/NIT: `type="text" inputmode="numeric" pattern="[0-9\-]+"` (no `type="number"` para evitar que herramientas como Fake Filler pongan letras).
+Campos de teléfono: `type="tel" inputmode="tel"`.
+
+### Colores dinámicos en Tailwind
+
+Tailwind JIT no detecta clases como `bg-{{ $variable }}-100`. La solución implementada es mover la lógica de color a métodos del Enum (`badgeClasses()`, `messageClasses()`) que devuelven strings estáticos completos.
+
+### Notas de migración
+
+Las migraciones de las tablas centrales tempranas (institutions, groups, tenants, student_scores) no tienen registro en la tabla `migrations` porque fueron creadas antes de que el historial quedara completo. Para nuevas migraciones sobre esas tablas, usar siempre `--path` para ejecutarlas individualmente.
+
 ===
 
 <laravel-boost-guidelines>

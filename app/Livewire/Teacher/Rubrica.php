@@ -40,8 +40,8 @@ class Rubrica extends Component
     {
         $this->tenantId = $tenantId;
 
-        // Cargar notas existentes
-        $existing = StudentScore::where('tenant_id', $tenantId)->get()->keyBy('module');
+        // Cargar notas del período activo
+        $existing = StudentScore::where('tenant_id', $tenantId)->current()->get()->keyBy('module');
         foreach (array_keys(self::$modules) as $mod) {
             if (isset($existing[$mod])) {
                 $this->scores[$mod] = (string) $existing[$mod]->score;
@@ -67,14 +67,26 @@ class Rubrica extends Component
 
         foreach (array_keys(self::$modules) as $mod) {
             if ($this->scores[$mod] !== '') {
-                StudentScore::updateOrCreate(
-                    ['tenant_id' => $this->tenantId, 'module' => $mod],
-                    [
+                $score = StudentScore::where('tenant_id', $this->tenantId)
+                    ->where('module', $mod)
+                    ->current()
+                    ->first();
+
+                if ($score) {
+                    $score->update([
                         'score' => (float) $this->scores[$mod],
                         'notes' => $this->notes[$mod] ?: null,
                         'graded_by' => $gradedBy,
-                    ]
-                );
+                    ]);
+                } else {
+                    StudentScore::create([
+                        'tenant_id' => $this->tenantId,
+                        'module' => $mod,
+                        'score' => (float) $this->scores[$mod],
+                        'notes' => $this->notes[$mod] ?: null,
+                        'graded_by' => $gradedBy,
+                    ]);
+                }
             }
         }
 

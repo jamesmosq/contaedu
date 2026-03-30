@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Coordinator\AuditController as CoordinatorAudit;
 use App\Http\Controllers\Student\AuthController as StudentAuth;
 use App\Http\Controllers\Student\ReferenceController;
 use App\Http\Controllers\Teacher\AuditController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\Tenant\FacturacionElectronica\FacturacionElectronicaCon
 use App\Http\Controllers\Tenant\FacturacionElectronica\FeResolucionController;
 use App\Http\Controllers\Tenant\ReportPdfController;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
+use App\Livewire\Coordinator\Dashboard as CoordinatorDashboard;
 use App\Livewire\Student\Referencias as StudentReferencias;
 use App\Livewire\Teacher\Announcements as TeacherAnnouncements;
 use App\Livewire\Teacher\Comparativo as TeacherComparativo;
@@ -39,9 +41,11 @@ Route::get('/', function () {
     if (auth('web')->check()) {
         $user = auth('web')->user();
 
-        return $user->role === 'superadmin'
-            ? redirect()->route('admin.dashboard')
-            : redirect()->route('teacher.dashboard');
+        return match ($user->role->value) {
+            'superadmin' => redirect()->route('admin.dashboard'),
+            'coordinator' => redirect()->route('coordinator.dashboard'),
+            default => redirect()->route('teacher.dashboard'),
+        };
     }
 
     return view('welcome');
@@ -53,6 +57,30 @@ require __DIR__.'/auth.php';
 // ─── Panel Superadmin ──────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:superadmin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', AdminDashboard::class)->name('dashboard');
+});
+
+// ─── Panel Coordinador ────────────────────────────────────────────────────
+Route::middleware(['auth', 'role:coordinator'])->prefix('coordinador')->name('coordinator.')->group(function () {
+    Route::get('/dashboard', CoordinatorDashboard::class)->name('dashboard');
+
+    // Iniciar / detener auditoría
+    Route::get('/auditar/salir', [CoordinatorAudit::class, 'stop'])->name('auditar.stop');
+    Route::get('/auditar/{tenantId}', [CoordinatorAudit::class, 'start'])->name('auditar.start');
+
+    // Módulos del estudiante en modo auditoría (solo lectura)
+    Route::prefix('auditoria/{tenantId}')->name('auditoria.')->group(function () {
+        Route::get('/dashboard', [CoordinatorAudit::class, 'dashboard'])->name('dashboard');
+        Route::get('/configuracion', CompanyConfig::class)->name('config');
+        Route::get('/cuentas', PlanDeCuentas::class)->name('cuentas');
+        Route::get('/terceros', TercerosIndex::class)->name('terceros');
+        Route::get('/productos', ProductosIndex::class)->name('productos');
+        Route::get('/facturas', InvoicesIndex::class)->name('facturas');
+        Route::get('/compras', ComprasIndex::class)->name('compras');
+        Route::get('/reportes', ReportesIndex::class)->name('reportes');
+        Route::get('/reportes/pdf', ReportPdfController::class)->name('reportes.pdf');
+        Route::get('/activos-fijos', ActivosFijosIndex::class)->name('activos-fijos');
+        Route::get('/conciliacion-bancaria', ConciliacionIndex::class)->name('conciliacion');
+    });
 });
 
 // ─── Panel Docente ─────────────────────────────────────────────────────────
@@ -104,6 +132,21 @@ Route::middleware(['auth', 'role:teacher'])->prefix('docente')->name('teacher.')
         Route::get('/calendario-tributario', CalendarioIndex::class)->name('calendario');
         Route::get('/activos-fijos', ActivosFijosIndex::class)->name('activos-fijos');
         Route::get('/conciliacion-bancaria', ConciliacionIndex::class)->name('conciliacion');
+
+        // Facturación Electrónica Simulada
+        Route::prefix('facturacion-electronica')->name('fe.')->group(function () {
+            Route::get('/', [FacturacionElectronicaController::class, 'index'])->name('index');
+            Route::get('/crear', [FacturacionElectronicaController::class, 'crear'])->name('crear');
+            Route::post('/', [FacturacionElectronicaController::class, 'store'])->name('store');
+            Route::resource('resoluciones', FeResolucionController::class)->except('destroy')->parameters(['resoluciones' => 'resolucion']);
+            Route::get('/{factura}', [FacturacionElectronicaController::class, 'show'])->name('show');
+            Route::post('/{factura}/emitir', [FacturacionElectronicaController::class, 'emitir'])->name('emitir');
+            Route::post('/{factura}/reenviar', [FacturacionElectronicaController::class, 'reenviar'])->name('reenviar');
+            Route::post('/{factura}/anular', [FacturacionElectronicaController::class, 'anular'])->name('anular');
+            Route::get('/{factura}/xml', [FacturacionElectronicaController::class, 'verXml'])->name('xml');
+            Route::get('/{factura}/representacion', [FacturacionElectronicaController::class, 'representacion'])->name('representacion');
+            Route::post('/{factura}/eventos', [FacturacionElectronicaController::class, 'registrarEvento'])->name('eventos.store');
+        });
     });
 });
 

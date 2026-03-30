@@ -1,28 +1,27 @@
 <?php
 
-namespace App\Http\Controllers\Teacher;
+namespace App\Http\Controllers\Coordinator;
 
 use App\Http\Controllers\Controller;
-use App\Http\Controllers\Tenant\DashboardController;
+use App\Http\Controllers\Tenant\DashboardController as TenantDashboard;
 use App\Models\Central\Tenant;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 
 class AuditController extends Controller
 {
+    /** Coordinador inicia auditoría de una empresa dentro de su IE. */
     public function start(string $tenantId): RedirectResponse
     {
-        $teacher = auth()->user();
+        $coordinator = auth()->user();
+        $institution = $coordinator->coordinatedInstitution;
 
-        // Verificar que el tenant pertenece a un grupo de este docente
-        // (los modelos Group y User son centrales, usan la conexión pgsql)
-        $group = $teacher->teacherGroups()->whereHas('tenants', fn ($q) => $q->where('id', $tenantId))->first();
+        abort_if(! $institution, 403, 'No tienes una institución asignada.');
 
-        abort_if(! $group, 403, 'No tienes acceso a esta empresa.');
-
-        // Forzar conexión central para evitar consultar en el schema del tenant activo
         $centralConn = config('tenancy.database.central_connection', 'pgsql');
-        $tenant = Tenant::on($centralConn)->findOrFail($tenantId);
+        $tenant = Tenant::on($centralConn)
+            ->whereHas('group', fn ($q) => $q->where('institution_id', $institution->id))
+            ->findOrFail($tenantId);
 
         // Limpiar cualquier modo demo activo antes de entrar a auditoría
         session()->forget(['demo_mode', 'demo_tenant_id', 'demo_company_name']);
@@ -34,7 +33,7 @@ class AuditController extends Controller
             'audit_company_name' => $tenant->company_name,
         ]);
 
-        return redirect()->route('teacher.auditoria.dashboard', $tenantId);
+        return redirect()->route('coordinator.auditoria.dashboard', $tenantId);
     }
 
     public function stop(): RedirectResponse
@@ -45,16 +44,14 @@ class AuditController extends Controller
             tenancy()->end();
         }
 
-        return redirect()->route('teacher.dashboard');
+        return redirect()->route('coordinator.dashboard');
     }
 
     public function dashboard(string $tenantId): View
     {
-        // tenancy()->tenant ya contiene el tenant inicializado por el middleware,
-        // así evitamos consultar la tabla tenants dentro del schema del estudiante.
         $tenant = tenancy()->tenant;
         abort_if(! $tenant, 403, 'Tenancy no inicializada.');
 
-        return app(DashboardController::class)->index();
+        return app(TenantDashboard::class)->index();
     }
 }

@@ -22,6 +22,9 @@ class DemoController extends Controller
             ->where('teacher_id', $teacher->id)
             ->firstOrFail();
 
+        // Limpiar cualquier modo de auditoría activo antes de entrar al demo
+        session()->forget(['audit_mode', 'audit_tenant_id', 'audit_student_name', 'audit_company_name']);
+
         session([
             'demo_mode' => true,
             'demo_tenant_id' => $demo->id,

@@ -3,6 +3,7 @@
 namespace App\Models\Central;
 
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
@@ -14,7 +15,15 @@ class StudentScore extends Model
         'score',
         'notes',
         'graded_by',
+        'period',
+        'archived_at',
     ];
+
+    /** Solo notas del período activo (no archivadas). */
+    public function scopeCurrent(Builder $query): Builder
+    {
+        return $query->whereNull('archived_at');
+    }
 
     protected function casts(): array
     {

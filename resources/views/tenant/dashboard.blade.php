@@ -13,6 +13,14 @@
             'facturas'  => route('teacher.auditoria.facturas',  session('audit_tenant_id')),
             'compras'   => route('teacher.auditoria.compras',   session('audit_tenant_id')),
             'reportes'  => route('teacher.auditoria.reportes',  session('audit_tenant_id')),
+        ] : ($demoMode ? [
+            'config'    => route('teacher.demo.config',    session('demo_tenant_id')),
+            'cuentas'   => route('teacher.demo.cuentas',   session('demo_tenant_id')),
+            'terceros'  => route('teacher.demo.terceros',  session('demo_tenant_id')),
+            'productos' => route('teacher.demo.productos', session('demo_tenant_id')),
+            'facturas'  => route('teacher.demo.facturas',  session('demo_tenant_id')),
+            'compras'   => route('teacher.demo.compras',   session('demo_tenant_id')),
+            'reportes'  => route('teacher.demo.reportes',  session('demo_tenant_id')),
         ] : ($referenceMode ? [
             'config'    => route('student.referencia.config',    session('reference_tenant_id')),
             'cuentas'   => route('student.referencia.cuentas',   session('reference_tenant_id')),
@@ -29,7 +37,7 @@
             'facturas'  => route('student.facturas'),
             'compras'   => route('student.compras'),
             'reportes'  => route('student.reportes'),
-        ]);
+        ]));
 
         $moduleLabels = [
             'maestros'    => 'Maestros contables',
@@ -45,7 +53,10 @@
                 <h2 class="text-xl font-bold text-slate-800">{{ $student->company_name }}</h2>
                 <p class="text-sm text-slate-500 mt-0.5">NIT {{ $student->nit_empresa }}</p>
             </div>
-            <span class="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-semibold rounded-full uppercase tracking-wide">Mi empresa</span>
+            <span class="px-3 py-1 text-xs font-semibold rounded-full uppercase tracking-wide
+                {{ $auditMode ? 'bg-amber-100 text-amber-800' : ($demoMode ? 'bg-indigo-100 text-indigo-800' : ($referenceMode ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-600')) }}">
+                {{ $auditMode ? 'Auditoría' : ($demoMode ? 'Demo' : ($referenceMode ? 'Referencia' : 'Mi empresa')) }}
+            </span>
         </div>
     </x-slot>
 
@@ -57,13 +68,13 @@
                 <div class="flex items-start justify-between gap-4">
                     <div>
                         <p class="text-forest-400 text-xs font-medium uppercase tracking-widest mb-1">
-                            {{ $auditMode ? 'Modo auditoría' : ($referenceMode ? 'Empresa de referencia' : 'Panel de empresa') }}
+                            {{ $auditMode ? 'Modo auditoría' : ($demoMode ? 'Empresa demo' : ($referenceMode ? 'Empresa de referencia' : 'Panel de empresa')) }}
                         </p>
                         <h3 class="text-xl font-bold text-white mb-1">
-                            {{ $auditMode ? 'Empresa de '.$student->student_name : ($referenceMode ? ($student->company_name ?? $student->student_name) : 'Bienvenido, '.$student->student_name) }}
+                            {{ $auditMode ? 'Empresa de '.$student->student_name : ($demoMode ? ($student->company_name ?? $student->student_name) : ($referenceMode ? ($student->company_name ?? $student->student_name) : 'Bienvenido, '.$student->student_name)) }}
                         </h3>
                         <p class="text-forest-300 text-sm">
-                            {{ $auditMode ? 'Navegación de solo lectura — modo auditoría activo.' : ($referenceMode ? 'Empresa de referencia — solo lectura.' : 'Tu empresa virtual está lista. Completa el ciclo contable completo.') }}
+                            {{ $auditMode ? 'Navegación de solo lectura — modo auditoría activo.' : ($demoMode ? 'Empresa de demostración — acceso completo.' : ($referenceMode ? 'Empresa de referencia — solo lectura.' : 'Tu empresa virtual está lista. Completa el ciclo contable completo.')) }}
                         </p>
                     </div>
                     <div class="shrink-0 w-14 h-14 bg-forest-700/50 rounded-2xl flex items-center justify-center">
@@ -163,7 +174,7 @@
                         {{-- Checklist --}}
                         <div class="space-y-2">
                             @foreach($progress as $item)
-                                <a href="{{ route($item['route']) }}"
+                                <a href="{{ $r[$item['key']] }}"
                                     class="flex items-center gap-3 px-3 py-2.5 rounded-xl transition group
                                         {{ $item['done'] ? 'bg-forest-50/50' : 'hover:bg-slate-50' }}">
                                     <div class="w-5 h-5 rounded-full flex items-center justify-center shrink-0

@@ -14,17 +14,18 @@
     if ($demoMode) {
         // Docente dentro de su empresa demo (acceso completo)
         $nav = [
-            ['key' => 'dashboard',    'label' => 'Inicio',          'route' => route('teacher.demo.dashboard',    $demoId), 'icon' => 'home'],
-            ['key' => 'facturas',     'label' => 'Facturas',         'route' => route('teacher.demo.facturas',     $demoId), 'icon' => 'document-text'],
-            ['key' => 'compras',      'label' => 'Compras',          'route' => route('teacher.demo.compras',      $demoId), 'icon' => 'shopping-cart'],
-            ['key' => 'terceros',     'label' => 'Terceros',         'route' => route('teacher.demo.terceros',     $demoId), 'icon' => 'users'],
-            ['key' => 'productos',    'label' => 'Productos',        'route' => route('teacher.demo.productos',    $demoId), 'icon' => 'cube'],
-            ['key' => 'cuentas',      'label' => 'Plan de cuentas',  'route' => route('teacher.demo.cuentas',      $demoId), 'icon' => 'book-open'],
-            ['key' => 'reportes',     'label' => 'Reportes',         'route' => route('teacher.demo.reportes',     $demoId), 'icon' => 'chart-bar'],
-            ['key' => 'calendario',   'label' => 'Calendario',       'route' => route('teacher.demo.calendario',   $demoId), 'icon' => 'calendar'],
-            ['key' => 'activos',      'label' => 'Activos fijos',    'route' => route('teacher.demo.activos-fijos',$demoId), 'icon' => 'building-office'],
-            ['key' => 'conciliacion', 'label' => 'Conciliación',     'route' => route('teacher.demo.conciliacion', $demoId), 'icon' => 'banknotes'],
-            ['key' => 'config',       'label' => 'Configuración',    'route' => route('teacher.demo.config',       $demoId), 'icon' => 'cog'],
+            ['key' => 'dashboard',    'label' => 'Inicio',           'route' => route('teacher.demo.dashboard',    $demoId), 'icon' => 'home'],
+            ['key' => 'facturas',     'label' => 'Facturas',          'route' => route('teacher.demo.facturas',     $demoId), 'icon' => 'document-text'],
+            ['key' => 'compras',      'label' => 'Compras',           'route' => route('teacher.demo.compras',      $demoId), 'icon' => 'shopping-cart'],
+            ['key' => 'terceros',     'label' => 'Terceros',          'route' => route('teacher.demo.terceros',     $demoId), 'icon' => 'users'],
+            ['key' => 'productos',    'label' => 'Productos',         'route' => route('teacher.demo.productos',    $demoId), 'icon' => 'cube'],
+            ['key' => 'cuentas',      'label' => 'Plan de cuentas',   'route' => route('teacher.demo.cuentas',      $demoId), 'icon' => 'book-open'],
+            ['key' => 'reportes',     'label' => 'Reportes',          'route' => route('teacher.demo.reportes',     $demoId), 'icon' => 'chart-bar'],
+            ['key' => 'calendario',   'label' => 'Calendario',        'route' => route('teacher.demo.calendario',   $demoId), 'icon' => 'calendar'],
+            ['key' => 'activos',      'label' => 'Activos fijos',     'route' => route('teacher.demo.activos-fijos',$demoId), 'icon' => 'building-office'],
+            ['key' => 'conciliacion', 'label' => 'Conciliación',      'route' => route('teacher.demo.conciliacion', $demoId), 'icon' => 'banknotes'],
+            ['key' => 'fe',           'label' => 'F. Electrónica',    'route' => route('teacher.demo.fe.index',     $demoId), 'icon' => 'bolt'],
+            ['key' => 'config',       'label' => 'Configuración',     'route' => route('teacher.demo.config',       $demoId), 'icon' => 'cog'],
         ];
     } elseif ($referenceMode) {
         // Estudiante viendo empresa de referencia del docente (solo lectura)
@@ -141,7 +142,7 @@
                     'calendario'   => request()->routeIs('student.calendario') || request()->routeIs('teacher.auditoria.calendario'),
                     'activos'      => request()->routeIs('student.activos-fijos') || request()->routeIs('teacher.auditoria.activos-fijos'),
                     'conciliacion' => request()->routeIs('student.conciliacion') || request()->routeIs('teacher.auditoria.conciliacion'),
-                    'fe'           => request()->routeIs('student.fe.*'),
+                    'fe'           => request()->routeIs('student.fe.*') || request()->routeIs('teacher.demo.fe.*'),
                     'config'       => request()->routeIs('student.config') || request()->routeIs('teacher.auditoria.config'),
                     'referencias'  => request()->routeIs('student.referencias') || request()->routeIs('student.referencia.*'),
                     default        => false,

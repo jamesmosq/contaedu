@@ -49,9 +49,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
             $user = auth()->guard('web')->user();
             if ($user) {
-                return $user->role === 'superadmin'
-                    ? route('admin.dashboard')
-                    : route('teacher.dashboard');
+                return match ($user->role->value) {
+                    'superadmin' => route('admin.dashboard'),
+                    'coordinator' => route('coordinator.dashboard'),
+                    default => route('teacher.dashboard'),
+                };
             }
 
             return route('login');

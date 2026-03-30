@@ -463,7 +463,7 @@ class Dashboard extends Component
             if ($selectedGroup) {
                 $tenantIds = $selectedGroup->tenants->pluck('id');
                 $scoresByTenant = $tenantIds->isNotEmpty()
-                    ? StudentScore::whereIn('tenant_id', $tenantIds)->get()->groupBy('tenant_id')
+                    ? StudentScore::whereIn('tenant_id', $tenantIds)->current()->get()->groupBy('tenant_id')
                     : collect();
 
                 foreach ($selectedGroup->tenants as $tenant) {

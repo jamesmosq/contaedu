@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Http\Controllers\Tenant\DashboardController;
 use App\Models\Central\ReferenceAccessLog;
 use App\Models\Central\Tenant;
 use App\Models\User;
@@ -73,6 +74,6 @@ class ReferenceController extends Controller
         $tenant = tenancy()->tenant;
         abort_if(! $tenant, 403, 'Tenancy no inicializada.');
 
-        return view('tenant.dashboard', ['student' => $tenant]);
+        return app(DashboardController::class)->index();
     }
 }

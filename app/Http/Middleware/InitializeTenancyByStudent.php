@@ -44,11 +44,13 @@ class InitializeTenancyByStudent
                 }
             }
 
-            // Modo auditoría: docente auditando empresa de estudiante (solo lectura)
+            // Modo auditoría: docente o coordinador auditando empresa (solo lectura)
             if (session('audit_mode') && session('audit_tenant_id')) {
-                $isAuditRoute = $request->routeIs('teacher.auditoria.*');
+                $isAuditRoute = $request->routeIs('teacher.auditoria.*')
+                    || $request->routeIs('coordinator.auditoria.*');
                 $isLivewireFromAudit = str_starts_with($request->path(), 'livewire')
-                    && str_contains($referer, '/docente/auditoria/');
+                    && (str_contains($referer, '/docente/auditoria/')
+                        || str_contains($referer, '/coordinador/auditoria/'));
 
                 if ($isAuditRoute || $isLivewireFromAudit) {
                     $tenant = Tenant::on($centralConn)->find(session('audit_tenant_id'));
