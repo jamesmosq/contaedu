@@ -2,6 +2,7 @@
 
 namespace App\Models\Central;
 
+use App\Enums\StudentActivityStatus;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
@@ -45,6 +46,7 @@ class Tenant extends Authenticatable implements TenantWithDatabase
         'active',
         'published',
         'sector',
+        'last_activity_at',
     ];
 
     protected $hidden = [
@@ -57,6 +59,7 @@ class Tenant extends Authenticatable implements TenantWithDatabase
             'active' => 'boolean',
             'published' => 'boolean',
             'password' => 'hashed',
+            'last_activity_at' => 'datetime',
         ];
     }
 
@@ -75,7 +78,38 @@ class Tenant extends Authenticatable implements TenantWithDatabase
             'active',
             'published',
             'sector',
+            'last_activity_at',
         ];
+    }
+
+    /**
+     * Determina el estado de actividad del estudiante basado en:
+     * - Si nunca ha tenido actividad → NeverActive
+     * - Si la última actividad fue en un año anterior → Inactive (semestre cerrado)
+     * - Si la última actividad fue hace más de 120 días en el mismo año → Inactive
+     * - De lo contrario → Active
+     */
+    public function activityStatus(): StudentActivityStatus
+    {
+        if (is_null($this->last_activity_at)) {
+            return StudentActivityStatus::NeverActive;
+        }
+
+        if ($this->last_activity_at->year < now()->year) {
+            return StudentActivityStatus::Inactive;
+        }
+
+        if ($this->last_activity_at->diffInDays(now()) > 120) {
+            return StudentActivityStatus::Inactive;
+        }
+
+        return StudentActivityStatus::Active;
+    }
+
+    /** Indica si el estudiante puede ser reclamado directamente sin aprobación del superadmin. */
+    public function isFree(): bool
+    {
+        return $this->activityStatus()->isFree();
     }
 
     public function getTenantKeyName(): string

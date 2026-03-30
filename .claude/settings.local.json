@@ -46,7 +46,8 @@
       "Bash(./vendor/bin/pint --dirty)",
       "mcp__laravel-boost__read-log-entries",
       "Bash(python -c \"import sys,json; entries=json.load\\(sys.stdin\\); [print\\(e[''''text''''][:3000]\\) for e in entries[-3:]]\")",
-      "Bash(vendor/bin/pint --dirty app/Http/Controllers/Auth/AuthenticatedSessionController.php)"
+      "Bash(vendor/bin/pint --dirty app/Http/Controllers/Auth/AuthenticatedSessionController.php)",
+      "Bash(ls:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -45,6 +45,11 @@
                 'label'  => 'Mis demos',
                 'icon'   => 'M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Z',
             ],
+            [
+                'route'  => 'teacher.buscar-estudiante',
+                'label'  => 'Buscar estudiante',
+                'icon'   => 'M7.5 21L3 16.5m0 0L7.5 12M3 16.5h13.5m0-13.5L21 7.5m0 0L16.5 12M21 7.5H7.5',
+            ],
         ];
     @endphp
 
@@ -71,6 +76,12 @@
 
     {{-- Footer --}}
     <div class="px-3 py-4 border-t border-forest-800 space-y-1">
+        {{-- Campana de notificaciones --}}
+        <div class="flex items-center justify-between px-3 py-1">
+            <span class="text-xs text-forest-500">Notificaciones</span>
+            @livewire('shared.notification-bell')
+        </div>
+
         <div class="flex items-center gap-3 px-3 py-2">
             <div class="w-7 h-7 rounded-full bg-forest-700 flex items-center justify-center shrink-0">
                 <span class="text-xs font-bold text-gold-400">{{ strtoupper(substr(auth('web')->user()?->name ?? 'D', 0, 1)) }}</span>

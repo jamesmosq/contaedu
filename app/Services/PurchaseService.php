@@ -54,6 +54,7 @@ class PurchaseService
 
             $this->accounting->generatePurchaseEntry($invoice);
             $invoice->update(['status' => PurchaseInvoiceStatus::Pendiente]);
+            StudentActivityService::record();
 
             return $invoice;
         });

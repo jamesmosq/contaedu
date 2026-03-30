@@ -13,6 +13,7 @@ use App\Http\Controllers\Tenant\FacturacionElectronica\FacturacionElectronicaCon
 use App\Http\Controllers\Tenant\FacturacionElectronica\FeResolucionController;
 use App\Http\Controllers\Tenant\ReportPdfController;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
+use App\Livewire\Admin\TransferRequests as AdminTransferRequests;
 use App\Livewire\Coordinator\Dashboard as CoordinatorDashboard;
 use App\Livewire\Student\Referencias as StudentReferencias;
 use App\Livewire\Teacher\Announcements as TeacherAnnouncements;
@@ -20,6 +21,7 @@ use App\Livewire\Teacher\Comparativo as TeacherComparativo;
 use App\Livewire\Teacher\Dashboard as TeacherDashboard;
 use App\Livewire\Teacher\DemoCompanies as TeacherDemoCompanies;
 use App\Livewire\Teacher\Rubrica as TeacherRubrica;
+use App\Livewire\Teacher\StudentSearch as TeacherStudentSearch;
 use App\Livewire\Tenant\ActivosFijos\Index as ActivosFijosIndex;
 use App\Livewire\Tenant\Calendario\Index as CalendarioIndex;
 use App\Livewire\Tenant\Compras\Index as ComprasIndex;
@@ -57,6 +59,7 @@ require __DIR__.'/auth.php';
 // ─── Panel Superadmin ──────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:superadmin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', AdminDashboard::class)->name('dashboard');
+    Route::get('/transferencias', AdminTransferRequests::class)->name('transferencias');
 });
 
 // ─── Panel Coordinador ────────────────────────────────────────────────────
@@ -86,6 +89,7 @@ Route::middleware(['auth', 'role:coordinator'])->prefix('coordinador')->name('co
 // ─── Panel Docente ─────────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:teacher'])->prefix('docente')->name('teacher.')->group(function () {
     Route::get('/dashboard', TeacherDashboard::class)->name('dashboard');
+    Route::get('/buscar-estudiante', TeacherStudentSearch::class)->name('buscar-estudiante');
     Route::get('/plantilla-estudiantes', BulkTemplateController::class)->name('plantilla');
     Route::get('/comparativo', TeacherComparativo::class)->name('comparativo');
     Route::get('/anuncios', TeacherAnnouncements::class)->name('announcements');

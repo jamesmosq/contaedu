@@ -1,4 +1,5 @@
 <?php
+
 namespace App\Services;
 
 use App\Enums\InvoiceStatus;
@@ -23,9 +24,9 @@ class InvoiceService
                 $invoice->update($data);
                 $invoice->lines()->delete();
             } else {
-                $series        = $data['series'] ?? 'FV';
+                $series = $data['series'] ?? 'FV';
                 $data['number'] = Invoice::nextNumber($series);
-                $invoice        = Invoice::create($data);
+                $invoice = Invoice::create($data);
             }
 
             foreach ($lines as $line) {
@@ -34,12 +35,12 @@ class InvoiceService
 
             // Recalcular totales desde las líneas guardadas
             $invoice->load('lines');
-            $subtotal  = $invoice->lines->sum('line_subtotal');
+            $subtotal = $invoice->lines->sum('line_subtotal');
             $taxAmount = $invoice->lines->sum('line_tax');
             $invoice->update([
-                'subtotal'   => $subtotal,
+                'subtotal' => $subtotal,
                 'tax_amount' => $taxAmount,
-                'total'      => $subtotal + $taxAmount,
+                'total' => $subtotal + $taxAmount,
             ]);
 
             return $invoice;
@@ -62,6 +63,8 @@ class InvoiceService
             $invoice->update(['status' => InvoiceStatus::Emitida]);
             $invoice->load('lines.product', 'third');
             $this->accounting->generateSaleEntry($invoice);
+            StudentActivityService::record();
+
             return $invoice;
         });
     }
@@ -79,6 +82,7 @@ class InvoiceService
             $invoice->load('lines.product', 'third');
             $this->accounting->generateSaleReversal($invoice);
             $invoice->update(['status' => InvoiceStatus::Anulada]);
+
             return $invoice;
         });
     }
