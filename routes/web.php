@@ -210,6 +210,10 @@ Route::middleware(['auth', 'role:teacher'])->prefix('docente')->name('teacher.')
                 app(FacturacionElectronicaController::class)->representacion($factura)
             )->name('representacion');
 
+            Route::get('/{factura}/pdf', fn (string $demoId, FeFactura $factura) =>
+                app(FacturacionElectronicaController::class)->pdf($factura)
+            )->name('pdf');
+
             Route::post('/{factura}/eventos', fn (Request $request, string $demoId, FeFactura $factura) =>
                 app(FacturacionElectronicaController::class)->registrarEvento($request, $factura)
             )->name('eventos.store');
@@ -288,6 +292,7 @@ Route::middleware(['auth:student', 'tenant.initialize'])
             Route::post('/{factura}/anular', [FacturacionElectronicaController::class, 'anular'])->name('anular');
             Route::get('/{factura}/xml', [FacturacionElectronicaController::class, 'verXml'])->name('xml');
             Route::get('/{factura}/representacion', [FacturacionElectronicaController::class, 'representacion'])->name('representacion');
+            Route::get('/{factura}/pdf', [FacturacionElectronicaController::class, 'pdf'])->name('pdf');
             Route::post('/{factura}/eventos', [FacturacionElectronicaController::class, 'registrarEvento'])->name('eventos.store');
         });
     });

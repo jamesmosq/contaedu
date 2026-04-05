@@ -12,6 +12,7 @@ use App\Models\Tenant\FeResolucion;
 use App\Models\Tenant\Product;
 use App\Models\Tenant\Third;
 use App\Services\FacturacionElectronica\FacturaService;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
@@ -250,6 +251,21 @@ class FacturacionElectronicaController extends Controller
         $factura->load(['resolucion', 'detalles.producto']);
 
         return view('facturacion-electronica.representacion-grafica', compact('factura'));
+    }
+
+    public function pdf(FeFactura $factura): Response
+    {
+        $factura->load(['resolucion', 'detalles.producto']);
+
+        $pdf = Pdf::loadView('facturacion-electronica.representacion-grafica', compact('factura'))
+            ->setPaper('letter', 'portrait');
+
+        $nombre = 'factura-' . str_replace(['/', ' '], '-', $factura->numero_completo) . '.pdf';
+
+        return response($pdf->output(), 200, [
+            'Content-Type' => 'application/pdf',
+            'Content-Disposition' => 'attachment; filename="' . $nombre . '"',
+        ]);
     }
 
     public function registrarEvento(Request $request, FeFactura $factura): RedirectResponse

@@ -94,6 +94,10 @@
                                class="px-4 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition">
                                 Representación gráfica
                             </a>
+                            <a href="{{ fe_route('pdf', $factura) }}"
+                               class="px-4 py-2 bg-blue-700 text-white text-sm font-medium rounded-lg hover:bg-blue-600 transition">
+                                Descargar PDF
+                            </a>
                         @endif
                     </div>
                     @endif
