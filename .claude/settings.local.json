@@ -53,7 +53,8 @@
       "Bash(rm -rf /c/Users/jmosquerarei/Herd/nominaedu/app/Actions/Fortify)",
       "Bash(rm -rf \"/c/Users/jmosquerarei/Herd/nominaedu/resources/views/pages/settings/two-factor\")",
       "Bash(rm -f \"/c/Users/jmosquerarei/Herd/nominaedu/resources/views/pages/settings/⚡security.blade.php\")",
-      "Bash(rm -f \"/c/Users/jmosquerarei/Herd/nominaedu/resources/views/pages/settings/⚡two-factor-setup-modal.blade.php\")"
+      "Bash(rm -f \"/c/Users/jmosquerarei/Herd/nominaedu/resources/views/pages/settings/⚡two-factor-setup-modal.blade.php\")",
+      "Bash(composer show:*)"
     ]
   },
   "enableAllProjectMcpServers": true,

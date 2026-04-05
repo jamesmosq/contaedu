@@ -48,7 +48,8 @@ class ReportPdfController extends Controller
             'title' => $titles[$report] ?? 'Reporte',
             'dateFrom' => $dateFrom,
             'dateTo' => $dateTo,
-        ])->setPaper('letter', 'portrait');
+        ])->setPaper('letter', 'portrait')
+          ->setOption(['margin_top' => 18, 'margin_right' => 20, 'margin_bottom' => 18, 'margin_left' => 20]);
 
         return $pdf->stream(($titles[$report] ?? 'Reporte').'.pdf');
     }

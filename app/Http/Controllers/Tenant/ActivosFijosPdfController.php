@@ -16,7 +16,8 @@ class ActivosFijosPdfController extends Controller
         $config = CompanyConfig::first();
 
         $pdf = Pdf::loadView('pdf.activos-fijos', compact('assets', 'config'))
-            ->setPaper('letter', 'landscape');
+            ->setPaper('letter', 'landscape')
+            ->setOption(['margin_top' => 15, 'margin_right' => 18, 'margin_bottom' => 15, 'margin_left' => 18]);
 
         return $pdf->stream('Activos-Fijos.pdf');
     }

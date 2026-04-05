@@ -22,7 +22,8 @@ class ConciliacionPdfController extends Controller
         $config = CompanyConfig::first();
 
         $pdf = Pdf::loadView('pdf.conciliacion', compact('reconciliation', 'config'))
-            ->setPaper('letter', 'portrait');
+            ->setPaper('letter', 'portrait')
+            ->setOption(['margin_top' => 18, 'margin_right' => 20, 'margin_bottom' => 18, 'margin_left' => 20]);
 
         return $pdf->stream('Conciliacion-Bancaria-'.$reconciliation->period_start->format('Y-m').'.pdf');
     }

@@ -3,68 +3,118 @@
 <head>
     <meta charset="utf-8">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'DejaVu Sans', sans-serif; font-size: 9.5px; color: #334155; }
-        .header { border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; margin-bottom: 14px; }
-        .company { font-size: 13px; font-weight: bold; color: #1e3a8a; }
-        .subtitle { font-size: 10px; color: #64748b; }
-        .report-title { font-size: 12px; font-weight: bold; color: #1e40af; margin-top: 4px; }
-        .period { font-size: 8.5px; color: #94a3b8; }
+        @page { margin: 18mm 20mm; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; font-size: 11px; color: #1e293b; background: #fff; }
+        .page { padding: 28px 36px; }
+
+        /* ── Cabecera ── */
+        .header { border-bottom: 2px solid #10472a; padding-bottom: 14px; margin-bottom: 16px; display: table; width: 100%; }
+        .header-left  { display: table-cell; vertical-align: top; width: 55%; }
+        .header-right { display: table-cell; vertical-align: top; text-align: right; }
+        .empresa-name { font-size: 17px; font-weight: bold; color: #10472a; }
+        .subtitle { font-size: 10px; color: #475569; margin-top: 2px; }
+        .doc-title h1 { font-size: 13px; font-weight: bold; color: #165e36; text-transform: uppercase; letter-spacing: 0.03em; }
+        .doc-title .cuenta { font-size: 18px; font-weight: bold; color: #1e293b; margin: 3px 0; }
+        .doc-title .meta { font-size: 10px; color: #64748b; margin-top: 4px; }
+        .doc-title .meta table { margin: 0 0 0 auto; border: 1px solid #d4f0e1; width: auto; }
+        .doc-title .meta th { background: #edf8f2; padding: 3px 8px; text-align: left; font-size: 9px; color: #10472a; font-weight: 600; }
+        .doc-title .meta td { padding: 3px 8px; font-size: 10px; color: #1e293b; font-weight: normal; border-bottom: none; }
+
+        /* ── Tablas ── */
         table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-        th { background: #f1f5f9; color: #475569; font-size: 8px; text-transform: uppercase; padding: 4px 7px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-        td { padding: 3.5px 7px; border-bottom: 1px solid #f1f5f9; }
-        tfoot td { background: #f1f5f9; font-weight: bold; border-top: 1px solid #cbd5e1; }
+        thead th { background: #165e36; color: #ffffff; padding: 6px 9px; text-align: left; font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.04em; }
+        thead th.text-right { text-align: right; }
+        tbody td { padding: 4px 9px; border-bottom: 1px solid #f1f5f9; font-size: 10px; }
+        tfoot td { padding: 5px 9px; font-weight: bold; background: #edf8f2; border-top: 2px solid #d4f0e1; font-size: 10px; }
         .text-right { text-align: right; }
         .mono { font-family: 'Courier New', monospace; }
-        .section-title { font-size: 10px; font-weight: bold; color: #1e3a8a; padding: 6px 0 4px; border-bottom: 1px solid #e2e8f0; margin-bottom: 6px; margin-top: 12px; }
-        .summary-table { width: 100%; margin-bottom: 14px; }
-        .summary-table td { padding: 5px 10px; border: 1px solid #e2e8f0; }
-        .summary-label { color: #64748b; }
-        .summary-value { text-align: right; font-weight: bold; font-family: 'Courier New', monospace; color: #1e3a8a; }
-        .row-cleared { background: #f0fdf4; }
-        .row-transit { background: #eff6ff; }
-        .row-outstanding { background: #fff7ed; }
-        .row-bank { background: #faf5ff; }
-        .formula-box { border: 1px solid #fde68a; background: #fffbeb; padding: 8px 10px; margin-bottom: 12px; font-size: 8.5px; color: #92400e; }
-        .balanced-box { border: 2px solid #16a34a; background: #f0fdf4; padding: 8px 10px; text-align: right; }
-        .unbalanced-box { border: 2px solid #dc2626; background: #fef2f2; padding: 8px 10px; text-align: right; }
-        .footer { position: fixed; bottom: 0; width: 100%; font-size: 7.5px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 3px; text-align: center; }
-        .badge { display: inline-block; padding: 1px 5px; border-radius: 3px; font-size: 7.5px; font-weight: bold; }
-        .badge-cruzado { background: #dcfce7; color: #15803d; }
-        .badge-transito { background: #dbeafe; color: #1d4ed8; }
+
+        /* ── Resumen de cuadre ── */
+        .summary-table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+        .summary-table td { padding: 5px 10px; border-bottom: 1px solid #edf8f2; font-size: 10.5px; }
+        .summary-table tr:last-child td { border-bottom: none; }
+        .summary-label { color: #475569; }
+        .summary-value { text-align: right; font-weight: bold; font-family: 'Courier New', monospace; color: #10472a; width: 160px; }
+        .summary-highlight { background: #edf8f2; }
+        .summary-highlight td { font-weight: bold; }
+
+        /* ── Sección título ── */
+        .section-title { font-size: 10px; font-weight: bold; color: #10472a; padding: 5px 10px; background: #edf8f2; border-left: 3px solid #d4a017; margin-bottom: 8px; margin-top: 14px; }
+
+        /* ── Cajas informativas ── */
+        .formula-box { border: 1px solid #fde68a; background: #fffbeb; padding: 8px 12px; margin-bottom: 14px; font-size: 9px; color: #78350f; line-height: 1.5; }
+        .balanced-box   { border: 2px solid #165e36; background: #edf8f2; padding: 8px 12px; text-align: right; margin-bottom: 8px; font-size: 10.5px; color: #10472a; font-weight: bold; }
+        .unbalanced-box { border: 2px solid #dc2626; background: #fef2f2; padding: 8px 12px; text-align: right; margin-bottom: 8px; font-size: 10.5px; color: #991b1b; font-weight: bold; }
+
+        /* ── Badges ── */
+        .badge { display: inline-block; padding: 1px 7px; border-radius: 4px; font-size: 8.5px; font-weight: bold; }
+        .badge-cruzado     { background: #dcfce7; color: #166534; }
+        .badge-transito    { background: #edf8f2; color: #165e36; }
         .badge-circulacion { background: #ffedd5; color: #c2410c; }
+
+        /* ── Filas coloreadas ── */
+        .row-cleared     { background: #f0fdf4; }
+        .row-transit     { background: #edf8f2; }
+        .row-outstanding { background: #fff7ed; }
+        .row-bank        { background: #f8fafc; }
+
+        /* ── Footer ── */
+        .footer { margin-top: 20px; border-top: 1px solid #d4f0e1; padding-top: 8px; font-size: 8px; color: #94a3b8; text-align: center; }
     </style>
 </head>
 <body>
+<div class="page">
 
     @php
-        $rec        = $reconciliation;
-        $bookItems  = $rec->items->where('source', 'libro')->sortBy('date');
-        $bankItems  = $rec->items->where('source', 'banco')->sortBy('date');
+        $rec       = $reconciliation;
+        $bookItems = $rec->items->where('source', 'libro')->sortBy('date');
+        $bankItems = $rec->items->where('source', 'banco')->sortBy('date');
     @endphp
 
+    {{-- Cabecera --}}
     <div class="header">
-        <div class="company">{{ $config?->razon_social ?? config('app.name') }}</div>
-        @if($config?->nit) <div class="subtitle">NIT: {{ $config->nit }}</div> @endif
-        @if($config?->ciiu_code) <div class="subtitle">CIIU {{ $config->ciiu_code }} — {{ $config->ciiu_description }}</div> @endif
-        <div class="report-title">Conciliación Bancaria — {{ $rec->account->code }} {{ $rec->account->name }}</div>
-        <div class="period">
-            Período: {{ $rec->period_start->format('d/m/Y') }} al {{ $rec->period_end->format('d/m/Y') }}
-            &nbsp;|&nbsp; Estado: {{ $rec->isFinalizada() ? 'Finalizada' : 'Borrador' }}
-            &nbsp;|&nbsp; Generado el {{ now()->format('d/m/Y H:i') }}
+        <div class="header-left">
+            <div class="empresa-name">{{ $config?->razon_social ?? config('app.name') }}</div>
+            @if($config?->nit)
+                <div class="subtitle">NIT: {{ $config->nit }}</div>
+            @endif
+            @if($config?->ciiu_code)
+                <div class="subtitle">CIIU {{ $config->ciiu_code }} — {{ $config->ciiu_description }}</div>
+            @endif
+        </div>
+        <div class="header-right doc-title">
+            <h1>Conciliación Bancaria</h1>
+            <div class="cuenta">{{ $rec->account->code }} {{ $rec->account->name }}</div>
+            <div class="meta">
+                <table>
+                    <tr>
+                        <th>Período</th>
+                        <td>{{ $rec->period_start->format('d/m/Y') }} al {{ $rec->period_end->format('d/m/Y') }}</td>
+                    </tr>
+                    <tr>
+                        <th>Estado</th>
+                        <td>{{ $rec->isFinalizada() ? 'Finalizada' : 'Borrador' }}</td>
+                    </tr>
+                    <tr>
+                        <th>Generado</th>
+                        <td>{{ now()->format('d/m/Y H:i') }}</td>
+                    </tr>
+                </table>
+            </div>
         </div>
     </div>
 
-    {{-- Fórmula de conciliación --}}
+    {{-- Fórmula educativa --}}
     <div class="formula-box">
         <strong>Fórmula de conciliación bancaria:</strong><br>
-        Saldo extracto bancario + Depósitos en tránsito − Cheques en circulación +/− Ajustes banco = Saldo ajustado extracto<br>
-        El saldo ajustado del extracto debe ser igual al saldo según libros contables. Diferencia = 0 indica conciliación correcta.
+        Saldo extracto bancario + Depósitos en tránsito − Cheques en circulación +/− Ajustes banco = Saldo ajustado extracto.<br>
+        El saldo ajustado del extracto debe ser igual al saldo según libros contables. <strong>Diferencia = $0</strong> indica conciliación correcta.
     </div>
 
     {{-- Resumen de cuadre --}}
     <div class="section-title">Resumen del cuadre</div>
-    <table class="summary-table">
+    <table class="summary-table" style="border: 1px solid #d4f0e1;">
         <tr>
             <td class="summary-label">Saldo según extracto bancario</td>
             <td class="summary-value">${{ number_format($rec->statement_balance, 2, ',', '.') }}</td>
@@ -81,7 +131,7 @@
             <td class="summary-label">+/− Ajustes banco (cargos, intereses, notas)</td>
             <td class="summary-value">{{ $rec->bankAdjustments() >= 0 ? '+' : '−' }} ${{ number_format(abs($rec->bankAdjustments()), 2, ',', '.') }}</td>
         </tr>
-        <tr style="background:#f1f5f9;">
+        <tr class="summary-highlight">
             <td><strong>= Saldo ajustado del extracto</strong></td>
             <td class="summary-value">${{ number_format($rec->adjustedStatementBalance(), 2, ',', '.') }}</td>
         </tr>
@@ -92,8 +142,8 @@
     </table>
 
     <div class="{{ $rec->isBalanced() ? 'balanced-box' : 'unbalanced-box' }}">
-        <strong>Diferencia: ${{ number_format(abs($rec->difference()), 2, ',', '.') }}</strong>
-        {{ $rec->isBalanced() ? '✓ Conciliación cuadrada correctamente' : '⚠ Existe diferencia — revisar partidas' }}
+        Diferencia: ${{ number_format(abs($rec->difference()), 2, ',', '.') }}
+        &nbsp;&nbsp;{{ $rec->isBalanced() ? '✓ Conciliación cuadrada correctamente' : '⚠ Existe diferencia — revisar partidas' }}
     </div>
 
     {{-- Movimientos del libro --}}
@@ -137,6 +187,8 @@
                 </tr>
             </tfoot>
         </table>
+    @else
+        <p style="font-size:10px; color:#94a3b8; padding: 8px 0;">Sin movimientos en libros para este período.</p>
     @endif
 
     {{-- Partidas bancarias --}}
@@ -172,12 +224,15 @@
     @endif
 
     @if($rec->notes)
-        <div style="font-size:8.5px;color:#64748b;margin-top:8px;"><strong>Notas:</strong> {{ $rec->notes }}</div>
+        <div style="font-size:9.5px; color:#475569; margin-top:8px; padding: 6px 10px; background:#f8fafc; border-left: 3px solid #d4a017;">
+            <strong>Notas:</strong> {{ $rec->notes }}
+        </div>
     @endif
 
     <div class="footer">
         {{ $config?->razon_social ?? config('app.name') }} — Conciliación Bancaria {{ $rec->period_start->format('m/Y') }} — ContaEdu (plataforma educativa)
     </div>
 
+</div>
 </body>
 </html>

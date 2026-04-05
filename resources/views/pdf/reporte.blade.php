@@ -3,42 +3,103 @@
 <head>
     <meta charset="utf-8">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: 'DejaVu Sans', sans-serif; font-size: 10px; color: #334155; }
-        .header { border-bottom: 2px solid #1e3a8a; padding-bottom: 12px; margin-bottom: 16px; }
-        .company { font-size: 14px; font-weight: bold; color: #1e3a8a; }
-        .subtitle { font-size: 11px; color: #64748b; }
-        .report-title { font-size: 13px; font-weight: bold; color: #1e40af; margin-top: 4px; }
-        .period { font-size: 9px; color: #94a3b8; }
+        @page { margin: 18mm 20mm; }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: Arial, sans-serif; font-size: 11px; color: #1e293b; background: #fff; }
+        .page { padding: 28px 36px; }
+
+        /* ── Cabecera ── */
+        .header { border-bottom: 2px solid #10472a; padding-bottom: 14px; margin-bottom: 16px; display: table; width: 100%; }
+        .header-left  { display: table-cell; vertical-align: top; width: 55%; }
+        .header-right { display: table-cell; vertical-align: top; text-align: right; }
+        .empresa-name { font-size: 17px; font-weight: bold; color: #10472a; }
+        .subtitle { font-size: 10px; color: #475569; margin-top: 2px; }
+        .report-title { font-size: 13px; font-weight: bold; color: #165e36; text-transform: uppercase; letter-spacing: 0.03em; margin-bottom: 4px; }
+        .period { font-size: 10px; color: #64748b; margin-top: 4px; }
+        .period table { margin: 0 0 0 auto; border: 1px solid #d4f0e1; width: auto; }
+        .period th { background: #edf8f2; padding: 3px 8px; text-align: left; font-size: 9px; color: #10472a; font-weight: 600; }
+        .period td { padding: 3px 8px; font-size: 10px; color: #1e293b; font-weight: normal; border-bottom: none; }
+
+        /* ── Tablas ── */
         table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
-        th { background: #f1f5f9; color: #475569; font-size: 8px; text-transform: uppercase; padding: 5px 8px; text-align: left; border-bottom: 1px solid #e2e8f0; }
-        td { padding: 4px 8px; border-bottom: 1px solid #f1f5f9; }
-        tfoot td { background: #f8fafc; font-weight: bold; border-top: 1px solid #e2e8f0; }
+        thead th { background: #165e36; color: #ffffff; padding: 6px 9px; text-align: left; font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 0.04em; }
+        thead th.text-right { text-align: right; }
+        tbody td { padding: 4px 9px; border-bottom: 1px solid #f1f5f9; font-size: 10px; }
+        tfoot td { padding: 5px 9px; font-weight: bold; background: #edf8f2; border-top: 2px solid #d4f0e1; font-size: 10px; }
         .text-right { text-align: right; }
         .mono { font-family: 'Courier New', monospace; }
-        .badge { display: inline-block; padding: 1px 6px; border-radius: 3px; font-size: 8px; font-weight: bold; }
-        .badge-auto { background: #dbeafe; color: #1d4ed8; }
-        .entry-header { background: #f8fafc; padding: 5px 8px; border-bottom: 1px solid #e2e8f0; font-weight: bold; }
-        .section-title { font-size: 11px; font-weight: bold; padding: 8px 0 4px; color: #1e3a8a; border-bottom: 1px solid #e2e8f0; margin-bottom: 6px; }
-        .totals-row { font-weight: bold; background: #f1f5f9; }
-        .utilidad-box { border: 2px solid #16a34a; padding: 10px; margin-top: 12px; text-align: right; }
-        .utilidad-box.perdida { border-color: #dc2626; }
-        .footer { position: fixed; bottom: 0; width: 100%; font-size: 8px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 4px; text-align: center; }
+
+        /* ── Sección título ── */
+        .section-title { font-size: 10px; font-weight: bold; color: #10472a; padding: 5px 10px; background: #edf8f2; border-left: 3px solid #d4a017; margin-bottom: 8px; margin-top: 14px; }
+
+        /* ── Asiento contable (libro diario) ── */
+        .entry-header { background: #edf8f2; padding: 5px 9px; border-left: 3px solid #165e36; font-weight: bold; margin-bottom: 2px; font-size: 10px; color: #10472a; }
+
+        /* ── Totales y resultados ── */
+        .totals-row { font-weight: bold; background: #edf8f2; }
+        .utilidad-box { border: 2px solid #165e36; background: #edf8f2; padding: 10px 12px; margin-top: 12px; text-align: right; font-size: 12px; color: #10472a; font-weight: bold; }
+        .utilidad-box.perdida { border-color: #dc2626; background: #fef2f2; color: #991b1b; }
+
+        /* ── Badges ── */
+        .badge { display: inline-block; padding: 1px 6px; border-radius: 4px; font-size: 8.5px; font-weight: bold; }
+        .badge-auto { background: #edf8f2; color: #10472a; }
+
+        /* ── Footer ── */
+        .footer { margin-top: 20px; border-top: 1px solid #d4f0e1; padding-top: 8px; font-size: 8px; color: #94a3b8; text-align: center; }
     </style>
 </head>
 <body>
+<div class="page">
+
+    {{-- Cabecera --}}
     <div class="header">
-        <div class="company">{{ $config?->razon_social ?? config('app.name') }}</div>
-        @if($config?->nit) <div class="subtitle">NIT: {{ $config->nit }}</div> @endif
-        @if($config?->ciiu_code) <div class="subtitle">CIIU {{ $config->ciiu_code }} — {{ $config->ciiu_description }}</div> @endif
-        <div class="report-title">{{ $title }}</div>
-        @if(!in_array($report, ['cartera','cxp','balance']))
-            <div class="period">Período: {{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }} al {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}</div>
-        @elseif($report === 'balance')
-            <div class="period">Al: {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}</div>
-        @endif
+        <div class="header-left">
+            <div class="empresa-name">{{ $config?->razon_social ?? config('app.name') }}</div>
+            @if($config?->nit)
+                <div class="subtitle">NIT: {{ $config->nit }}</div>
+            @endif
+            @if($config?->ciiu_code)
+                <div class="subtitle">CIIU {{ $config->ciiu_code }} — {{ $config->ciiu_description }}</div>
+            @endif
+        </div>
+        <div class="header-right">
+            <div class="report-title">{{ $title }}</div>
+            <div class="period">
+                @if(!in_array($report, ['cartera','cxp','balance']))
+                    <table>
+                        <tr>
+                            <th>Período</th>
+                            <td>{{ \Carbon\Carbon::parse($dateFrom)->format('d/m/Y') }} al {{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Generado</th>
+                            <td>{{ now()->format('d/m/Y H:i') }}</td>
+                        </tr>
+                    </table>
+                @elseif($report === 'balance')
+                    <table>
+                        <tr>
+                            <th>Al</th>
+                            <td>{{ \Carbon\Carbon::parse($dateTo)->format('d/m/Y') }}</td>
+                        </tr>
+                        <tr>
+                            <th>Generado</th>
+                            <td>{{ now()->format('d/m/Y H:i') }}</td>
+                        </tr>
+                    </table>
+                @else
+                    <table>
+                        <tr>
+                            <th>Generado</th>
+                            <td>{{ now()->format('d/m/Y H:i') }}</td>
+                        </tr>
+                    </table>
+                @endif
+            </div>
+        </div>
     </div>
 
+    {{-- ── Cartera / CxP ── --}}
     @if(in_array($report, ['cartera','cxp']))
         <table>
             <thead>
@@ -54,7 +115,7 @@
             <tbody>
                 @foreach($data as $row)
                     <tr>
-                        <td class="mono">{{ $report === 'cartera' ? $row['reference'] : $row['reference'] }}</td>
+                        <td class="mono">{{ $row['reference'] }}</td>
                         <td>{{ $report === 'cartera' ? $row['client'] : $row['supplier'] }}</td>
                         <td>{{ \Carbon\Carbon::parse($row['date'])->format('d/m/Y') }}</td>
                         <td>{{ $row['due_date'] ? \Carbon\Carbon::parse($row['due_date'])->format('d/m/Y') : '—' }}</td>
@@ -65,22 +126,33 @@
             </tbody>
             <tfoot>
                 <tr>
-                    <td colspan="4">Total</td>
-                    <td class="text-right mono">$ {{ number_format($data->sum($report==='cartera'?'total':'balance'), 0, ',', '.') }}</td>
+                    <td colspan="4"><strong>Total</strong></td>
+                    <td class="text-right mono"><strong>$ {{ number_format($data->sum($report==='cartera'?'total':'balance'), 0, ',', '.') }}</strong></td>
                     <td></td>
                 </tr>
             </tfoot>
         </table>
     @endif
 
+    {{-- ── Libro Diario ── --}}
     @if($report === 'diario')
         @foreach($data as $entry)
             <div class="entry-header">
-                {{ \Carbon\Carbon::parse($entry->date)->format('d/m/Y') }} &nbsp;|&nbsp; {{ $entry->reference }} &nbsp;|&nbsp; {{ $entry->description }}
+                {{ \Carbon\Carbon::parse($entry->date)->format('d/m/Y') }} &nbsp;|&nbsp;
+                {{ $entry->reference }} &nbsp;|&nbsp;
+                {{ $entry->description }}
                 @if($entry->auto_generated) <span class="badge badge-auto">AUTO</span> @endif
             </div>
             <table>
-                <thead><tr><th>Código</th><th>Cuenta</th><th>Descripción</th><th class="text-right">Débito</th><th class="text-right">Crédito</th></tr></thead>
+                <thead>
+                    <tr>
+                        <th>Código</th>
+                        <th>Cuenta</th>
+                        <th>Descripción</th>
+                        <th class="text-right">Débito</th>
+                        <th class="text-right">Crédito</th>
+                    </tr>
+                </thead>
                 <tbody>
                     @foreach($entry->lines as $line)
                         <tr>
@@ -92,45 +164,105 @@
                         </tr>
                     @endforeach
                 </tbody>
-                <tfoot><tr><td colspan="3" class="text-right">Totales:</td><td class="text-right mono">$ {{ number_format($entry->lines->sum('debit'),0,',','.') }}</td><td class="text-right mono">$ {{ number_format($entry->lines->sum('credit'),0,',','.') }}</td></tr></tfoot>
+                <tfoot>
+                    <tr>
+                        <td colspan="3" class="text-right"><strong>Totales:</strong></td>
+                        <td class="text-right mono"><strong>$ {{ number_format($entry->lines->sum('debit'),0,',','.') }}</strong></td>
+                        <td class="text-right mono"><strong>$ {{ number_format($entry->lines->sum('credit'),0,',','.') }}</strong></td>
+                    </tr>
+                </tfoot>
             </table>
         @endforeach
     @endif
 
+    {{-- ── Balance de Comprobación ── --}}
     @if($report === 'comprobacion')
         <table>
-            <thead><tr><th>Código</th><th>Cuenta</th><th>Tipo</th><th class="text-right">Débitos</th><th class="text-right">Créditos</th><th class="text-right">Saldo</th></tr></thead>
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Cuenta</th>
+                    <th>Tipo</th>
+                    <th class="text-right">Débitos</th>
+                    <th class="text-right">Créditos</th>
+                    <th class="text-right">Saldo</th>
+                </tr>
+            </thead>
             <tbody>
                 @foreach($data as $row)
-                    <tr><td class="mono">{{ $row['code'] }}</td><td>{{ $row['name'] }}</td><td>{{ ucfirst($row['type']) }}</td><td class="text-right mono">$ {{ number_format($row['total_debit'],0,',','.') }}</td><td class="text-right mono">$ {{ number_format($row['total_credit'],0,',','.') }}</td><td class="text-right mono">$ {{ number_format($row['balance'],0,',','.') }}</td></tr>
+                    <tr>
+                        <td class="mono">{{ $row['code'] }}</td>
+                        <td>{{ $row['name'] }}</td>
+                        <td>{{ ucfirst($row['type']) }}</td>
+                        <td class="text-right mono">$ {{ number_format($row['total_debit'],0,',','.') }}</td>
+                        <td class="text-right mono">$ {{ number_format($row['total_credit'],0,',','.') }}</td>
+                        <td class="text-right mono">$ {{ number_format($row['balance'],0,',','.') }}</td>
+                    </tr>
                 @endforeach
             </tbody>
-            <tfoot><tr><td colspan="3" class="text-right">TOTALES</td><td class="text-right mono">$ {{ number_format($data->sum('total_debit'),0,',','.') }}</td><td class="text-right mono">$ {{ number_format($data->sum('total_credit'),0,',','.') }}</td><td></td></tr></tfoot>
+            <tfoot>
+                <tr>
+                    <td colspan="3" class="text-right"><strong>TOTALES</strong></td>
+                    <td class="text-right mono"><strong>$ {{ number_format($data->sum('total_debit'),0,',','.') }}</strong></td>
+                    <td class="text-right mono"><strong>$ {{ number_format($data->sum('total_credit'),0,',','.') }}</strong></td>
+                    <td></td>
+                </tr>
+            </tfoot>
         </table>
     @endif
 
+    {{-- ── Estado de Resultados ── --}}
     @if($report === 'resultados')
         <div class="section-title">INGRESOS</div>
-        <table><tbody>@foreach($data['ingresos']['rows'] as $r)<tr><td class="mono">{{ $r['code'] }}</td><td>{{ $r['name'] }}</td><td class="text-right mono">$ {{ number_format($r['balance'],0,',','.') }}</td></tr>@endforeach</tbody><tfoot><tr class="totals-row"><td colspan="2">Total Ingresos</td><td class="text-right mono">$ {{ number_format($data['ingresos']['total'],0,',','.') }}</td></tr></tfoot></table>
+        <table>
+            <tbody>
+                @foreach($data['ingresos']['rows'] as $r)
+                    <tr><td class="mono">{{ $r['code'] }}</td><td>{{ $r['name'] }}</td><td class="text-right mono">$ {{ number_format($r['balance'],0,',','.') }}</td></tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr class="totals-row"><td colspan="2"><strong>Total Ingresos</strong></td><td class="text-right mono"><strong>$ {{ number_format($data['ingresos']['total'],0,',','.') }}</strong></td></tr>
+            </tfoot>
+        </table>
         <div class="section-title">COSTOS DE VENTA</div>
-        <table><tbody>@foreach($data['costos']['rows'] as $r)<tr><td class="mono">{{ $r['code'] }}</td><td>{{ $r['name'] }}</td><td class="text-right mono">$ {{ number_format($r['balance'],0,',','.') }}</td></tr>@endforeach</tbody><tfoot><tr class="totals-row"><td colspan="2">Total Costos</td><td class="text-right mono">$ {{ number_format($data['costos']['total'],0,',','.') }}</td></tr></tfoot></table>
+        <table>
+            <tbody>
+                @foreach($data['costos']['rows'] as $r)
+                    <tr><td class="mono">{{ $r['code'] }}</td><td>{{ $r['name'] }}</td><td class="text-right mono">$ {{ number_format($r['balance'],0,',','.') }}</td></tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr class="totals-row"><td colspan="2"><strong>Total Costos</strong></td><td class="text-right mono"><strong>$ {{ number_format($data['costos']['total'],0,',','.') }}</strong></td></tr>
+            </tfoot>
+        </table>
         <div class="section-title">GASTOS</div>
-        <table><tbody>@foreach($data['gastos']['rows'] as $r)<tr><td class="mono">{{ $r['code'] }}</td><td>{{ $r['name'] }}</td><td class="text-right mono">$ {{ number_format($r['balance'],0,',','.') }}</td></tr>@endforeach</tbody><tfoot><tr class="totals-row"><td colspan="2">Total Gastos</td><td class="text-right mono">$ {{ number_format($data['gastos']['total'],0,',','.') }}</td></tr></tfoot></table>
+        <table>
+            <tbody>
+                @foreach($data['gastos']['rows'] as $r)
+                    <tr><td class="mono">{{ $r['code'] }}</td><td>{{ $r['name'] }}</td><td class="text-right mono">$ {{ number_format($r['balance'],0,',','.') }}</td></tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr class="totals-row"><td colspan="2"><strong>Total Gastos</strong></td><td class="text-right mono"><strong>$ {{ number_format($data['gastos']['total'],0,',','.') }}</strong></td></tr>
+            </tfoot>
+        </table>
         <div class="utilidad-box {{ $data['utilidad'] < 0 ? 'perdida' : '' }}">
-            <strong>{{ $data['utilidad'] >= 0 ? 'UTILIDAD DEL EJERCICIO' : 'PÉRDIDA DEL EJERCICIO' }}: $ {{ number_format(abs($data['utilidad']),0,',','.') }}</strong>
+            {{ $data['utilidad'] >= 0 ? 'UTILIDAD DEL EJERCICIO' : 'PÉRDIDA DEL EJERCICIO' }}:
+            $ {{ number_format(abs($data['utilidad']),0,',','.') }}
         </div>
     @endif
 
+    {{-- ── Libro IVA ── --}}
     @if($report === 'iva')
-        <table style="margin-bottom:12px; border:1px solid #e2e8f0;">
+        <table style="margin-bottom:14px; border:1px solid #d4f0e1;">
             <tbody>
                 <tr>
-                    <td style="padding:6px 10px; font-weight:bold; color:#15803d;">IVA generado (ventas)</td>
-                    <td class="text-right mono" style="padding:6px 10px; color:#15803d;">$ {{ number_format($data['iva_ventas'], 0, ',', '.') }}</td>
+                    <td style="padding:6px 10px; font-weight:bold; color:#165e36;">IVA generado (ventas)</td>
+                    <td class="text-right mono" style="padding:6px 10px; color:#165e36; font-weight:bold;">$ {{ number_format($data['iva_ventas'], 0, ',', '.') }}</td>
                 </tr>
                 <tr style="background:#f8fafc;">
-                    <td style="padding:6px 10px; color:#1d4ed8;">IVA descontable (compras)</td>
-                    <td class="text-right mono" style="padding:6px 10px; color:#1d4ed8;">($ {{ number_format($data['iva_compras'], 0, ',', '.') }})</td>
+                    <td style="padding:6px 10px; color:#475569;">IVA descontable (compras)</td>
+                    <td class="text-right mono" style="padding:6px 10px; color:#475569;">($ {{ number_format($data['iva_compras'], 0, ',', '.') }})</td>
                 </tr>
                 <tr>
                     <td style="padding:6px 10px; color:#b45309;">Reteiva practicada (2367)</td>
@@ -140,12 +272,12 @@
                     <td style="padding:6px 10px; color:#7c3aed;">Reteica practicada (2368)</td>
                     <td class="text-right mono" style="padding:6px 10px; color:#7c3aed;">($ {{ number_format($data['reteica'], 0, ',', '.') }})</td>
                 </tr>
-                <tr style="border-top:2px solid #334155;">
-                    @php $saldo = $data['saldo_dian']; @endphp
-                    <td style="padding:6px 10px; font-weight:bold; color:{{ $saldo > 0 ? '#dc2626' : '#15803d' }};">
+                @php $saldo = $data['saldo_dian']; @endphp
+                <tr style="border-top:2px solid #10472a;">
+                    <td style="padding:6px 10px; font-weight:bold; color:{{ $saldo > 0 ? '#dc2626' : '#165e36' }};">
                         Saldo {{ $saldo > 0 ? 'a pagar DIAN' : 'a favor' }}
                     </td>
-                    <td class="text-right mono" style="padding:6px 10px; font-weight:bold; color:{{ $saldo > 0 ? '#dc2626' : '#15803d' }};">
+                    <td class="text-right mono" style="padding:6px 10px; font-weight:bold; color:{{ $saldo > 0 ? '#dc2626' : '#165e36' }};">
                         $ {{ number_format(abs($saldo), 0, ',', '.') }}
                     </td>
                 </tr>
@@ -180,15 +312,78 @@
         </table>
     @endif
 
+    {{-- ── Balance General ── --}}
     @if($report === 'balance')
         <div class="section-title">ACTIVOS</div>
-        <table><tbody>@foreach($data['activos']['rows'] as $r)<tr><td class="mono">{{ $r['code'] }}</td><td>{{ $r['name'] }}</td><td class="text-right mono">$ {{ number_format($r['balance'],0,',','.') }}</td></tr>@endforeach</tbody><tfoot><tr class="totals-row"><td colspan="2">Total Activos</td><td class="text-right mono">$ {{ number_format($data['activos']['total'],0,',','.') }}</td></tr></tfoot></table>
+        <table>
+            <tbody>
+                @foreach($data['activos']['rows'] as $r)
+                    <tr><td class="mono">{{ $r['code'] }}</td><td>{{ $r['name'] }}</td><td class="text-right mono">$ {{ number_format($r['balance'],0,',','.') }}</td></tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr class="totals-row"><td colspan="2"><strong>Total Activos</strong></td><td class="text-right mono"><strong>$ {{ number_format($data['activos']['total'],0,',','.') }}</strong></td></tr>
+            </tfoot>
+        </table>
         <div class="section-title">PASIVOS</div>
-        <table><tbody>@foreach($data['pasivos']['rows'] as $r)<tr><td class="mono">{{ $r['code'] }}</td><td>{{ $r['name'] }}</td><td class="text-right mono">$ {{ number_format($r['balance'],0,',','.') }}</td></tr>@endforeach</tbody><tfoot><tr class="totals-row"><td colspan="2">Total Pasivos</td><td class="text-right mono">$ {{ number_format($data['pasivos']['total'],0,',','.') }}</td></tr></tfoot></table>
+        <table>
+            <tbody>
+                @foreach($data['pasivos']['rows'] as $r)
+                    <tr><td class="mono">{{ $r['code'] }}</td><td>{{ $r['name'] }}</td><td class="text-right mono">$ {{ number_format($r['balance'],0,',','.') }}</td></tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr class="totals-row"><td colspan="2"><strong>Total Pasivos</strong></td><td class="text-right mono"><strong>$ {{ number_format($data['pasivos']['total'],0,',','.') }}</strong></td></tr>
+            </tfoot>
+        </table>
         <div class="section-title">PATRIMONIO</div>
-        <table><tbody>@foreach($data['patrimonio']['rows'] as $r)<tr><td class="mono">{{ $r['code'] }}</td><td>{{ $r['name'] }}</td><td class="text-right mono">$ {{ number_format($r['balance'],0,',','.') }}</td></tr>@endforeach</tbody><tfoot><tr class="totals-row"><td colspan="2">Total Patrimonio</td><td class="text-right mono">$ {{ number_format($data['patrimonio']['total'],0,',','.') }}</td></tr></tfoot></table>
+        <table>
+            <tbody>
+                @foreach($data['patrimonio']['rows'] as $r)
+                    <tr><td class="mono">{{ $r['code'] }}</td><td>{{ $r['name'] }}</td><td class="text-right mono">$ {{ number_format($r['balance'],0,',','.') }}</td></tr>
+                @endforeach
+            </tbody>
+            <tfoot>
+                <tr class="totals-row"><td colspan="2"><strong>Total Patrimonio</strong></td><td class="text-right mono"><strong>$ {{ number_format($data['patrimonio']['total'],0,',','.') }}</strong></td></tr>
+            </tfoot>
+        </table>
     @endif
 
-    <div class="footer">Generado por ContaEdu — {{ now()->format('d/m/Y H:i') }}</div>
+    {{-- ── Libro Mayor ── --}}
+    @if($report === 'mayor')
+        @foreach($data as $entry)
+            <div class="entry-header">{{ $entry['account_code'] ?? '' }} — {{ $entry['account_name'] ?? '' }}</div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Referencia</th>
+                        <th>Descripción</th>
+                        <th class="text-right">Débito</th>
+                        <th class="text-right">Crédito</th>
+                        <th class="text-right">Saldo</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($entry['lines'] ?? [] as $line)
+                        <tr>
+                            <td>{{ \Carbon\Carbon::parse($line['date'])->format('d/m/Y') }}</td>
+                            <td class="mono">{{ $line['reference'] }}</td>
+                            <td>{{ $line['description'] }}</td>
+                            <td class="text-right mono">{{ $line['debit'] > 0 ? '$ '.number_format($line['debit'],0,',','.') : '' }}</td>
+                            <td class="text-right mono">{{ $line['credit'] > 0 ? '$ '.number_format($line['credit'],0,',','.') : '' }}</td>
+                            <td class="text-right mono">$ {{ number_format($line['balance'],0,',','.') }}</td>
+                        </tr>
+                    @endforeach
+                </tbody>
+            </table>
+        @endforeach
+    @endif
+
+    <div class="footer">
+        Generado por ContaEdu — {{ now()->format('d/m/Y H:i') }}
+    </div>
+
+</div>
 </body>
 </html>
