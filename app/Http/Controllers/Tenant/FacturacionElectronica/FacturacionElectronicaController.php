@@ -258,7 +258,8 @@ class FacturacionElectronicaController extends Controller
         $factura->load(['resolucion', 'detalles.producto']);
 
         $pdf = Pdf::loadView('facturacion-electronica.representacion-grafica', compact('factura'))
-            ->setPaper('letter', 'portrait');
+            ->setPaper('letter', 'portrait')
+            ->setOption(['margin_top' => 18, 'margin_right' => 20, 'margin_bottom' => 18, 'margin_left' => 20]);
 
         $nombre = 'factura-' . str_replace(['/', ' '], '-', $factura->numero_completo) . '.pdf';
 

@@ -103,6 +103,13 @@
                                             PDF
                                         </a>
                                         @if(!$isLocked && !session('audit_mode') && !session('reference_mode'))
+                                            <button wire:click="openEditForm"
+                                                class="px-3 py-1.5 text-sm font-medium rounded-xl border border-slate-300 text-slate-600 bg-white hover:bg-slate-50 transition flex items-center gap-1.5">
+                                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Z"/></svg>
+                                                Editar
+                                            </button>
+                                        @endif
+                                        @if(!$isLocked && !session('audit_mode') && !session('reference_mode'))
                                             <button wire:click="finalize"
                                                 wire:confirm="¿Finalizar y bloquear esta conciliación? Esta acción no se puede deshacer."
                                                 class="px-3 py-1.5 text-sm font-medium rounded-xl border transition
@@ -117,6 +124,39 @@
                                     </div>
                                 </div>
                             </div>
+
+                            {{-- Formulario edición cabecera --}}
+                            @if($showEditForm && !session('audit_mode') && !session('reference_mode'))
+                                <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 space-y-4">
+                                    <h4 class="text-sm font-semibold text-slate-700">Editar conciliación</h4>
+                                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label class="block text-xs font-medium text-slate-600 mb-1">Saldo según extracto bancario</label>
+                                            <div class="relative">
+                                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">$</span>
+                                                <input type="number" wire:model="edit_statement" step="0.01"
+                                                    class="w-full text-sm border border-slate-300 rounded-xl pl-7 pr-3 py-2 focus:ring-2 focus:ring-forest-500 focus:border-forest-500">
+                                            </div>
+                                            @error('edit_statement') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs font-medium text-slate-600 mb-1">Notas</label>
+                                            <input type="text" wire:model="edit_notes" placeholder="Ej: Extracto Bancolombia abril 2026"
+                                                class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-forest-500 focus:border-forest-500">
+                                        </div>
+                                    </div>
+                                    <div class="flex gap-3">
+                                        <button wire:click="updateReconciliation"
+                                            class="px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition">
+                                            Guardar cambios
+                                        </button>
+                                        <button wire:click="$set('showEditForm', false)"
+                                            class="px-4 py-2 text-sm text-slate-600 bg-slate-100 rounded-xl hover:bg-slate-200 transition">
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                </div>
+                            @endif
 
                             {{-- Resumen de cuadre --}}
                             <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">

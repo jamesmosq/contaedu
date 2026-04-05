@@ -29,6 +29,13 @@ class Index extends Component
     // ── Conciliación activa ──────────────────────────────────────────────────
     public ?int $activeId = null;
 
+    // ── Editar cabecera de conciliación ─────────────────────────────────────
+    public bool $showEditForm = false;
+
+    public float $edit_statement = 0;
+
+    public string $edit_notes = '';
+
     // ── Partida bancaria (agregar al extracto) ───────────────────────────────
     public bool $showBankItemForm = false;
 
@@ -88,6 +95,31 @@ class Index extends Component
     {
         $this->activeId = $id;
         $this->showBankItemForm = false;
+        $this->showEditForm = false;
+    }
+
+    public function openEditForm(): void
+    {
+        $rec = BankReconciliation::findOrFail($this->activeId);
+        $this->edit_statement = (float) $rec->statement_balance;
+        $this->edit_notes = $rec->notes ?? '';
+        $this->showEditForm = true;
+    }
+
+    public function updateReconciliation(): void
+    {
+        $this->validate([
+            'edit_statement' => ['required', 'numeric'],
+            'edit_notes'     => ['nullable', 'string', 'max:255'],
+        ]);
+
+        BankReconciliation::where('id', $this->activeId)->update([
+            'statement_balance' => $this->edit_statement,
+            'notes'             => $this->edit_notes ?: null,
+        ]);
+
+        $this->showEditForm = false;
+        $this->dispatch('notify', type: 'success', message: 'Conciliación actualizada.');
     }
 
     public function toggleReconciled(int $itemId, BankReconciliationService $service): void

@@ -34,7 +34,8 @@
         .cufe-box .label { font-size: 10px; font-weight: bold; color: #0369a1; margin-bottom: 4px; }
         .cufe-box .valor { font-family: monospace; font-size: 10px; color: #1e293b; word-break: break-all; }
         .footer { margin-top: 20px; text-align: center; font-size: 10px; color: #94a3b8; border-top: 1px solid #e2e8f0; padding-top: 10px; }
-        @media print { .no-print { display: none !important; } body { margin: 0; } .page { margin: 0; padding: 20px; } }
+        @page { margin: 18mm 20mm; }
+        @media print { .no-print { display: none !important; } body { margin: 0; } .page { margin: 0; padding: 0; } }
     </style>
 </head>
 <body>
