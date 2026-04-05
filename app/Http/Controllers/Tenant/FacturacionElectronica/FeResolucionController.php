@@ -50,7 +50,7 @@ class FeResolucionController extends Controller
             'activa' => true,
         ]);
 
-        return redirect()->route('student.fe.resoluciones.index')
+        return redirect()->route(...$this->resolucionesIndexRoute())
             ->with('success', 'Resolución registrada correctamente.');
     }
 
@@ -78,7 +78,16 @@ class FeResolucionController extends Controller
 
         $resolucion->update($datos);
 
-        return redirect()->route('student.fe.resoluciones.index')
+        return redirect()->route(...$this->resolucionesIndexRoute())
             ->with('success', 'Resolución actualizada.');
+    }
+
+    private function resolucionesIndexRoute(): array
+    {
+        if (auth('web')->check() && ($demoId = request()->route('demoId'))) {
+            return ['teacher.demo.fe.resoluciones.index', ['demoId' => $demoId]];
+        }
+
+        return ['student.fe.resoluciones.index', []];
     }
 }

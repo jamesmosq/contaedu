@@ -150,8 +150,25 @@ class FacturacionElectronicaController extends Controller
             $factura->detalles()->create($linea);
         }
 
-        return redirect()->route('student.fe.show', $factura)
+        return redirect()->route(...$this->feShowRoute($factura))
             ->with('success', 'Factura creada en estado borrador. Revisa los datos y emítela cuando esté lista.');
+    }
+
+    public function destroy(FeFactura $factura): RedirectResponse
+    {
+        if (session('audit_mode')) {
+            return back()->with('error', 'No se pueden realizar acciones en modo auditoría.');
+        }
+
+        if (! $factura->esBorrador()) {
+            return back()->with('error', 'Solo se pueden eliminar facturas en estado borrador.');
+        }
+
+        $factura->detalles()->delete();
+        $factura->delete();
+
+        return redirect()->route(...$this->feIndexRoute())
+            ->with('success', 'Factura borrador eliminada.');
     }
 
     public function show(FeFactura $factura): View
@@ -175,7 +192,7 @@ class FacturacionElectronicaController extends Controller
                 ? 'Factura emitida y validada por el simulador DIAN correctamente.'
                 : 'Factura emitida. El simulador DIAN rechazó el documento — ver detalles.';
 
-            return redirect()->route('student.fe.show', $factura)->with('success', $mensaje);
+            return redirect()->route(...$this->feShowRoute($factura))->with('success', $mensaje);
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }
@@ -190,7 +207,7 @@ class FacturacionElectronicaController extends Controller
         try {
             $this->facturaService->reenviar($factura);
 
-            return redirect()->route('student.fe.show', $factura)
+            return redirect()->route(...$this->feShowRoute($factura))
                 ->with('success', 'Factura reenviada al simulador DIAN.');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
@@ -210,7 +227,7 @@ class FacturacionElectronicaController extends Controller
         try {
             $this->facturaService->anular($factura, $request->motivo);
 
-            return redirect()->route('student.fe.show', $factura)
+            return redirect()->route(...$this->feShowRoute($factura))
                 ->with('success', 'Factura anulada mediante nota crédito.');
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
@@ -250,11 +267,29 @@ class FacturacionElectronicaController extends Controller
             $tipoEvento = EventoReceptorEnum::from($request->tipo_evento);
             $this->facturaService->registrarEventoReceptor($factura, $tipoEvento, $request->observaciones ?? '');
 
-            return redirect()->route('student.fe.show', $factura)
+            return redirect()->route(...$this->feShowRoute($factura))
                 ->with('success', "Evento {$tipoEvento->label()} registrado correctamente.");
         } catch (\Exception $e) {
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    private function feIndexRoute(): array
+    {
+        if (auth('web')->check() && ($demoId = request()->route('demoId'))) {
+            return ['teacher.demo.fe.index', ['demoId' => $demoId]];
+        }
+
+        return ['student.fe.index', []];
+    }
+
+    private function feShowRoute(FeFactura $factura): array
+    {
+        if (auth('web')->check() && ($demoId = request()->route('demoId'))) {
+            return ['teacher.demo.fe.show', ['demoId' => $demoId, 'factura' => $factura]];
+        }
+
+        return ['student.fe.show', [$factura]];
     }
 
     private function calcularDv(string $nit): int

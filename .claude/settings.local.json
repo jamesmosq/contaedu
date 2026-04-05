@@ -47,7 +47,13 @@
       "mcp__laravel-boost__read-log-entries",
       "Bash(python -c \"import sys,json; entries=json.load\\(sys.stdin\\); [print\\(e[''''text''''][:3000]\\) for e in entries[-3:]]\")",
       "Bash(vendor/bin/pint --dirty app/Http/Controllers/Auth/AuthenticatedSessionController.php)",
-      "Bash(ls:*)"
+      "Bash(ls:*)",
+      "Bash(rm /c/Users/jmosquerarei/Herd/nominaedu/config/fortify.php)",
+      "Bash(rm -rf /c/Users/jmosquerarei/Herd/nominaedu/app/Providers/FortifyServiceProvider.php)",
+      "Bash(rm -rf /c/Users/jmosquerarei/Herd/nominaedu/app/Actions/Fortify)",
+      "Bash(rm -rf \"/c/Users/jmosquerarei/Herd/nominaedu/resources/views/pages/settings/two-factor\")",
+      "Bash(rm -f \"/c/Users/jmosquerarei/Herd/nominaedu/resources/views/pages/settings/⚡security.blade.php\")",
+      "Bash(rm -f \"/c/Users/jmosquerarei/Herd/nominaedu/resources/views/pages/settings/⚡two-factor-setup-modal.blade.php\")"
     ]
   },
   "enableAllProjectMcpServers": true,

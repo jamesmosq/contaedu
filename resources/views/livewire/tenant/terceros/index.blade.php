@@ -113,13 +113,13 @@
 
     {{-- ═══ Modal: Nuevo / Editar tercero ═══ --}}
     @if($showForm && ! session('audit_mode') && ! session('reference_mode'))
-        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4" wire:click.self="cancelForm">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg">
+        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
                 <div class="px-6 py-5 border-b border-cream-100 flex items-center justify-between">
                     <h3 class="text-base font-semibold text-slate-800">{{ $editingId ? 'Editar tercero' : 'Nuevo tercero' }}</h3>
                     <button wire:click="cancelForm" class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition text-sm">✕</button>
                 </div>
-                <div class="px-6 py-5 space-y-4">
+                <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">Tipo documento</label>

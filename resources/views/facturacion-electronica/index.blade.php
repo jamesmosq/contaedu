@@ -33,19 +33,19 @@
                 </div>
             @else
                 <div class="mb-6 p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg text-sm">
-                    No hay resolución activa. <a href="{{ route('student.fe.resoluciones.create') }}" class="underline font-semibold">Registrar resolución</a> para poder emitir facturas.
+                    No hay resolución activa. <a href="{{ fe_route('resoluciones.create') }}" class="underline font-semibold">Registrar resolución</a> para poder emitir facturas.
                 </div>
             @endif
 
             {{-- Acciones --}}
             @if(! session('audit_mode'))
             <div class="flex gap-3 mb-6 justify-end">
-                <a href="{{ route('student.fe.resoluciones.index') }}"
+                <a href="{{ fe_route('resoluciones.index') }}"
                    class="px-4 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition">
                     Resoluciones
                 </a>
                 @if($resolucionActiva && $resolucionActiva->estaVigente())
-                <a href="{{ route('student.fe.crear') }}"
+                <a href="{{ fe_route('crear') }}"
                    class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">
                     + Nueva Factura Electrónica
                 </a>
@@ -86,7 +86,7 @@
                                 </span>
                             </td>
                             <td class="px-4 py-3 text-center">
-                                <a href="{{ route('student.fe.show', $factura) }}"
+                                <a href="{{ fe_route('show', $factura) }}"
                                    class="text-brand-700 hover:underline text-xs font-medium">
                                     Ver detalle
                                 </a>

@@ -21,8 +21,11 @@ class StudentActivityService
 
         $tenantId = tenancy()->tenant->getTenantKey();
 
-        // Actualiza directamente en la BD central (Tenant siempre usa conexión central).
-        Tenant::where('id', $tenantId)
+        // Actualiza en la BD central usando la conexión explícita,
+        // porque durante la tenancy la conexión por defecto es 'tenant'.
+        $centralConn = config('tenancy.database.central_connection', 'pgsql');
+        Tenant::on($centralConn)
+            ->where('id', $tenantId)
             ->update(['last_activity_at' => now()]);
     }
 }

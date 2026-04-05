@@ -18,7 +18,7 @@
             </div>
             @endif
 
-            <form method="POST" action="{{ route('student.fe.store') }}" id="form-fe" x-data="facturaForm()">
+            <form method="POST" action="{{ fe_route('store') }}" id="form-fe" x-data="facturaForm()">
 
                 @csrf
 
@@ -85,6 +85,9 @@
                             <label class="block text-sm font-medium text-slate-700 mb-1">Número de documento <span class="text-red-500">*</span></label>
                             <input type="text" name="num_doc_adquirente" x-model="numDoc" required
                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" placeholder="Ej: 900123456">
+                            <p x-show="tipoDoc === '31'" class="mt-1 text-xs text-amber-600">
+                                ⚠️ Para NIT debes incluir el dígito de verificación al final. Ej: si el NIT es <strong>900123456</strong> y su DV es <strong>7</strong>, ingresa <strong>9001234567</strong>.
+                            </p>
                         </div>
                         <div class="md:col-span-2">
                             <label class="block text-sm font-medium text-slate-700 mb-1">Nombre / Razón social <span class="text-red-500">*</span></label>
@@ -247,7 +250,7 @@
 
                 {{-- Botones --}}
                 <div class="flex gap-3 justify-end">
-                    <a href="{{ route('student.fe.index') }}"
+                    <a href="{{ fe_route('index') }}"
                        class="px-5 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition">
                         Cancelar
                     </a>

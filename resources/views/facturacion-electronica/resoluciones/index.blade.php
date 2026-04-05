@@ -6,7 +6,7 @@
                 <h2 class="text-xl font-bold text-slate-800">Resoluciones de Autorización DIAN</h2>
                 <p class="text-sm text-slate-500 mt-0.5">Gestión de rangos de numeración autorizados</p>
             </div>
-            <a href="{{ route('student.fe.index') }}" class="text-sm text-slate-500 hover:text-slate-700">← Facturación Electrónica</a>
+            <a href="{{ fe_route('index') }}" class="text-sm text-slate-500 hover:text-slate-700">← Facturación Electrónica</a>
         </div>
     </x-slot>
 
@@ -15,7 +15,7 @@
 
             @if(! session('audit_mode'))
             <div class="flex justify-end mb-6">
-                <a href="{{ route('student.fe.resoluciones.create') }}"
+                <a href="{{ fe_route('resoluciones.create') }}"
                    class="px-4 py-2 bg-brand-800 text-white text-sm font-semibold rounded-lg hover:bg-brand-700 transition">
                     + Nueva Resolución
                 </a>
@@ -72,7 +72,7 @@
                             </td>
                             <td class="px-4 py-3 text-center">
                                 @if(! session('audit_mode'))
-                                <a href="{{ route('student.fe.resoluciones.edit', $res) }}"
+                                <a href="{{ fe_route('resoluciones.edit', $res) }}"
                                    class="text-brand-700 hover:underline text-xs font-medium">Editar</a>
                                 @endif
                             </td>
@@ -81,7 +81,7 @@
                         <tr>
                             <td colspan="7" class="px-4 py-12 text-center text-slate-400">
                                 No hay resoluciones registradas.
-                                <a href="{{ route('student.fe.resoluciones.create') }}" class="text-brand-700 hover:underline ml-1">Registrar la primera</a>.
+                                <a href="{{ fe_route('resoluciones.create') }}" class="text-brand-700 hover:underline ml-1">Registrar la primera</a>.
                             </td>
                         </tr>
                         @endforelse

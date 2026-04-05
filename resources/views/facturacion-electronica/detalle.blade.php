@@ -8,7 +8,7 @@
                 </h2>
                 <p class="text-sm text-slate-500 mt-0.5">{{ $factura->fecha_emision->format('d \d\e F \d\e Y') }}</p>
             </div>
-            <a href="{{ route('student.fe.index') }}" class="text-sm text-slate-500 hover:text-slate-700">← Volver al listado</a>
+            <a href="{{ fe_route('index') }}" class="text-sm text-slate-500 hover:text-slate-700">← Volver al listado</a>
         </div>
     </x-slot>
 
@@ -32,7 +32,16 @@
                     @if(! session('audit_mode'))
                     <div class="flex gap-2 flex-wrap">
                         @if($factura->esBorrador())
-                            <form id="form-emitir" method="POST" action="{{ route('student.fe.emitir', $factura) }}">
+                            <form method="POST" action="{{ fe_route('destroy', $factura) }}"
+                                  onsubmit="return confirm('¿Eliminar este borrador? Esta acción no se puede deshacer.')">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit"
+                                        class="px-4 py-2 bg-red-100 text-red-700 text-sm font-semibold rounded-lg hover:bg-red-200 transition">
+                                    Eliminar borrador
+                                </button>
+                            </form>
+                            <form id="form-emitir" method="POST" action="{{ fe_route('emitir', $factura) }}">
                                 @csrf
                                 <button type="button"
                                         onclick="confirmarEmision()"
@@ -61,7 +70,7 @@
                         @endif
 
                         @if($factura->estado->value === 'rechazada')
-                            <form method="POST" action="{{ route('student.fe.reenviar', $factura) }}">
+                            <form method="POST" action="{{ fe_route('reenviar', $factura) }}">
                                 @csrf
                                 <button type="submit" class="px-4 py-2 bg-amber-600 text-white text-sm font-semibold rounded-lg hover:bg-amber-500 transition">
                                     Reenviar al simulador
@@ -77,11 +86,11 @@
                         @endif
 
                         @if($factura->cufe)
-                            <a href="{{ route('student.fe.xml', $factura) }}" target="_blank"
+                            <a href="{{ fe_route('xml', $factura) }}" target="_blank"
                                class="px-4 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition">
                                 Ver XML
                             </a>
-                            <a href="{{ route('student.fe.representacion', $factura) }}" target="_blank"
+                            <a href="{{ fe_route('representacion', $factura) }}" target="_blank"
                                class="px-4 py-2 bg-slate-100 text-slate-700 text-sm font-medium rounded-lg hover:bg-slate-200 transition">
                                 Representación gráfica
                             </a>
@@ -219,7 +228,7 @@
                 </div>
 
                 @if(! session('audit_mode') && ! $factura->esAnulada())
-                <form method="POST" action="{{ route('student.fe.eventos.store', $factura) }}" class="flex flex-wrap gap-3 items-end">
+                <form method="POST" action="{{ fe_route('eventos.store', $factura) }}" class="flex flex-wrap gap-3 items-end">
                     @csrf
                     <div>
                         <label class="block text-xs font-medium text-slate-600 mb-1">Tipo de evento</label>
@@ -297,7 +306,7 @@
         <div class="bg-white rounded-xl w-full max-w-md p-6">
             <h3 class="text-base font-bold text-slate-800 mb-2">Anular Factura</h3>
             <p class="text-sm text-slate-600 mb-4">Se generará una <strong>nota crédito de anulación</strong> y la factura pasará a estado "Anulada". Esta acción no se puede deshacer.</p>
-            <form method="POST" action="{{ route('student.fe.anular', $factura) }}">
+            <form method="POST" action="{{ fe_route('anular', $factura) }}">
                 @csrf
                 <div class="mb-4">
                     <label class="block text-sm font-medium text-slate-700 mb-1">Motivo de anulación <span class="text-red-500">*</span></label>
