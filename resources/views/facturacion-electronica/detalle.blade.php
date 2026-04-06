@@ -32,15 +32,34 @@
                     @if(! session('audit_mode'))
                     <div class="flex gap-2 flex-wrap">
                         @if($factura->esBorrador())
-                            <form method="POST" action="{{ fe_route('destroy', $factura) }}"
-                                  onsubmit="return confirm('¿Eliminar este borrador? Esta acción no se puede deshacer.')">
+                            <form id="form-eliminar-borrador" method="POST" action="{{ fe_route('destroy', $factura) }}">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit"
+                                <button type="button"
+                                        onclick="confirmarEliminarBorrador()"
                                         class="px-4 py-2 bg-red-100 text-red-700 text-sm font-semibold rounded-lg hover:bg-red-200 transition">
                                     Eliminar borrador
                                 </button>
                             </form>
+                            <script>
+                                function confirmarEliminarBorrador() {
+                                    Swal.fire({
+                                        title: '¿Eliminar borrador?',
+                                        text: 'Esta acción no se puede deshacer.',
+                                        icon: 'warning',
+                                        showCancelButton: true,
+                                        confirmButtonColor: '#dc2626',
+                                        cancelButtonColor: '#64748b',
+                                        confirmButtonText: 'Sí, eliminar',
+                                        cancelButtonText: 'Cancelar',
+                                        reverseButtons: true,
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            document.getElementById('form-eliminar-borrador').submit();
+                                        }
+                                    });
+                                }
+                            </script>
                             <form id="form-emitir" method="POST" action="{{ fe_route('emitir', $factura) }}">
                                 @csrf
                                 <button type="button"
