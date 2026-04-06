@@ -132,19 +132,53 @@
             @endif
             @php
                 $isActive = match($item['key']) {
-                    'dashboard'    => request()->routeIs('student.dashboard') || request()->routeIs('teacher.auditoria.dashboard'),
-                    'facturas'     => request()->routeIs('student.facturas') || request()->routeIs('teacher.auditoria.facturas'),
-                    'compras'      => request()->routeIs('student.compras') || request()->routeIs('teacher.auditoria.compras'),
-                    'terceros'     => request()->routeIs('student.terceros') || request()->routeIs('teacher.auditoria.terceros'),
-                    'productos'    => request()->routeIs('student.productos') || request()->routeIs('teacher.auditoria.productos'),
-                    'cuentas'      => request()->routeIs('student.cuentas') || request()->routeIs('teacher.auditoria.cuentas'),
-                    'reportes'     => request()->routeIs('student.reportes') || request()->routeIs('teacher.auditoria.reportes'),
-                    'calendario'   => request()->routeIs('student.calendario') || request()->routeIs('teacher.auditoria.calendario'),
-                    'activos'      => request()->routeIs('student.activos-fijos') || request()->routeIs('teacher.auditoria.activos-fijos'),
-                    'conciliacion' => request()->routeIs('student.conciliacion') || request()->routeIs('teacher.auditoria.conciliacion'),
-                    'fe'           => request()->routeIs('student.fe.*') || request()->routeIs('teacher.demo.fe.*'),
-                    'config'       => request()->routeIs('student.config') || request()->routeIs('teacher.auditoria.config'),
-                    'referencias'  => request()->routeIs('student.referencias') || request()->routeIs('student.referencia.*'),
+                    'dashboard'    => request()->routeIs('student.dashboard')
+                                   || request()->routeIs('teacher.auditoria.dashboard')
+                                   || request()->routeIs('teacher.demo.dashboard')
+                                   || request()->routeIs('student.referencia.dashboard'),
+                    'facturas'     => request()->routeIs('student.facturas')
+                                   || request()->routeIs('teacher.auditoria.facturas')
+                                   || request()->routeIs('teacher.demo.facturas')
+                                   || request()->routeIs('student.referencia.facturas'),
+                    'compras'      => request()->routeIs('student.compras')
+                                   || request()->routeIs('teacher.auditoria.compras')
+                                   || request()->routeIs('teacher.demo.compras')
+                                   || request()->routeIs('student.referencia.compras'),
+                    'terceros'     => request()->routeIs('student.terceros')
+                                   || request()->routeIs('teacher.auditoria.terceros')
+                                   || request()->routeIs('teacher.demo.terceros')
+                                   || request()->routeIs('student.referencia.terceros'),
+                    'productos'    => request()->routeIs('student.productos')
+                                   || request()->routeIs('teacher.auditoria.productos')
+                                   || request()->routeIs('teacher.demo.productos')
+                                   || request()->routeIs('student.referencia.productos'),
+                    'cuentas'      => request()->routeIs('student.cuentas')
+                                   || request()->routeIs('teacher.auditoria.cuentas')
+                                   || request()->routeIs('teacher.demo.cuentas')
+                                   || request()->routeIs('student.referencia.cuentas'),
+                    'reportes'     => request()->routeIs('student.reportes')
+                                   || request()->routeIs('teacher.auditoria.reportes')
+                                   || request()->routeIs('teacher.demo.reportes')
+                                   || request()->routeIs('student.referencia.reportes'),
+                    'calendario'   => request()->routeIs('student.calendario')
+                                   || request()->routeIs('teacher.auditoria.calendario')
+                                   || request()->routeIs('teacher.demo.calendario')
+                                   || request()->routeIs('student.referencia.calendario'),
+                    'activos'      => request()->routeIs('student.activos-fijos')
+                                   || request()->routeIs('teacher.auditoria.activos-fijos')
+                                   || request()->routeIs('teacher.demo.activos-fijos')
+                                   || request()->routeIs('student.referencia.activos-fijos'),
+                    'conciliacion' => request()->routeIs('student.conciliacion')
+                                   || request()->routeIs('teacher.auditoria.conciliacion')
+                                   || request()->routeIs('teacher.demo.conciliacion')
+                                   || request()->routeIs('student.referencia.conciliacion'),
+                    'fe'           => request()->routeIs('student.fe.*')
+                                   || request()->routeIs('teacher.demo.fe.*'),
+                    'config'       => request()->routeIs('student.config')
+                                   || request()->routeIs('teacher.auditoria.config')
+                                   || request()->routeIs('teacher.demo.config'),
+                    'referencias'  => request()->routeIs('student.referencias')
+                                   || request()->routeIs('student.referencia.*'),
                     default        => false,
                 };
             @endphp
