@@ -91,7 +91,7 @@ class PlanDeCuentas extends Component
             ->get()
             ->groupBy('level');
 
-        $parentAccounts = Account::where('level', '<', 4)->orderBy('code')->get();
+        $parentAccounts = Account::where('level', '<', 5)->orderBy('code')->get();
 
         return view('livewire.tenant.cuentas.plan-de-cuentas', compact('accounts', 'parentAccounts'))
             ->title('Plan de Cuentas');

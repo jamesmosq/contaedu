@@ -115,6 +115,50 @@
 
         @livewireScripts
 
+        {{-- SweetAlert2: reemplaza wire:confirm nativo por diálogo bonito --}}
+        <script>
+            let _wireConfirmApproved = false;
+
+            // Sobrescribir window.confirm: cuando ya aprobamos via Swal, retorna true sin mostrar nada
+            const _nativeConfirm = window.confirm.bind(window);
+            window.confirm = function (msg) {
+                if (_wireConfirmApproved) {
+                    _wireConfirmApproved = false;
+                    return true;
+                }
+                return _nativeConfirm(msg);
+            };
+
+            document.addEventListener('click', async function (e) {
+                // Si ya aprobamos, dejar que Livewire procese este click
+                if (_wireConfirmApproved) return;
+
+                const el = e.target.closest('[wire\\:confirm]');
+                if (!el) return;
+
+                const message = el.getAttribute('wire:confirm');
+                e.preventDefault();
+                e.stopImmediatePropagation();
+
+                const result = await Swal.fire({
+                    title: '¿Confirmar acción?',
+                    text: message,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#10472a',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: 'Sí, continuar',
+                    cancelButtonText: 'Cancelar',
+                    reverseButtons: true,
+                });
+
+                if (result.isConfirmed) {
+                    _wireConfirmApproved = true;
+                    el.click(); // re-dispara; window.confirm ya retornará true
+                }
+            }, true);
+        </script>
+
         {{-- SweetAlert2: flash messages globales --}}
         @if(session('success') || session('error') || session('warning') || session('info'))
         <script>

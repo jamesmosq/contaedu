@@ -47,6 +47,7 @@
                     '4' => ['Ingreso',    'bg-green-50 text-green-700 border border-green-100'],
                     '5' => ['Gasto',      'bg-orange-50 text-orange-700 border border-orange-100'],
                     '6' => ['Costo',      'bg-gold-50 text-gold-700 border border-gold-100'],
+                    '9' => ['Orden',      'bg-slate-100 text-slate-600 border border-slate-200'],
                 ];
             @endphp
 
@@ -87,7 +88,7 @@
                                     {{ $account->nature }}
                                 </td>
                                 <td class="px-6 py-2.5 text-right">
-                                    @if(! session('audit_mode') && ! session('reference_mode') && $account->level < 4)
+                                    @if(! session('audit_mode') && ! session('reference_mode') && $account->level < 5)
                                         <button wire:click="openForm({{ $account->id }})"
                                             class="text-xs text-forest-600 hover:text-forest-800 font-semibold px-2 py-1 rounded-lg hover:bg-forest-50 transition">
                                             + Sub
