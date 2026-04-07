@@ -16,7 +16,9 @@
                 ]));
                 $pdfUrl = session('audit_mode')
                     ? route('teacher.auditoria.reportes.pdf', session('audit_tenant_id')) . '?' . $pdfQuery
-                    : route('student.reportes.pdf') . '?' . $pdfQuery;
+                    : (session('demo_mode')
+                        ? route('teacher.demo.reportes.pdf', session('demo_tenant_id')) . '?' . $pdfQuery
+                        : route('student.reportes.pdf') . '?' . $pdfQuery);
             @endphp
             <a href="{{ $pdfUrl }}" target="_blank"
                class="px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition flex items-center gap-2">

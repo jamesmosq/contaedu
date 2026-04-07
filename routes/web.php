@@ -138,7 +138,9 @@ Route::middleware(['auth', 'role:teacher'])->prefix('docente')->name('teacher.')
         Route::get('/reportes/pdf', ReportPdfController::class)->name('reportes.pdf');
         Route::get('/calendario-tributario', CalendarioIndex::class)->name('calendario');
         Route::get('/activos-fijos', ActivosFijosIndex::class)->name('activos-fijos');
+        Route::get('/activos-fijos/pdf', ActivosFijosPdfController::class)->name('activos-fijos.pdf');
         Route::get('/conciliacion-bancaria', ConciliacionIndex::class)->name('conciliacion');
+        Route::get('/conciliacion-bancaria/pdf', ConciliacionPdfController::class)->name('conciliacion.pdf');
 
         // Facturación Electrónica Simulada
         // Usamos closures para absorber {demoId} del prefijo y evitar que Laravel lo inyecte
