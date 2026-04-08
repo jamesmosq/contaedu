@@ -32,6 +32,8 @@ class CompanyConfig extends Component
 
     public string $resolucion_dian = '';
 
+    public bool $isEditing = false;
+
     public function mount(): void
     {
         $config = CompanyConfigModel::first();
@@ -43,13 +45,20 @@ class CompanyConfig extends Component
             $this->telefono = $config->telefono ?? '';
             $this->email = $config->email ?? '';
             $this->resolucion_dian = $config->resolucion_dian ?? '';
+            $this->isEditing = false;
         } else {
             // Funciona en modo estudiante, demo y auditoría porque tenancy()->tenant
             // siempre está inicializado cuando se llega a este componente.
             $tenant = tenancy()->tenant;
             $this->nit = $tenant?->nit_empresa ?? '';
             $this->razon_social = $tenant?->company_name ?? '';
+            $this->isEditing = true;
         }
+    }
+
+    public function edit(): void
+    {
+        $this->isEditing = true;
     }
 
     public function rules(): array
@@ -100,6 +109,7 @@ class CompanyConfig extends Component
             ]
         );
 
+        $this->isEditing = false;
         $this->dispatch('notify', type: 'success', message: 'Configuración guardada correctamente.');
     }
 

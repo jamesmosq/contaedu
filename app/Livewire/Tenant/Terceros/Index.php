@@ -103,6 +103,14 @@ class Index extends Component
         $this->municipioSearch = $label;
     }
 
+    public function updatedMunicipioSearch(): void
+    {
+        if ($this->municipioSearch !== $this->municipioLabel) {
+            $this->municipio_codigo = '';
+            $this->municipioLabel = '';
+        }
+    }
+
     public function clearMunicipio(): void
     {
         $this->municipio_codigo = '';

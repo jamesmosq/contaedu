@@ -341,7 +341,7 @@
                                 <tr wire:key="inv-{{ $invoice->id }}" class="hover:bg-slate-50 transition">
                                     <td class="px-6 py-3 font-mono text-xs font-bold text-slate-700">{{ $invoice->fullReference() }}</td>
                                     <td class="px-6 py-3 text-slate-600">{{ $invoice->date->format('d/m/Y') }}</td>
-                                    <td class="px-6 py-3 text-slate-700">{{ $invoice->third->name }}</td>
+                                    <td class="px-6 py-3 text-slate-700">{{ $invoice->third?->name ?? '—' }}</td>
                                     <td class="px-6 py-3 text-right font-mono text-sm font-semibold text-slate-800">$ {{ number_format($invoice->total, 0, ',', '.') }}</td>
                                     <td class="px-6 py-3 text-right font-mono text-sm {{ $invoice->isEmitida() && $invoice->balance() > 0 ? 'text-red-600 font-semibold' : 'text-slate-400' }}">
                                         @if($invoice->isEmitida())$ {{ number_format($invoice->balance(), 0, ',', '.') }}@else—@endif
@@ -404,7 +404,7 @@
                                 <tr wire:key="rc-{{ $rc->id }}" class="hover:bg-slate-50">
                                     <td class="px-6 py-3 font-mono text-xs font-bold text-slate-700">RC-{{ str_pad($rc->id, 5, '0', STR_PAD_LEFT) }}</td>
                                     <td class="px-6 py-3 text-slate-600">{{ $rc->date->format('d/m/Y') }}</td>
-                                    <td class="px-6 py-3 text-slate-700">{{ $rc->third->name }}</td>
+                                    <td class="px-6 py-3 text-slate-700">{{ $rc->third?->name ?? '—' }}</td>
                                     <td class="px-6 py-3 text-right font-mono text-sm font-semibold text-slate-800">$ {{ number_format($rc->total, 0, ',', '.') }}</td>
                                     <td class="px-6 py-3">
                                         <span class="px-2 py-0.5 rounded text-xs font-medium bg-gold-50 text-gold-700">{{ $rc->status->label() }}</span>
@@ -442,7 +442,7 @@
                                     <td class="px-6 py-3 font-mono text-xs font-bold text-slate-700">{{ $cn->fullReference() }}</td>
                                     <td class="px-6 py-3 text-slate-600">{{ $cn->date->format('d/m/Y') }}</td>
                                     <td class="px-6 py-3 font-mono text-xs text-slate-600">{{ $cn->invoice->fullReference() }}</td>
-                                    <td class="px-6 py-3 text-slate-700">{{ $cn->invoice->third->name }}</td>
+                                    <td class="px-6 py-3 text-slate-700">{{ $cn->invoice?->third?->name ?? '—' }}</td>
                                     <td class="px-6 py-3 text-slate-600 text-xs">{{ $cn->reason }}</td>
                                     <td class="px-6 py-3 text-right font-mono text-sm font-semibold text-orange-700">$ {{ number_format($cn->total, 0, ',', '.') }}</td>
                                 </tr>
@@ -482,7 +482,7 @@
                                     <td class="px-6 py-3 font-mono text-xs font-bold text-slate-700">{{ $dn->fullReference() }}</td>
                                     <td class="px-6 py-3 text-slate-600">{{ $dn->date->format('d/m/Y') }}</td>
                                     <td class="px-6 py-3 font-mono text-xs text-slate-600">{{ $dn->invoice->fullReference() }}</td>
-                                    <td class="px-6 py-3 text-slate-700">{{ $dn->invoice->third->name }}</td>
+                                    <td class="px-6 py-3 text-slate-700">{{ $dn->invoice?->third?->name ?? '—' }}</td>
                                     <td class="px-6 py-3 text-slate-600 text-xs">{{ $dn->reason }}</td>
                                     <td class="px-6 py-3 text-right font-mono text-sm text-slate-700">$ {{ number_format($dn->subtotal, 0, ',', '.') }}</td>
                                     <td class="px-6 py-3 text-right font-mono text-sm text-slate-700">$ {{ number_format($dn->tax_amount, 0, ',', '.') }}</td>

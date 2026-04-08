@@ -147,7 +147,7 @@ class ReportService
 
                 return [
                     'reference' => $inv->fullReference(),
-                    'client' => $inv->third->name,
+                    'client' => $inv->third?->name ?? 'Sin tercero',
                     'date' => $inv->date,
                     'due_date' => $inv->due_date,
                     'total' => $inv->total,
@@ -171,7 +171,7 @@ class ReportService
 
                 return [
                     'reference' => $inv->supplier_invoice_number ?? 'FC-'.str_pad($inv->id, 5, '0', STR_PAD_LEFT),
-                    'supplier' => $inv->third->name,
+                    'supplier' => $inv->third?->name ?? 'Sin tercero',
                     'date' => $inv->date,
                     'due_date' => $inv->due_date,
                     'balance' => $inv->balance(),

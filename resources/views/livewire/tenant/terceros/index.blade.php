@@ -185,24 +185,14 @@
                     {{-- Municipio DIAN (autocomplete) --}}
                     <div x-data="{ open: false }" @click.outside="open = false">
                         <label class="block text-sm font-medium text-slate-700 mb-1.5">Ciudad / Municipio</label>
-                        <div class="relative">
-                            <input
-                                wire:model.live.debounce.300ms="municipioSearch"
-                                x-on:focus="open = true"
-                                type="text"
-                                placeholder="Escriba para buscar…"
-                                autocomplete="off"
-                                class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 pr-8"
-                            />
-                            @if($municipio_codigo)
-                                <button type="button" wire:click="clearMunicipio"
-                                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">✕</button>
-                            @endif
-                        </div>
-
-                        @if($municipio_codigo)
-                            <p class="text-xs text-forest-600 mt-1 font-medium">✓ Código DIAN: {{ $municipio_codigo }}</p>
-                        @endif
+                        <input
+                            wire:model.live.debounce.300ms="municipioSearch"
+                            x-on:focus="open = true"
+                            type="text"
+                            placeholder="Escriba para buscar…"
+                            autocomplete="off"
+                            class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500"
+                        />
 
                         @if($municipios->isNotEmpty())
                             <div x-show="open"

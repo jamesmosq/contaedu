@@ -32,6 +32,10 @@
                     @if(! session('audit_mode'))
                     <div class="flex gap-2 flex-wrap">
                         @if($factura->esBorrador())
+                            <a href="{{ fe_route('edit', $factura) }}"
+                               class="px-4 py-2 bg-amber-100 text-amber-800 text-sm font-semibold rounded-lg hover:bg-amber-200 transition">
+                                Editar borrador
+                            </a>
                             <form id="form-eliminar-borrador" method="POST" action="{{ fe_route('destroy', $factura) }}">
                                 @csrf
                                 @method('DELETE')

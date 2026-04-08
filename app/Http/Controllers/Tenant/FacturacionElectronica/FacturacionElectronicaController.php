@@ -155,6 +155,122 @@ class FacturacionElectronicaController extends Controller
             ->with('success', 'Factura creada en estado borrador. Revisa los datos y emítela cuando esté lista.');
     }
 
+    public function edit(FeFactura $factura): View
+    {
+        if (! $factura->esBorrador()) {
+            abort(403, 'Solo se pueden editar facturas en estado borrador.');
+        }
+
+        $factura->load('detalles');
+        $resoluciones = FeResolucion::where('activa', true)->get();
+        $clientes = Third::clientes()->where('active', true)->orderBy('name')->get();
+        $productos = Product::where('active', true)->orderBy('name')->get();
+        $tiposDocumento = TipoDocumentoEnum::cases();
+
+        return view('facturacion-electronica.editar', compact('factura', 'resoluciones', 'clientes', 'productos', 'tiposDocumento'));
+    }
+
+    public function update(Request $request, FeFactura $factura): RedirectResponse
+    {
+        if (session('audit_mode')) {
+            return back()->with('error', 'No se pueden realizar acciones en modo auditoría.');
+        }
+
+        if (! $factura->esBorrador()) {
+            return back()->with('error', 'Solo se pueden editar facturas en estado borrador.');
+        }
+
+        $request->validate([
+            'resolucion_id' => ['required', 'exists:fe_resoluciones,id'],
+            'fecha_emision' => ['required', 'date'],
+            'hora_emision' => ['required'],
+            'tipo_doc_adquirente' => ['required', 'string'],
+            'num_doc_adquirente' => ['required', 'string', 'max:20'],
+            'nombre_adquirente' => ['required', 'string', 'max:255'],
+            'email_adquirente' => ['required', 'email', 'max:255'],
+            'telefono_adquirente' => ['nullable', 'string', 'max:20'],
+            'direccion_adquirente' => ['nullable', 'string', 'max:255'],
+            'medio_pago' => ['required', 'string'],
+            'forma_pago' => ['required', 'string'],
+            'fecha_vencimiento_pago' => ['nullable', 'date'],
+            'notas' => ['nullable', 'string'],
+            'lineas' => ['required', 'array', 'min:1'],
+            'lineas.*.descripcion' => ['required', 'string'],
+            'lineas.*.cantidad' => ['required', 'numeric', 'min:0.0001'],
+            'lineas.*.precio_unitario' => ['required', 'numeric', 'min:0'],
+            'lineas.*.porcentaje_iva' => ['required', 'numeric', 'in:0,5,19'],
+        ]);
+
+        $subtotal = 0;
+        $totalIva = 0;
+        $totalDescuentos = 0;
+        $lineasProcesadas = [];
+
+        foreach ($request->lineas as $i => $linea) {
+            $cantidad = (float) $linea['cantidad'];
+            $precioUnitario = (float) $linea['precio_unitario'];
+            $pctDescuento = (float) ($linea['porcentaje_descuento'] ?? 0);
+            $pctIva = (float) $linea['porcentaje_iva'];
+
+            $valorDescuento = round($cantidad * $precioUnitario * $pctDescuento / 100, 2);
+            $subtotalLinea = round($cantidad * $precioUnitario - $valorDescuento, 2);
+            $valorIva = round($subtotalLinea * $pctIva / 100, 2);
+            $totalLinea = $subtotalLinea + $valorIva;
+
+            $subtotal += $subtotalLinea;
+            $totalIva += $valorIva;
+            $totalDescuentos += $valorDescuento;
+
+            $lineasProcesadas[] = [
+                'orden' => $i + 1,
+                'producto_id' => $linea['producto_id'] ?? null,
+                'codigo_producto' => $linea['codigo_producto'] ?? null,
+                'descripcion' => $linea['descripcion'],
+                'unidad_medida' => $linea['unidad_medida'] ?? '94',
+                'cantidad' => $cantidad,
+                'precio_unitario' => $precioUnitario,
+                'porcentaje_descuento' => $pctDescuento,
+                'valor_descuento' => $valorDescuento,
+                'porcentaje_iva' => $pctIva,
+                'valor_iva' => $valorIva,
+                'subtotal_linea' => $subtotalLinea,
+                'total_linea' => $totalLinea,
+            ];
+        }
+
+        $total = $subtotal + $totalIva;
+
+        $factura->update([
+            'resolucion_id' => $request->resolucion_id,
+            'fecha_emision' => $request->fecha_emision,
+            'hora_emision' => $request->hora_emision.':00',
+            'tipo_doc_adquirente' => $request->tipo_doc_adquirente,
+            'num_doc_adquirente' => $request->num_doc_adquirente,
+            'nombre_adquirente' => $request->nombre_adquirente,
+            'email_adquirente' => $request->email_adquirente,
+            'telefono_adquirente' => $request->telefono_adquirente,
+            'direccion_adquirente' => $request->direccion_adquirente,
+            'cliente_id' => $request->cliente_id ?? null,
+            'subtotal' => $subtotal,
+            'total_descuentos' => $totalDescuentos,
+            'base_iva' => $subtotal,
+            'valor_iva' => $totalIva,
+            'total' => $total,
+            'medio_pago' => $request->medio_pago,
+            'forma_pago' => $request->forma_pago,
+            'fecha_vencimiento_pago' => $request->fecha_vencimiento_pago,
+            'notas' => $request->notas,
+        ]);
+
+        $factura->detalles()->delete();
+        foreach ($lineasProcesadas as $linea) {
+            $factura->detalles()->create($linea);
+        }
+
+        return redirect()->route(...$this->feShowRoute($factura))
+            ->with('success', 'Borrador actualizado correctamente.');
+    }
+
     public function destroy(FeFactura $factura): RedirectResponse
     {
         if (session('audit_mode')) {

@@ -191,6 +191,14 @@ Route::middleware(['auth', 'role:teacher'])->prefix('docente')->name('teacher.')
                 app(FacturacionElectronicaController::class)->show($factura)
             )->name('show');
 
+            Route::get('/{factura}/editar', fn (string $demoId, FeFactura $factura) =>
+                app(FacturacionElectronicaController::class)->edit($factura)
+            )->name('edit');
+
+            Route::put('/{factura}', fn (Request $request, string $demoId, FeFactura $factura) =>
+                app(FacturacionElectronicaController::class)->update($request, $factura)
+            )->name('update');
+
             Route::delete('/{factura}', fn (string $demoId, FeFactura $factura) =>
                 app(FacturacionElectronicaController::class)->destroy($factura)
             )->name('destroy');
@@ -291,6 +299,8 @@ Route::middleware(['auth:student', 'tenant.initialize'])
             // Resoluciones primero para evitar conflicto con el wildcard /{factura}
             Route::resource('resoluciones', FeResolucionController::class)->except('destroy')->parameters(['resoluciones' => 'resolucion']);
             Route::get('/{factura}', [FacturacionElectronicaController::class, 'show'])->name('show');
+            Route::get('/{factura}/editar', [FacturacionElectronicaController::class, 'edit'])->name('edit');
+            Route::put('/{factura}', [FacturacionElectronicaController::class, 'update'])->name('update');
             Route::delete('/{factura}', [FacturacionElectronicaController::class, 'destroy'])->name('destroy');
             Route::post('/{factura}/emitir', [FacturacionElectronicaController::class, 'emitir'])->name('emitir');
             Route::post('/{factura}/reenviar', [FacturacionElectronicaController::class, 'reenviar'])->name('reenviar');

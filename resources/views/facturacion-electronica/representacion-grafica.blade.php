@@ -202,14 +202,14 @@
             @if($factura->medio_pago)
             <div class="condicion-bloque">
                 <div class="label">Medio de pago</div>
-                <div class="valor">{{ $factura->medio_pago }}</div>
+                <div class="valor">{{ $factura->medioPagoLabel() }}</div>
             </div>
             @endif
             @if($factura->forma_pago)
             <div class="condicion-bloque">
                 <div class="label">Forma de pago</div>
                 <div class="valor">
-                    {{ $factura->forma_pago }}
+                    {{ $factura->formaPagoLabel() }}
                     @if($factura->fecha_vencimiento_pago)
                         — Vence: {{ $factura->fecha_vencimiento_pago->format('d/m/Y') }}
                     @endif

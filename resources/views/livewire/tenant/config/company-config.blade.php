@@ -21,12 +21,16 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1.5">NIT</label>
-                                <input wire:model="nit" type="text" inputmode="numeric" pattern="[0-9\-]+" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                <input wire:model="nit" type="text" inputmode="numeric" pattern="[0-9\-]+"
+                                    @disabled(!$isEditing)
+                                    class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 disabled:bg-cream-50 disabled:text-slate-400 disabled:cursor-not-allowed" />
                                 @error('nit') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Régimen</label>
-                                <select wire:model="regimen" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
+                                <select wire:model="regimen"
+                                    @disabled(!$isEditing)
+                                    class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 disabled:bg-cream-50 disabled:text-slate-400 disabled:cursor-not-allowed">
                                     <option value="simplificado">Régimen Simplificado</option>
                                     <option value="comun">Régimen Común</option>
                                     <option value="gran_contribuyente">Gran Contribuyente</option>
@@ -35,7 +39,9 @@
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">Razón social</label>
-                            <input wire:model="razon_social" type="text" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                            <input wire:model="razon_social" type="text"
+                                @disabled(!$isEditing)
+                                class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 disabled:bg-cream-50 disabled:text-slate-400 disabled:cursor-not-allowed" />
                             @error('razon_social') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
 
@@ -70,13 +76,14 @@
                             <input
                                 type="text"
                                 x-model="search"
-                                @focus="open = true"
+                                @focus="if ($wire.isEditing) open = true"
                                 @click.outside="open = false"
-                                @input="open = true"
+                                @input="if ($wire.isEditing) open = true"
+                                :disabled="!$wire.isEditing"
                                 placeholder="Buscar por código o nombre de actividad…"
-                                class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500"
+                                class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 disabled:bg-cream-50 disabled:text-slate-400 disabled:cursor-not-allowed"
                             />
-                            <div x-show="open && filtered.length > 0" x-cloak
+                            <div x-show="open && filtered.length > 0 && $wire.isEditing" x-cloak
                                 class="absolute z-20 mt-1 w-full bg-white border border-cream-200 rounded-xl shadow-lg max-h-60 overflow-y-auto">
                                 <template x-for="item in filtered" :key="item.code">
                                     <button type="button"
@@ -91,7 +98,9 @@
                                 <div class="mt-1.5 flex items-center gap-2">
                                     <span class="px-2 py-0.5 rounded-lg bg-forest-50 text-forest-700 font-mono text-xs font-bold border border-forest-100">{{ $ciiu_code }}</span>
                                     <span class="text-xs text-slate-500">{{ Str::limit($ciiu_description, 90) }}</span>
-                                    <button type="button" wire:click="$set('ciiu_code', '')" class="text-slate-300 hover:text-red-400 text-xs ml-auto">✕ Quitar</button>
+                                    @if($isEditing)
+                                        <button type="button" wire:click="$set('ciiu_code', '')" class="text-slate-300 hover:text-red-400 text-xs ml-auto">✕ Quitar</button>
+                                    @endif
                                 </div>
                             @endif
                         </div>
@@ -99,17 +108,23 @@
                         <div class="grid grid-cols-2 gap-4">
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Teléfono</label>
-                                <input wire:model="telefono" type="tel" inputmode="tel" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                <input wire:model="telefono" type="tel" inputmode="tel"
+                                    @disabled(!$isEditing)
+                                    class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 disabled:bg-cream-50 disabled:text-slate-400 disabled:cursor-not-allowed" />
                             </div>
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Correo</label>
-                                <input wire:model="email" type="email" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                <input wire:model="email" type="email"
+                                    @disabled(!$isEditing)
+                                    class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 disabled:bg-cream-50 disabled:text-slate-400 disabled:cursor-not-allowed" />
                                 @error('email') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">Dirección</label>
-                            <input wire:model="direccion" type="text" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                            <input wire:model="direccion" type="text"
+                                @disabled(!$isEditing)
+                                class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 disabled:bg-cream-50 disabled:text-slate-400 disabled:cursor-not-allowed" />
                         </div>
                     </div>
                 </div>
@@ -121,13 +136,15 @@
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">Prefijo factura</label>
                             <input wire:model="prefijo_factura" type="text" maxlength="5" placeholder="FV"
-                                class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                @disabled(!$isEditing)
+                                class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 disabled:bg-cream-50 disabled:text-slate-400 disabled:cursor-not-allowed" />
                             @error('prefijo_factura') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">Resolución DIAN <span class="text-slate-400 font-normal">(educativo)</span></label>
                             <input wire:model="resolucion_dian" type="text"
-                                class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                @disabled(!$isEditing)
+                                class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 disabled:bg-cream-50 disabled:text-slate-400 disabled:cursor-not-allowed" />
                         </div>
                     </div>
                 </div>
@@ -135,11 +152,18 @@
                 {{-- Acciones --}}
                 @if(! session('audit_mode') && ! session('reference_mode'))
                     <div class="px-6 py-4 flex justify-end">
-                        <button wire:click="save" wire:loading.attr="disabled"
-                            class="px-5 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition disabled:opacity-50">
-                            <span wire:loading.remove wire:target="save">Guardar configuración</span>
-                            <span wire:loading wire:target="save">Guardando…</span>
-                        </button>
+                        @if($isEditing)
+                            <button wire:click="save" wire:loading.attr="disabled"
+                                class="px-5 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition disabled:opacity-50">
+                                <span wire:loading.remove wire:target="save">Guardar configuración</span>
+                                <span wire:loading wire:target="save">Guardando…</span>
+                            </button>
+                        @else
+                            <button wire:click="edit"
+                                class="px-5 py-2 bg-white border border-forest-700 text-forest-800 text-sm font-semibold rounded-xl hover:bg-forest-50 transition">
+                                Editar configuración
+                            </button>
+                        @endif
                     </div>
                 @endif
             </div>

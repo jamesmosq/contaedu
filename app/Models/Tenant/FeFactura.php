@@ -132,4 +132,24 @@ class FeFactura extends Model
     {
         return $this->estado === EstadoFacturaEnum::Anulada;
     }
+
+    public function medioPagoLabel(): string
+    {
+        return match ($this->medio_pago) {
+            '10' => 'Efectivo',
+            '42' => 'Consignación / Débito',
+            '48' => 'Tarjeta de crédito/débito',
+            '20' => 'Cheque',
+            default => $this->medio_pago ?? '—',
+        };
+    }
+
+    public function formaPagoLabel(): string
+    {
+        return match ($this->forma_pago) {
+            '1' => 'Contado',
+            '2' => 'Crédito',
+            default => $this->forma_pago ?? '—',
+        };
+    }
 }

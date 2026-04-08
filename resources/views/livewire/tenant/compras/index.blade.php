@@ -323,7 +323,7 @@
                                     <td class="px-6 py-3 font-mono text-xs font-bold text-slate-700">OC-{{ str_pad($ord->id, 5, '0', STR_PAD_LEFT) }}</td>
                                     <td class="px-6 py-3 text-slate-600">{{ $ord->date->format('d/m/Y') }}</td>
                                     <td class="px-6 py-3 text-slate-600">{{ $ord->expected_date?->format('d/m/Y') ?? '—' }}</td>
-                                    <td class="px-6 py-3 font-medium text-slate-700">{{ $ord->third->name }}</td>
+                                    <td class="px-6 py-3 font-medium text-slate-700">{{ $ord->third?->name ?? '—' }}</td>
                                     <td class="px-6 py-3 text-right font-mono text-sm text-slate-800">$ {{ number_format($ord->total, 0, ',', '.') }}</td>
                                     <td class="px-6 py-3">
                                         <span class="px-2 py-0.5 rounded text-xs font-medium {{ $ord->status->color() }}">{{ $ord->status->label() }}</span>
@@ -383,7 +383,7 @@
                                 <tr wire:key="pinv-{{ $inv->id }}" class="hover:bg-slate-50 transition">
                                     <td class="px-6 py-3 font-mono text-xs text-slate-600">{{ $inv->supplier_invoice_number ?? '—' }}</td>
                                     <td class="px-6 py-3 text-slate-600">{{ $inv->date->format('d/m/Y') }}</td>
-                                    <td class="px-6 py-3 font-medium text-slate-700">{{ $inv->third->name }}</td>
+                                    <td class="px-6 py-3 font-medium text-slate-700">{{ $inv->third?->name ?? '—' }}</td>
                                     @php $totalBruto = $inv->subtotal + $inv->tax_amount; @endphp
                                     <td class="px-6 py-3 text-right font-mono text-sm text-slate-500">$ {{ number_format($totalBruto, 0, ',', '.') }}</td>
                                     <td class="px-6 py-3 text-right font-mono text-sm">
@@ -440,7 +440,7 @@
                                 <tr wire:key="pay-{{ $pay->id }}" class="hover:bg-slate-50">
                                     <td class="px-6 py-3 font-mono text-xs text-slate-600">PAG-{{ str_pad($pay->id, 5, '0', STR_PAD_LEFT) }}</td>
                                     <td class="px-6 py-3 text-slate-600">{{ $pay->date->format('d/m/Y') }}</td>
-                                    <td class="px-6 py-3 font-medium text-slate-700">{{ $pay->third->name }}</td>
+                                    <td class="px-6 py-3 font-medium text-slate-700">{{ $pay->third?->name ?? '—' }}</td>
                                     <td class="px-6 py-3 text-right font-mono text-sm font-semibold text-slate-800">$ {{ number_format($pay->total, 0, ',', '.') }}</td>
                                     <td class="px-6 py-3">
                                         <span class="px-2 py-0.5 rounded text-xs font-medium {{ $pay->status->color() }}">{{ $pay->status->label() }}</span>
