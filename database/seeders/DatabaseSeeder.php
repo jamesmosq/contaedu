@@ -88,6 +88,9 @@ class DatabaseSeeder extends Seeder
         // Códigos CIIU colombianos (tabla central)
         $this->call(CiiuSeeder::class);
 
+        // Municipios DIAN (tabla central)
+        $this->call(MunicipiosSeeder::class);
+
         // Sembrar datos demo completos en cada empresa (ciclo contable completo)
         $this->call(DemoDataSeeder::class);
     }

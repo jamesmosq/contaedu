@@ -34,13 +34,13 @@ class CalendarioTributarioService
      * Colores e iconos por tipo de obligación.
      */
     private const TIPOS = [
-        'retenciones' => ['label' => 'Retención en la Fuente', 'color' => 'blue',   'icon' => '🏦'],
-        'iva_bimestre' => ['label' => 'IVA Bimestral',          'color' => 'violet', 'icon' => '📊'],
-        'iva_cuatri' => ['label' => 'IVA Cuatrimestral',      'color' => 'purple', 'icon' => '📊'],
-        'iva_anual' => ['label' => 'IVA Anual',              'color' => 'purple', 'icon' => '📊'],
-        'renta' => ['label' => 'Declaración de Renta',   'color' => 'red',    'icon' => '📋'],
-        'ica' => ['label' => 'ICA',                    'color' => 'amber',  'icon' => '🏙️'],
-        'exogena' => ['label' => 'Información Exógena',    'color' => 'slate',  'icon' => '📁'],
+        'retenciones'  => ['label' => 'Retención en la Fuente', 'color' => 'blue'],
+        'iva_bimestre' => ['label' => 'IVA Bimestral',          'color' => 'violet'],
+        'iva_cuatri'   => ['label' => 'IVA Cuatrimestral',      'color' => 'purple'],
+        'iva_anual'    => ['label' => 'IVA Anual',              'color' => 'purple'],
+        'renta'        => ['label' => 'Declaración de Renta',   'color' => 'red'],
+        'ica'          => ['label' => 'ICA',                    'color' => 'amber'],
+        'exogena'      => ['label' => 'Información Exógena',    'color' => 'slate'],
     ];
 
     /**
@@ -66,7 +66,6 @@ class CalendarioTributarioService
                     'descripcion' => 'RteFte período '.Carbon::create($year, $mes, 1)->translatedFormat('F Y'),
                     'aplica' => true,
                     'color' => 'blue',
-                    'icon' => '🏦',
                     'estado' => $this->estado($fecha),
                 ]);
             }
@@ -89,7 +88,6 @@ class CalendarioTributarioService
                     'descripcion' => 'IVA Bimestral período '.$etiqueta.' '.$year,
                     'aplica' => true,
                     'color' => 'violet',
-                    'icon' => '📊',
                     'estado' => $this->estado($fecha),
                 ]);
             }
@@ -108,7 +106,6 @@ class CalendarioTributarioService
                     'descripcion' => 'IVA Cuatrimestral período '.$etiqueta.' '.$year,
                     'aplica' => true,
                     'color' => 'purple',
-                    'icon' => '📊',
                     'estado' => $this->estado($fecha),
                 ]);
             }
@@ -120,7 +117,6 @@ class CalendarioTributarioService
                 'descripcion' => 'Régimen Simplificado — No presenta declaración de IVA',
                 'aplica' => false,
                 'color' => 'slate',
-                'icon' => '📊',
                 'estado' => 'no_aplica',
             ]);
         }
@@ -133,7 +129,6 @@ class CalendarioTributarioService
             'descripcion' => 'Declaración de Renta año gravable '.$year,
             'aplica' => true,
             'color' => 'red',
-            'icon' => '📋',
             'estado' => $this->estado($fechaRenta),
         ]);
 
@@ -145,7 +140,6 @@ class CalendarioTributarioService
             'descripcion' => 'ICA (Ind. y Comercio) vigencia '.$year.' — verificar fecha con tu municipio',
             'aplica' => $regimen !== 'simplificado',
             'color' => 'amber',
-            'icon' => '🏙️',
             'estado' => $regimen !== 'simplificado' ? $this->estado($fechaIca) : 'no_aplica',
         ]);
 
@@ -157,7 +151,6 @@ class CalendarioTributarioService
             'descripcion' => 'Información Exógena (medios magnéticos) año gravable '.$year,
             'aplica' => $regimen !== 'simplificado',
             'color' => 'slate',
-            'icon' => '📁',
             'estado' => $regimen !== 'simplificado' ? $this->estado($fechaExogena) : 'no_aplica',
         ]);
 

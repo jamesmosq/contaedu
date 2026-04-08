@@ -16,6 +16,7 @@ use App\Models\Tenant\FeFactura;
 use App\Models\Tenant\FeResolucion;
 use Illuminate\Http\Request;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
+use App\Livewire\Admin\SecurityLogs as AdminSecurityLogs;
 use App\Livewire\Admin\TransferRequests as AdminTransferRequests;
 use App\Livewire\Coordinator\Dashboard as CoordinatorDashboard;
 use App\Livewire\Student\Referencias as StudentReferencias;
@@ -63,11 +64,13 @@ require __DIR__.'/auth.php';
 Route::middleware(['auth', 'role:superadmin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', AdminDashboard::class)->name('dashboard');
     Route::get('/transferencias', AdminTransferRequests::class)->name('transferencias');
+    Route::get('/seguridad', AdminSecurityLogs::class)->name('seguridad');
 });
 
 // ─── Panel Coordinador ────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:coordinator'])->prefix('coordinador')->name('coordinator.')->group(function () {
     Route::get('/dashboard', CoordinatorDashboard::class)->name('dashboard');
+    Route::get('/plantilla-estudiantes', BulkTemplateController::class)->name('plantilla');
 
     // Iniciar / detener auditoría
     Route::get('/auditar/salir', [CoordinatorAudit::class, 'stop'])->name('auditar.stop');

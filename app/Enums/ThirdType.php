@@ -13,7 +13,7 @@ enum ThirdType: string
         return match($this) {
             self::Cliente => 'Cliente',
             self::Proveedor => 'Proveedor',
-            self::Ambos => 'Cliente y Proveedor',
+            self::Ambos => 'Legado', // conservado solo para datos existentes
         };
     }
 }

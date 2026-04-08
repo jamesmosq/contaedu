@@ -17,6 +17,7 @@ class Third extends Model
         'type',
         'regimen',
         'address',
+        'municipio_codigo',
         'phone',
         'email',
         'active',
@@ -32,11 +33,11 @@ class Third extends Model
 
     public function scopeClientes($query): mixed
     {
-        return $query->whereIn('type', [ThirdType::Cliente->value, ThirdType::Ambos->value]);
+        return $query->where('type', ThirdType::Cliente->value);
     }
 
     public function scopeProveedores($query): mixed
     {
-        return $query->whereIn('type', [ThirdType::Proveedor->value, ThirdType::Ambos->value]);
+        return $query->where('type', ThirdType::Proveedor->value);
     }
 }

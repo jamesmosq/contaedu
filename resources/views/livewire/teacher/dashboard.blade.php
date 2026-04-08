@@ -101,15 +101,8 @@
                 <div class="flex items-center justify-between mb-6">
                     <div>
                         <h2 class="text-lg font-bold text-slate-800">Mis grupos</h2>
-                        <p class="text-sm text-slate-500 mt-0.5">Gestiona tus grupos y las empresas de tus estudiantes</p>
+                        <p class="text-sm text-slate-500 mt-0.5">Selecciona un grupo para ver tus estudiantes</p>
                     </div>
-                    <button wire:click="openGroupForm()"
-                        class="flex items-center gap-2 px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition">
-                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                        </svg>
-                        Nuevo grupo
-                    </button>
                 </div>
 
                 @if($groups->isEmpty())
@@ -119,12 +112,8 @@
                                 <path stroke-linecap="round" stroke-linejoin="round" d="M18 18.72a9.094 9.094 0 0 0 3.741-.479 3 3 0 0 0-4.682-2.72m.94 3.198.001.031c0 .225-.012.447-.037.666A11.944 11.944 0 0 1 12 21c-2.17 0-4.207-.576-5.963-1.584A6.062 6.062 0 0 1 6 18.719m12 0a5.971 5.971 0 0 0-.941-3.197m0 0A5.995 5.995 0 0 0 12 12.75a5.995 5.995 0 0 0-5.058 2.772m0 0a3 3 0 0 0-4.681 2.72 8.986 8.986 0 0 0 3.74.477m.94-3.197a5.971 5.971 0 0 0-.94 3.197M15 6.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Zm6 3a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Zm-13.5 0a2.25 2.25 0 1 1-4.5 0 2.25 2.25 0 0 1 4.5 0Z" />
                             </svg>
                         </div>
-                        <h3 class="text-base font-semibold text-slate-700 mb-1">Sin grupos creados</h3>
-                        <p class="text-slate-500 text-sm mb-6">Crea tu primer grupo para empezar a agregar estudiantes.</p>
-                        <button wire:click="openGroupForm()"
-                            class="px-5 py-2.5 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition">
-                            Crear primer grupo
-                        </button>
+                        <h3 class="text-base font-semibold text-slate-700 mb-1">Sin grupos asignados</h3>
+                        <p class="text-slate-500 text-sm">El coordinador debe crear y asignarte un grupo.</p>
                     </div>
                 @else
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -157,18 +146,7 @@
                                         </span>
                                     </div>
                                 </button>
-                                <div class="border-t border-cream-100 px-4 py-3 flex items-center justify-between">
-                                    <div class="flex gap-1">
-                                        <button wire:click="openGroupForm({{ $group->id }})"
-                                            class="text-xs text-slate-500 hover:text-slate-700 font-medium px-2.5 py-1.5 rounded-lg hover:bg-slate-50 transition">
-                                            Editar
-                                        </button>
-                                        <button
-                                            x-on:click="confirmAction('¿Eliminar el grupo «{{ $group->name }}»? Solo es posible si no tiene empresas asignadas.', () => $wire.deleteGroup({{ $group->id }}), { danger: true, confirmText: 'Sí, eliminar' })"
-                                            class="text-xs text-red-500 hover:text-red-700 font-medium px-2.5 py-1.5 rounded-lg hover:bg-red-50 transition">
-                                            Eliminar
-                                        </button>
-                                    </div>
+                                <div class="border-t border-cream-100 px-4 py-3 flex items-center justify-end">
                                     <button wire:click="selectGroup({{ $group->id }})"
                                         class="text-xs text-forest-700 hover:text-forest-900 font-semibold flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-forest-50 transition">
                                         Ver estudiantes
@@ -234,22 +212,7 @@
                             <p class="text-sm text-slate-500">{{ $selectedGroup->institution->name }} · Período {{ $selectedGroup->period }}</p>
                         </div>
                     </div>
-                    <div class="flex items-center gap-2">
-                        <button wire:click="openCreate('single', {{ $selectedGroup->id }})"
-                            class="flex items-center gap-1.5 px-3 py-2 bg-forest-800 text-white text-xs font-semibold rounded-xl hover:bg-forest-700 transition">
-                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
-                            </svg>
-                            Crear empresa
-                        </button>
-                        <button wire:click="openCreate('bulk', {{ $selectedGroup->id }})"
-                            class="flex items-center gap-1.5 px-3 py-2 border border-forest-700 text-forest-700 text-xs font-medium rounded-xl hover:bg-forest-50 transition">
-                            <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
-                            </svg>
-                            Carga masiva
-                        </button>
-                    </div>
+                    <div></div>
                 </div>
 
                 {{-- Tabla de estudiantes --}}
@@ -262,11 +225,7 @@
                                 </svg>
                             </div>
                             <h3 class="text-sm font-semibold text-slate-700 mb-1">Sin empresas en este grupo</h3>
-                            <p class="text-slate-400 text-xs mb-5">Agrega estudiantes para comenzar el ciclo contable.</p>
-                            <button wire:click="openCreate('single', {{ $selectedGroup->id }})"
-                                class="px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition">
-                                Crear primera empresa
-                            </button>
+                            <p class="text-slate-400 text-xs">El coordinador debe matricular estudiantes en este grupo.</p>
                         </div>
                     @else
                         <div class="overflow-x-auto">
@@ -346,53 +305,8 @@
         </div>
     </div>
 
-    {{-- ═══════════════════════════════════════════════════════════════
-         Modal: Crear / editar grupo
-    ════════════════════════════════════════════════════════════════ --}}
-    @if($showGroupForm)
-        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4"
-             wire:click.self="$set('showGroupForm', false)">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md">
-                <div class="px-6 py-5 border-b border-cream-100 flex items-center justify-between">
-                    <h3 class="text-base font-semibold text-slate-800">
-                        {{ $editingGroupId ? 'Editar grupo' : 'Nuevo grupo' }}
-                    </h3>
-                    <button wire:click="$set('showGroupForm', false)"
-                        class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition text-sm">✕</button>
-                </div>
-                <div class="px-6 py-5 space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Nombre del grupo</label>
-                        <input wire:model="groupName" type="text" placeholder="Ej: Contabilidad 2025-1"
-                            class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
-                        @error('groupName') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Período</label>
-                        <input wire:model="groupPeriod" type="text" placeholder="Ej: 2025-1"
-                            class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
-                        @error('groupPeriod') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
-                    </div>
-                </div>
-                <div class="px-6 py-4 border-t border-cream-100 flex justify-end gap-3">
-                    <button wire:click="$set('showGroupForm', false)"
-                        class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-50 transition">
-                        Cancelar
-                    </button>
-                    <button wire:click="saveGroup" wire:loading.attr="disabled"
-                        class="px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition disabled:opacity-50">
-                        <span wire:loading.remove wire:target="saveGroup">{{ $editingGroupId ? 'Guardar cambios' : 'Crear grupo' }}</span>
-                        <span wire:loading wire:target="saveGroup">Guardando…</span>
-                    </button>
-                </div>
-            </div>
-        </div>
-    @endif
-
-    {{-- ═══════════════════════════════════════════════════════════════
-         Modal: Crear empresa (individual o carga masiva)
-    ════════════════════════════════════════════════════════════════ --}}
-    @if($showCreateForm)
+    {{-- Creación de grupos y estudiantes: ver panel coordinador --}}
+    @if(false)
         <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4"
              wire:click.self="$set('showCreateForm', false)">
             <div class="bg-white rounded-2xl shadow-xl w-full {{ $createMode === 'bulk' ? 'max-w-3xl' : 'max-w-md' }}">

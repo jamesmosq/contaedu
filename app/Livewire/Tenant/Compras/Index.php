@@ -555,7 +555,7 @@ class Index extends Component
             ->orderByDesc('date')->orderByDesc('id')
             ->paginate(15);
 
-        $suppliers = Third::whereIn('type', ['proveedor', 'ambos'])->where('active', true)->orderBy('name')->get();
+        $suppliers = Third::where('type', 'proveedor')->where('active', true)->orderBy('name')->get();
         $products = Product::where('active', true)->orderBy('name')->get();
         $statuses = PurchaseInvoiceStatus::cases();
         $payments = Payment::with('third')->orderByDesc('date')->orderByDesc('id')->limit(50)->get();

@@ -36,7 +36,6 @@
                     <option value="">Todos los tipos</option>
                     <option value="cliente">Clientes</option>
                     <option value="proveedor">Proveedores</option>
-                    <option value="ambos">Ambos</option>
                 </select>
             </div>
 
@@ -49,6 +48,7 @@
                             <th class="text-left px-6 py-3.5 text-xs font-semibold text-forest-300 uppercase tracking-wide hidden sm:table-cell">Documento</th>
                             <th class="text-left px-6 py-3.5 text-xs font-semibold text-forest-300 uppercase tracking-wide">Tipo</th>
                             <th class="text-left px-6 py-3.5 text-xs font-semibold text-forest-300 uppercase tracking-wide hidden md:table-cell">Régimen</th>
+                            <th class="text-left px-6 py-3.5 text-xs font-semibold text-forest-300 uppercase tracking-wide hidden lg:table-cell">Ciudad</th>
                             <th class="text-left px-6 py-3.5 text-xs font-semibold text-forest-300 uppercase tracking-wide hidden lg:table-cell">Contacto</th>
                             <th class="px-6 py-3.5"></th>
                         </tr>
@@ -72,6 +72,15 @@
                                 </td>
                                 <td class="px-6 py-3 text-xs text-slate-500 capitalize hidden md:table-cell">{{ $third->regimen }}</td>
                                 <td class="px-6 py-3 text-xs text-slate-500 hidden lg:table-cell">
+                                    @if($third->municipio_codigo && isset($municipioMap[$third->municipio_codigo]))
+                                        <span title="{{ $municipioMap[$third->municipio_codigo]->departamento }}">
+                                            {{ $municipioMap[$third->municipio_codigo]->municipio }}
+                                        </span>
+                                    @else
+                                        <span class="text-slate-300">—</span>
+                                    @endif
+                                </td>
+                                <td class="px-6 py-3 text-xs text-slate-500 hidden lg:table-cell">
                                     {{ collect([$third->phone, $third->email])->filter()->implode(' · ') }}
                                 </td>
                                 <td class="px-6 py-3 text-right">
@@ -91,7 +100,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-6 py-12 text-center">
+                                <td colspan="7" class="px-6 py-12 text-center">
                                     <p class="text-slate-400 text-sm mb-2">No hay terceros registrados.</p>
                                     @if(! session('audit_mode') && ! session('reference_mode'))
                                         <button wire:click="openCreate" class="text-sm text-forest-600 hover:text-forest-800 font-semibold hover:underline">
@@ -147,7 +156,6 @@
                             <select wire:model="type" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
                                 <option value="cliente">Cliente</option>
                                 <option value="proveedor">Proveedor</option>
-                                <option value="ambos">Cliente y Proveedor</option>
                             </select>
                         </div>
                         <div>
@@ -173,6 +181,47 @@
                         <label class="block text-sm font-medium text-slate-700 mb-1.5">Dirección</label>
                         <input wire:model="address" type="text" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                     </div>
+
+                    {{-- Municipio DIAN (autocomplete) --}}
+                    <div x-data="{ open: false }" @click.outside="open = false">
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Ciudad / Municipio</label>
+                        <div class="relative">
+                            <input
+                                wire:model.live.debounce.300ms="municipioSearch"
+                                x-on:focus="open = true"
+                                type="text"
+                                placeholder="Escriba para buscar…"
+                                autocomplete="off"
+                                class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 pr-8"
+                            />
+                            @if($municipio_codigo)
+                                <button type="button" wire:click="clearMunicipio"
+                                    class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs">✕</button>
+                            @endif
+                        </div>
+
+                        @if($municipio_codigo)
+                            <p class="text-xs text-forest-600 mt-1 font-medium">✓ Código DIAN: {{ $municipio_codigo }}</p>
+                        @endif
+
+                        @if($municipios->isNotEmpty())
+                            <div x-show="open"
+                                class="mt-1 border border-cream-200 rounded-xl bg-white shadow-lg z-50 max-h-48 overflow-y-auto divide-y divide-cream-100">
+                                @foreach($municipios as $m)
+                                    <button type="button"
+                                        wire:click="selectMunicipio('{{ $m->codigo }}', '{{ addslashes($m->label) }}')"
+                                        x-on:click="open = false"
+                                        class="w-full text-left px-4 py-2.5 hover:bg-forest-50 transition text-sm">
+                                        <span class="font-medium text-slate-700">{{ $m->municipio }}</span>
+                                        <span class="text-slate-400 text-xs ml-1">— {{ $m->departamento }}</span>
+                                        <span class="text-slate-300 text-xs ml-1">({{ $m->codigo }})</span>
+                                    </button>
+                                @endforeach
+                            </div>
+                        @endif
+                        @error('municipio_codigo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+
                 </div>
                 <div class="px-6 py-4 border-t border-cream-100 flex justify-end gap-3">
                     <button wire:click="cancelForm" class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-50 transition">Cancelar</button>
