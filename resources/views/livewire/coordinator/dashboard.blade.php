@@ -78,7 +78,7 @@
                         <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
                             <p class="text-sm text-slate-500">{{ $teachers->count() }} docente(s) en esta institución</p>
                             @if(! session('audit_mode'))
-                                <button wire:click="openCreateTeacher"
+                                <button wire:click="openCreateTeacher" @click.stop
                                     class="px-4 py-2 bg-forest-800 text-white text-xs font-semibold rounded-xl hover:bg-forest-700 transition">
                                     + Nuevo docente
                                 </button>
@@ -107,7 +107,7 @@
                                         </td>
                                         @if(! session('audit_mode'))
                                             <td class="px-6 py-3 text-right">
-                                                <button wire:click="openEditTeacher({{ $teacher->id }})"
+                                                <button wire:click="openEditTeacher({{ $teacher->id }})" @click.stop
                                                     class="text-xs text-slate-500 hover:text-forest-700 mr-3 transition">Editar</button>
                                                 <button wire:click="deleteTeacher({{ $teacher->id }})"
                                                     wire:confirm="¿Seguro que deseas eliminar este docente? Se perderán sus grupos."
@@ -132,7 +132,7 @@
                     <div>
                         <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
                             <p class="text-sm text-slate-500">{{ $groups->count() }} grupo(s) en esta institución</p>
-                            <button wire:click="openGroupForm()"
+                            <button wire:click="openGroupForm()" @click.stop
                                 class="px-4 py-2 bg-forest-800 text-white text-xs font-semibold rounded-xl hover:bg-forest-700 transition">
                                 + Nuevo grupo
                             </button>
@@ -159,9 +159,9 @@
                                             </span>
                                         </td>
                                         <td class="px-6 py-3 text-right space-x-3">
-                                            <button wire:click="openCreate('single', {{ $group->id }})"
+                                            <button wire:click="openCreate('single', {{ $group->id }})" @click.stop
                                                 class="text-xs text-forest-700 font-medium hover:text-forest-900 transition">+ Estudiante</button>
-                                            <button wire:click="openGroupForm({{ $group->id }})"
+                                            <button wire:click="openGroupForm({{ $group->id }})" @click.stop
                                                 class="text-xs text-slate-500 hover:text-forest-700 transition">Editar</button>
                                             <button
                                                 x-on:click="confirmAction('¿Eliminar el grupo «{{ $group->name }}»? Solo es posible si no tiene estudiantes.', () => $wire.deleteGroup({{ $group->id }}), { danger: true, confirmText: 'Sí, eliminar' })"
@@ -186,11 +186,11 @@
                         <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
                             <p class="text-sm text-slate-500">{{ $tenants->count() }} empresa(s) estudiantiles en esta institución</p>
                             <div class="flex gap-2">
-                                <button wire:click="openCreate('single')"
+                                <button wire:click="openCreate('single')" @click.stop
                                     class="px-4 py-2 bg-forest-800 text-white text-xs font-semibold rounded-xl hover:bg-forest-700 transition">
                                     + Estudiante
                                 </button>
-                                <button wire:click="openCreate('bulk')"
+                                <button wire:click="openCreate('bulk')" @click.stop
                                     class="px-4 py-2 border border-forest-700 text-forest-700 text-xs font-medium rounded-xl hover:bg-forest-50 transition">
                                     Carga masiva
                                 </button>
@@ -233,7 +233,7 @@
                                                     class="text-xs text-slate-500 hover:text-forest-700 transition">
                                                     Auditar
                                                 </a>
-                                                <button wire:click="openTransfer('{{ $tenant->id }}')"
+                                                <button wire:click="openTransfer('{{ $tenant->id }}')" @click.stop
                                                     class="text-xs text-forest-700 font-medium hover:text-forest-900 hover:underline transition">
                                                     Transferir
                                                 </button>

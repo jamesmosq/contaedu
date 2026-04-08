@@ -373,7 +373,8 @@ class FacturacionElectronicaController extends Controller
     {
         $factura->load(['resolucion', 'detalles.producto']);
 
-        $pdf = Pdf::loadView('facturacion-electronica.representacion-grafica', compact('factura'))
+        $isPdf = true;
+        $pdf = Pdf::loadView('facturacion-electronica.representacion-grafica', compact('factura', 'isPdf'))
             ->setPaper('letter', 'portrait')
             ->setOption(['margin_top' => 18, 'margin_right' => 20, 'margin_bottom' => 18, 'margin_left' => 20]);
 

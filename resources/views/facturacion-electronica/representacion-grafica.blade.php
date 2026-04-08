@@ -79,12 +79,14 @@
 <body>
     <div class="page">
 
-        {{-- Botón imprimir (solo pantalla) --}}
+        {{-- Botón imprimir (solo pantalla, nunca en el PDF generado) --}}
+        @if(! ($isPdf ?? false))
         <div class="no-print" style="text-align:right; margin-bottom: 12px;">
             <button onclick="window.print()" style="padding: 8px 20px; background: #10472a; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 13px;">
                 Imprimir / Guardar PDF
             </button>
         </div>
+        @endif
 
         {{-- Cabecera --}}
         <div class="header">
