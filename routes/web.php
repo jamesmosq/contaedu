@@ -35,6 +35,8 @@ use App\Livewire\Tenant\Invoices\Index as InvoicesIndex;
 use App\Livewire\Tenant\PlanDeCuentas;
 use App\Livewire\Tenant\Productos\Index as ProductosIndex;
 use App\Livewire\Tenant\Reportes\Index as ReportesIndex;
+use App\Livewire\Teacher\Negocios\Index as TeacherNegociosIndex;
+use App\Livewire\Tenant\Negocios\Index as NegociosIndex;
 use App\Livewire\Tenant\Terceros\Index as TercerosIndex;
 use Illuminate\Support\Facades\Route;
 
@@ -70,6 +72,7 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('admin')->name('admin.')-
 // ─── Panel Coordinador ────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:coordinator'])->prefix('coordinador')->name('coordinator.')->group(function () {
     Route::get('/dashboard', CoordinatorDashboard::class)->name('dashboard');
+    Route::get('/negocios', TeacherNegociosIndex::class)->name('negocios');
     Route::get('/plantilla-estudiantes', BulkTemplateController::class)->name('plantilla');
 
     // Iniciar / detener auditoría
@@ -95,6 +98,7 @@ Route::middleware(['auth', 'role:coordinator'])->prefix('coordinador')->name('co
 // ─── Panel Docente ─────────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:teacher'])->prefix('docente')->name('teacher.')->group(function () {
     Route::get('/dashboard', TeacherDashboard::class)->name('dashboard');
+    Route::get('/negocios', TeacherNegociosIndex::class)->name('negocios');
     Route::get('/buscar-estudiante', TeacherStudentSearch::class)->name('buscar-estudiante');
     Route::get('/plantilla-estudiantes', BulkTemplateController::class)->name('plantilla');
     Route::get('/comparativo', TeacherComparativo::class)->name('comparativo');
@@ -262,6 +266,9 @@ Route::middleware(['auth:student', 'tenant.initialize'])
 
         // Fase 4 — Operaciones de compra
         Route::get('/compras', ComprasIndex::class)->name('compras');
+
+        // Fase 4b — Mercado interempresarial
+        Route::get('/negocios', NegociosIndex::class)->name('negocios');
 
         // Fase 5 — Reportes contables
         Route::get('/reportes', ReportesIndex::class)->name('reportes');
