@@ -555,6 +555,8 @@ class AccountingService
 
     private function createEntry(array $entryData, array $lines): JournalEntry
     {
+        $entryData['modo'] = modoContable();
+
         $totalDebit = array_sum(array_column($lines, 'debit'));
         $totalCredit = array_sum(array_column($lines, 'credit'));
 

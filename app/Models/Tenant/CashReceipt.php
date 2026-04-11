@@ -11,7 +11,12 @@ class CashReceipt extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['third_id', 'date', 'total', 'notes', 'status'];
+    protected $fillable = ['modo', 'third_id', 'date', 'total', 'notes', 'status'];
+
+    public function scopeModoActual($query): void
+    {
+        $query->where('modo', modoContable());
+    }
 
     protected $casts = [
         'date'   => 'date',

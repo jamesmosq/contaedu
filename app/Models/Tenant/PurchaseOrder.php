@@ -8,7 +8,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class PurchaseOrder extends Model {
     use SoftDeletes;
-    protected $fillable = ['third_id','date','expected_date','status','total','notes'];
+    protected $fillable = ['modo','third_id','date','expected_date','status','total','notes'];
+
+    public function scopeModoActual($query): void
+    {
+        $query->where('modo', modoContable());
+    }
     protected $casts = ['date'=>'date','expected_date'=>'date','status'=>PurchaseOrderStatus::class,'total'=>'float'];
     public function third(): BelongsTo { return $this->belongsTo(Third::class); }
     public function lines(): HasMany { return $this->hasMany(PurchaseOrderLine::class); }

@@ -40,6 +40,7 @@ use App\Livewire\Teacher\Negocios\Index as TeacherNegociosIndex;
 use App\Livewire\Tenant\Banco\Index as BancoIndex;
 use App\Livewire\Tenant\Negocios\Index as NegociosIndex;
 use App\Livewire\Tenant\Terceros\Index as TercerosIndex;
+use App\Http\Controllers\SandboxController;
 use Illuminate\Support\Facades\Route;
 
 // ─── Página principal ──────────────────────────────────────────────────────
@@ -289,6 +290,9 @@ Route::middleware(['auth:student', 'tenant.initialize'])
         Route::get('/banco', BancoIndex::class)->name('banco');
         Route::get('/banco/documento/pdf', BancoPdfController::class)->name('banco.documento.pdf');
 
+        // PUC Interactivo (referencia rápida desde la zona real)
+        Route::get('/puc', \App\Livewire\Tenant\PucInteractivo::class)->name('puc');
+
         // ─── Empresas de referencia (demos del docente en solo lectura) ───────
         Route::get('/referencias', StudentReferencias::class)->name('referencias');
         Route::get('/referencias/{demoId}/salir', [ReferenceController::class, 'exit'])->name('referencias.exit');
@@ -329,4 +333,55 @@ Route::middleware(['auth:student', 'tenant.initialize'])
             Route::get('/{factura}/pdf', [FacturacionElectronicaController::class, 'pdf'])->name('pdf');
             Route::post('/{factura}/eventos', [FacturacionElectronicaController::class, 'registrarEvento'])->name('eventos.store');
         });
+    });
+
+// ─── Zona Aprendizaje (Sandbox) ─────────────────────────────────────────────
+Route::middleware(['auth:student', 'tenant.initialize'])
+    ->prefix('aprendizaje')
+    ->name('sandbox.')
+    ->group(function () {
+
+        Route::get('/dashboard', [TenantDashboard::class, 'index'])->name('dashboard');
+
+        // Maestros contables
+        Route::get('/configuracion', CompanyConfig::class)->name('config');
+        Route::get('/cuentas', PlanDeCuentas::class)->name('cuentas');
+        Route::get('/terceros', TercerosIndex::class)->name('terceros');
+        Route::get('/productos', ProductosIndex::class)->name('productos');
+
+        // Operaciones
+        Route::get('/facturas', InvoicesIndex::class)->name('facturas');
+        Route::get('/compras', ComprasIndex::class)->name('compras');
+
+        // Reportes y herramientas
+        Route::get('/reportes', ReportesIndex::class)->name('reportes');
+        Route::get('/reportes/pdf', ReportPdfController::class)->name('reportes.pdf');
+        Route::get('/calendario-tributario', CalendarioIndex::class)->name('calendario');
+        Route::get('/activos-fijos', ActivosFijosIndex::class)->name('activos-fijos');
+        Route::get('/activos-fijos/pdf', ActivosFijosPdfController::class)->name('activos-fijos.pdf');
+        Route::get('/conciliacion-bancaria', ConciliacionIndex::class)->name('conciliacion');
+        Route::get('/conciliacion-bancaria/pdf', ConciliacionPdfController::class)->name('conciliacion.pdf');
+
+        // Facturación electrónica simulada
+        Route::prefix('facturacion-electronica')->name('fe.')->group(function () {
+            Route::get('/', [FacturacionElectronicaController::class, 'index'])->name('index');
+            Route::get('/crear', [FacturacionElectronicaController::class, 'crear'])->name('crear');
+            Route::post('/', [FacturacionElectronicaController::class, 'store'])->name('store');
+            Route::resource('resoluciones', FeResolucionController::class)
+                ->except('destroy')
+                ->parameters(['resoluciones' => 'resolucion']);
+            Route::get('/{factura}', [FacturacionElectronicaController::class, 'show'])->name('show');
+            Route::get('/{factura}/editar', [FacturacionElectronicaController::class, 'edit'])->name('edit');
+            Route::put('/{factura}', [FacturacionElectronicaController::class, 'update'])->name('update');
+            Route::delete('/{factura}', [FacturacionElectronicaController::class, 'destroy'])->name('destroy');
+            Route::post('/{factura}/emitir', [FacturacionElectronicaController::class, 'emitir'])->name('emitir');
+            Route::post('/{factura}/anular', [FacturacionElectronicaController::class, 'anular'])->name('anular');
+            Route::get('/{factura}/pdf', [FacturacionElectronicaController::class, 'pdf'])->name('pdf');
+        });
+
+        // PUC Interactivo
+        Route::get('/puc', \App\Livewire\Tenant\PucInteractivo::class)->name('puc');
+
+        // Reset sandbox
+        Route::post('/reset', [SandboxController::class, 'reset'])->name('reset');
     });

@@ -1,8 +1,9 @@
 <x-tenant-layout title="Editar Borrador">
 
     <x-slot name="header">
-        <h2 class="text-xl font-bold text-slate-800">Editar Factura Borrador</h2>
-        <p class="text-sm text-slate-500 mt-0.5">Simulador DIAN — Ambiente de Pruebas</p>
+        <p class="text-forest-400 text-xs font-medium uppercase tracking-widest mb-1">Facturación electrónica</p>
+        <h2 class="font-display text-2xl font-bold text-white">Editar Factura Borrador</h2>
+        <p class="text-forest-300 text-sm mt-1">Simulador DIAN — Ambiente de Pruebas</p>
     </x-slot>
 
     <div class="py-8">

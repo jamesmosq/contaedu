@@ -16,6 +16,10 @@ class Account extends Model
         'parent_id',
         'level',
         'active',
+        'descripcion',
+        'dinamica_debe',
+        'dinamica_haber',
+        'ejemplo',
     ];
 
     protected function casts(): array
@@ -49,5 +53,26 @@ class Account extends Model
     public function isAuxiliary(): bool
     {
         return $this->level >= 3;
+    }
+
+    /**
+     * Indica si la cuenta tiene contenido académico cargado.
+     */
+    public function tieneContenidoAcademico(): bool
+    {
+        return ! empty($this->descripcion);
+    }
+
+    /**
+     * Retorna la cuenta que tiene la dinámica (la de 4 dígitos).
+     * Las subcuentas heredan de su cuenta padre.
+     */
+    public function cuentaConDinamica(): self
+    {
+        if ($this->tieneContenidoAcademico()) {
+            return $this;
+        }
+
+        return $this->parent?->cuentaConDinamica() ?? $this;
     }
 }

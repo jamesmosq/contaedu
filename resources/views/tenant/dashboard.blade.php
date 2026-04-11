@@ -50,11 +50,12 @@
     <x-slot name="header">
         <div class="flex items-center justify-between">
             <div>
-                <h2 class="text-xl font-bold text-slate-800">{{ $student->company_name }}</h2>
-                <p class="text-sm text-slate-500 mt-0.5">NIT {{ $student->nit_empresa }}</p>
+                <p class="text-forest-400 text-xs font-medium uppercase tracking-widest mb-1">Panel de empresa</p>
+                <h2 class="font-display text-2xl font-bold text-white">{{ $student->company_name }}</h2>
+                <p class="text-forest-300 text-sm mt-1">NIT {{ $student->nit_empresa }}</p>
             </div>
             <span class="px-3 py-1 text-xs font-semibold rounded-full uppercase tracking-wide
-                {{ $auditMode ? 'bg-amber-100 text-amber-800' : ($demoMode ? 'bg-indigo-100 text-indigo-800' : ($referenceMode ? 'bg-sky-100 text-sky-800' : 'bg-slate-100 text-slate-600')) }}">
+                {{ $auditMode ? 'bg-amber-500/20 text-amber-200' : ($demoMode ? 'bg-indigo-500/20 text-indigo-200' : ($referenceMode ? 'bg-sky-500/20 text-sky-200' : 'bg-white/10 text-white/70')) }}">
                 {{ $auditMode ? 'Auditoría' : ($demoMode ? 'Demo' : ($referenceMode ? 'Referencia' : 'Mi empresa')) }}
             </span>
         </div>
@@ -62,28 +63,6 @@
 
     <div class="py-8">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-8">
-
-            {{-- ── Hero bienvenida ──────────────────────────────────────────── --}}
-            <div class="bg-gradient-to-br from-forest-900 via-forest-800 to-forest-950 rounded-2xl p-6 text-white">
-                <div class="flex items-start justify-between gap-4">
-                    <div>
-                        <p class="text-forest-400 text-xs font-medium uppercase tracking-widest mb-1">
-                            {{ $auditMode ? 'Modo auditoría' : ($demoMode ? 'Empresa demo' : ($referenceMode ? 'Empresa de referencia' : 'Panel de empresa')) }}
-                        </p>
-                        <h3 class="text-xl font-bold text-white mb-1">
-                            {{ $auditMode ? 'Empresa de '.$student->student_name : ($demoMode ? ($student->company_name ?? $student->student_name) : ($referenceMode ? ($student->company_name ?? $student->student_name) : 'Bienvenido, '.$student->student_name)) }}
-                        </h3>
-                        <p class="text-forest-300 text-sm">
-                            {{ $auditMode ? 'Navegación de solo lectura — modo auditoría activo.' : ($demoMode ? 'Empresa de demostración — acceso completo.' : ($referenceMode ? 'Empresa de referencia — solo lectura.' : 'Tu empresa virtual está lista. Completa el ciclo contable completo.')) }}
-                        </p>
-                    </div>
-                    <div class="shrink-0 w-14 h-14 bg-forest-700/50 rounded-2xl flex items-center justify-center">
-                        <svg class="w-7 h-7 text-gold-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 21h19.5m-18-18v18m10.5-18v18m6-13.5V21M6.75 6.75h.75m-.75 3h.75m-.75 3h.75m3-6h.75m-.75 3h.75m-.75 3h.75M6.75 21v-3.375c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21M3 3h12m-.75 4.5H21m-3.75 3.75h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Zm0 3h.008v.008h-.008v-.008Z" />
-                        </svg>
-                    </div>
-                </div>
-            </div>
 
             {{-- ── KPIs ─────────────────────────────────────────────────────── --}}
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">

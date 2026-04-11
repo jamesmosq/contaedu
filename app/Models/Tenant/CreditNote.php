@@ -12,9 +12,14 @@ class CreditNote extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'invoice_id', 'date', 'reason',
+        'modo', 'invoice_id', 'date', 'reason',
         'subtotal', 'tax_amount', 'total', 'status',
     ];
+
+    public function scopeModoActual($query): void
+    {
+        $query->where('modo', modoContable());
+    }
 
     protected $casts = [
         'date' => 'date',

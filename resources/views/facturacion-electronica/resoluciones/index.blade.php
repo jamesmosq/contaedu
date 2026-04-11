@@ -1,12 +1,13 @@
 <x-tenant-layout title="Resoluciones DIAN">
 
     <x-slot name="header">
-        <div class="flex items-center justify-between">
+        <div class="flex items-start justify-between gap-4">
             <div>
-                <h2 class="text-xl font-bold text-slate-800">Resoluciones de Autorización DIAN</h2>
-                <p class="text-sm text-slate-500 mt-0.5">Gestión de rangos de numeración autorizados</p>
+                <p class="text-forest-400 text-xs font-medium uppercase tracking-widest mb-1">Facturación electrónica</p>
+                <h2 class="font-display text-2xl font-bold text-white">Resoluciones de Autorización DIAN</h2>
+                <p class="text-forest-300 text-sm mt-1">Gestión de rangos de numeración autorizados</p>
             </div>
-            <a href="{{ fe_route('index') }}" class="text-sm text-slate-500 hover:text-slate-700">← Facturación Electrónica</a>
+            <a href="{{ fe_route('index') }}" class="shrink-0 text-sm text-forest-300 hover:text-white transition mt-1">← Facturación Electrónica</a>
         </div>
     </x-slot>
 

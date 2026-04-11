@@ -1,11 +1,15 @@
-<div class="py-8 px-6 lg:px-10">
-    <div class="max-w-5xl mx-auto">
-
-        {{-- Cabecera --}}
-        <div class="mb-8">
-            <h2 class="text-xl font-bold text-slate-800">Empresas de referencia</h2>
-            <p class="text-sm text-slate-500 mt-1">Empresas de demostración compartidas por tu docente. Puedes explorarlas en modo solo lectura.</p>
+<div>
+    {{-- ── Hero ───────────────────────────────────────────────────────────── --}}
+    <div class="bg-gradient-to-br from-forest-900 via-forest-800 to-forest-950 px-6 py-8 lg:px-10">
+        <div class="max-w-5xl mx-auto">
+            <p class="text-forest-400 text-xs font-medium uppercase tracking-widest mb-1">Mi empresa</p>
+            <h1 class="font-display text-2xl font-bold text-white">Empresas de referencia</h1>
+            <p class="text-forest-300 text-sm mt-1">Empresas de demostración compartidas por tu docente. Puedes explorarlas en modo solo lectura.</p>
         </div>
+    </div>
+
+    <div class="py-8 px-6 lg:px-10">
+    <div class="max-w-5xl mx-auto">
 
         @if($demos->isEmpty())
             <div class="bg-white rounded-2xl border border-cream-200 shadow-card p-14 text-center">
@@ -70,5 +74,6 @@
             </div>
         @endif
 
+    </div>
     </div>
 </div>

@@ -73,25 +73,37 @@
             ['key' => 'banco',        'label' => 'Banco',            'route' => route('teacher.auditoria.banco',         $auditId), 'icon' => 'credit-card'],
         ];
     } else {
-        // Modo normal: estudiante en su propia empresa
+        // Modo normal: estudiante en su propia empresa (dos zonas)
         $nav = [
             ['type' => 'section_label', 'label' => 'Aprendizaje contable'],
-            ['key' => 'dashboard',    'label' => 'Inicio',             'route' => route('student.dashboard'),        'icon' => 'home'],
-            ['key' => 'facturas',     'label' => 'Facturas',            'route' => route('student.facturas'),         'icon' => 'document-text'],
-            ['key' => 'compras',      'label' => 'Compras',             'route' => route('student.compras'),          'icon' => 'shopping-cart'],
-            ['key' => 'terceros',     'label' => 'Terceros',            'route' => route('student.terceros'),         'icon' => 'users'],
-            ['key' => 'productos',    'label' => 'Productos',           'route' => route('student.productos'),        'icon' => 'cube'],
-            ['key' => 'cuentas',      'label' => 'Plan de cuentas',     'route' => route('student.cuentas'),          'icon' => 'book-open'],
-            ['key' => 'reportes',     'label' => 'Reportes',            'route' => route('student.reportes'),         'icon' => 'chart-bar'],
-            ['key' => 'calendario',   'label' => 'Calendario',          'route' => route('student.calendario'),       'icon' => 'calendar'],
-            ['key' => 'activos',      'label' => 'Activos fijos',       'route' => route('student.activos-fijos'),    'icon' => 'building-office'],
-            ['key' => 'conciliacion', 'label' => 'Conciliación',        'route' => route('student.conciliacion'),     'icon' => 'banknotes'],
-            ['key' => 'fe',           'label' => 'F. Electrónica',      'route' => route('student.fe.index'),         'icon' => 'bolt', 'fe_disabled' => ! $feHabilitada],
-            ['key' => 'config',       'label' => 'Configuración',       'route' => route('student.config'),           'icon' => 'cog'],
-            ['key' => 'referencias',  'label' => 'Empresas Maestras',   'route' => route('student.referencias'),      'icon' => 'academic-cap'],
+            ['key' => 'sandbox.dashboard',    'label' => 'Inicio',             'route' => route('sandbox.dashboard'),        'icon' => 'home'],
+            ['key' => 'sandbox.puc',          'label' => 'PUC Interactivo',    'route' => route('sandbox.puc'),              'icon' => 'book-open'],
+            ['key' => 'sandbox.facturas',     'label' => 'Facturas',           'route' => route('sandbox.facturas'),         'icon' => 'document-text'],
+            ['key' => 'sandbox.compras',      'label' => 'Compras',            'route' => route('sandbox.compras'),          'icon' => 'shopping-cart'],
+            ['key' => 'sandbox.terceros',     'label' => 'Terceros',           'route' => route('sandbox.terceros'),         'icon' => 'users'],
+            ['key' => 'sandbox.productos',    'label' => 'Productos',          'route' => route('sandbox.productos'),        'icon' => 'cube'],
+            ['key' => 'sandbox.cuentas',      'label' => 'Plan de cuentas',    'route' => route('sandbox.cuentas'),          'icon' => 'book-open'],
+            ['key' => 'sandbox.reportes',     'label' => 'Reportes',           'route' => route('sandbox.reportes'),         'icon' => 'chart-bar'],
+            ['key' => 'sandbox.calendario',   'label' => 'Calendario',         'route' => route('sandbox.calendario'),       'icon' => 'calendar'],
+            ['key' => 'sandbox.activos',      'label' => 'Activos fijos',      'route' => route('sandbox.activos-fijos'),    'icon' => 'building-office'],
+            ['key' => 'sandbox.conciliacion', 'label' => 'Conciliación',       'route' => route('sandbox.conciliacion'),     'icon' => 'banknotes'],
+            ['key' => 'sandbox.fe',           'label' => 'F. Electrónica',     'route' => route('sandbox.fe.index'),         'icon' => 'bolt', 'fe_disabled' => ! $feHabilitada],
+            ['key' => 'referencias',          'label' => 'Empresas Maestras',  'route' => route('student.referencias'),      'icon' => 'academic-cap'],
             ['type' => 'section_label', 'label' => 'Mi empresa', 'divider_above' => true],
-            ['key' => 'negocios',     'label' => 'Negocios',            'route' => route('student.negocios'),         'icon' => 'store'],
-            ['key' => 'banco',        'label' => 'Banco',               'route' => route('student.banco'),            'icon' => 'credit-card'],
+            ['key' => 'student.dashboard',    'label' => 'Inicio',             'route' => route('student.dashboard'),        'icon' => 'home'],
+            ['key' => 'student.puc',          'label' => 'PUC',                'route' => route('student.puc'),              'icon' => 'book-open'],
+            ['key' => 'config',               'label' => 'Configuración',      'route' => route('student.config'),           'icon' => 'cog'],
+            ['key' => 'terceros',             'label' => 'Terceros',           'route' => route('student.terceros'),         'icon' => 'users'],
+            ['key' => 'productos',            'label' => 'Productos',          'route' => route('student.productos'),        'icon' => 'cube'],
+            ['key' => 'facturas',             'label' => 'Facturas',           'route' => route('student.facturas'),         'icon' => 'document-text'],
+            ['key' => 'compras',              'label' => 'Compras',            'route' => route('student.compras'),          'icon' => 'shopping-cart'],
+            ['key' => 'reportes',             'label' => 'Reportes',           'route' => route('student.reportes'),         'icon' => 'chart-bar'],
+            ['key' => 'calendario',           'label' => 'Calendario',         'route' => route('student.calendario'),       'icon' => 'calendar'],
+            ['key' => 'activos',              'label' => 'Activos fijos',      'route' => route('student.activos-fijos'),    'icon' => 'building-office'],
+            ['key' => 'conciliacion',         'label' => 'Conciliación',       'route' => route('student.conciliacion'),     'icon' => 'banknotes'],
+            ['key' => 'fe',                   'label' => 'F. Electrónica',     'route' => route('student.fe.index'),         'icon' => 'bolt', 'fe_disabled' => ! $feHabilitada],
+            ['key' => 'negocios',             'label' => 'Negocios',           'route' => route('student.negocios'),         'icon' => 'store'],
+            ['key' => 'banco',                'label' => 'Banco',              'route' => route('student.banco'),            'icon' => 'credit-card'],
         ];
     }
 
@@ -155,64 +167,79 @@
                 @if(!empty($item['divider_above']))
                     <div class="border-t border-white/10 my-3 mx-1"></div>
                 @endif
-                <p class="px-3 pt-1 pb-0.5 text-[0.65rem] font-semibold tracking-[0.08em] uppercase text-white/35 select-none">{{ $item['label'] }}</p>
+                <p class="px-3 pt-1 pb-0.5 text-[0.65rem] font-semibold tracking-[0.08em] uppercase text-white select-none">{{ $item['label'] }}</p>
                 @continue
             @endif
 
             @php
                 $isActive = match($item['key']) {
-                    'dashboard'    => request()->routeIs('student.dashboard')
-                                   || request()->routeIs('teacher.auditoria.dashboard')
-                                   || request()->routeIs('teacher.demo.dashboard')
-                                   || request()->routeIs('student.referencia.dashboard'),
-                    'facturas'     => request()->routeIs('student.facturas')
-                                   || request()->routeIs('teacher.auditoria.facturas')
-                                   || request()->routeIs('teacher.demo.facturas')
-                                   || request()->routeIs('student.referencia.facturas'),
-                    'compras'      => request()->routeIs('student.compras')
-                                   || request()->routeIs('teacher.auditoria.compras')
-                                   || request()->routeIs('teacher.demo.compras')
-                                   || request()->routeIs('student.referencia.compras'),
-                    'terceros'     => request()->routeIs('student.terceros')
-                                   || request()->routeIs('teacher.auditoria.terceros')
-                                   || request()->routeIs('teacher.demo.terceros')
-                                   || request()->routeIs('student.referencia.terceros'),
-                    'productos'    => request()->routeIs('student.productos')
-                                   || request()->routeIs('teacher.auditoria.productos')
-                                   || request()->routeIs('teacher.demo.productos')
-                                   || request()->routeIs('student.referencia.productos'),
-                    'cuentas'      => request()->routeIs('student.cuentas')
-                                   || request()->routeIs('teacher.auditoria.cuentas')
-                                   || request()->routeIs('teacher.demo.cuentas')
-                                   || request()->routeIs('student.referencia.cuentas'),
-                    'reportes'     => request()->routeIs('student.reportes')
-                                   || request()->routeIs('teacher.auditoria.reportes')
-                                   || request()->routeIs('teacher.demo.reportes')
-                                   || request()->routeIs('student.referencia.reportes'),
-                    'calendario'   => request()->routeIs('student.calendario')
-                                   || request()->routeIs('teacher.auditoria.calendario')
-                                   || request()->routeIs('teacher.demo.calendario')
-                                   || request()->routeIs('student.referencia.calendario'),
-                    'activos'      => request()->routeIs('student.activos-fijos')
-                                   || request()->routeIs('teacher.auditoria.activos-fijos')
-                                   || request()->routeIs('teacher.demo.activos-fijos')
-                                   || request()->routeIs('student.referencia.activos-fijos'),
-                    'conciliacion' => request()->routeIs('student.conciliacion')
-                                   || request()->routeIs('teacher.auditoria.conciliacion')
-                                   || request()->routeIs('teacher.demo.conciliacion')
-                                   || request()->routeIs('student.referencia.conciliacion'),
-                    'banco'        => request()->routeIs('student.banco')
-                                   || request()->routeIs('teacher.auditoria.banco')
-                                   || request()->routeIs('teacher.demo.banco'),
-                    'negocios'     => request()->routeIs('student.negocios'),
-                    'fe'           => request()->routeIs('student.fe.*')
-                                   || request()->routeIs('teacher.demo.fe.*'),
-                    'config'       => request()->routeIs('student.config')
-                                   || request()->routeIs('teacher.auditoria.config')
-                                   || request()->routeIs('teacher.demo.config'),
-                    'referencias'  => request()->routeIs('student.referencias')
-                                   || request()->routeIs('student.referencia.*'),
-                    default        => false,
+                    // ── Zona Aprendizaje (sandbox) ──────────────────────────────
+                    'sandbox.dashboard'    => request()->routeIs('sandbox.dashboard'),
+                    'sandbox.puc'          => request()->routeIs('sandbox.puc'),
+                    'sandbox.facturas'     => request()->routeIs('sandbox.facturas'),
+                    'sandbox.compras'      => request()->routeIs('sandbox.compras'),
+                    'sandbox.terceros'     => request()->routeIs('sandbox.terceros'),
+                    'sandbox.productos'    => request()->routeIs('sandbox.productos'),
+                    'sandbox.cuentas'      => request()->routeIs('sandbox.cuentas'),
+                    'sandbox.reportes'     => request()->routeIs('sandbox.reportes'),
+                    'sandbox.calendario'   => request()->routeIs('sandbox.calendario'),
+                    'sandbox.activos'      => request()->routeIs('sandbox.activos-fijos'),
+                    'sandbox.conciliacion' => request()->routeIs('sandbox.conciliacion'),
+                    'sandbox.fe'           => request()->routeIs('sandbox.fe.*'),
+                    // ── Zona Mi Empresa (real) ──────────────────────────────────
+                    'student.dashboard'    => request()->routeIs('student.dashboard'),
+                    'student.puc'          => request()->routeIs('student.puc'),
+                    'dashboard'            => request()->routeIs('teacher.auditoria.dashboard')
+                                           || request()->routeIs('teacher.demo.dashboard')
+                                           || request()->routeIs('student.referencia.dashboard'),
+                    'facturas'             => request()->routeIs('student.facturas')
+                                           || request()->routeIs('teacher.auditoria.facturas')
+                                           || request()->routeIs('teacher.demo.facturas')
+                                           || request()->routeIs('student.referencia.facturas'),
+                    'compras'              => request()->routeIs('student.compras')
+                                           || request()->routeIs('teacher.auditoria.compras')
+                                           || request()->routeIs('teacher.demo.compras')
+                                           || request()->routeIs('student.referencia.compras'),
+                    'terceros'             => request()->routeIs('student.terceros')
+                                           || request()->routeIs('teacher.auditoria.terceros')
+                                           || request()->routeIs('teacher.demo.terceros')
+                                           || request()->routeIs('student.referencia.terceros'),
+                    'productos'            => request()->routeIs('student.productos')
+                                           || request()->routeIs('teacher.auditoria.productos')
+                                           || request()->routeIs('teacher.demo.productos')
+                                           || request()->routeIs('student.referencia.productos'),
+                    'cuentas'              => request()->routeIs('student.cuentas')
+                                           || request()->routeIs('teacher.auditoria.cuentas')
+                                           || request()->routeIs('teacher.demo.cuentas')
+                                           || request()->routeIs('student.referencia.cuentas'),
+                    'reportes'             => request()->routeIs('student.reportes')
+                                           || request()->routeIs('teacher.auditoria.reportes')
+                                           || request()->routeIs('teacher.demo.reportes')
+                                           || request()->routeIs('student.referencia.reportes'),
+                    'calendario'           => request()->routeIs('student.calendario')
+                                           || request()->routeIs('teacher.auditoria.calendario')
+                                           || request()->routeIs('teacher.demo.calendario')
+                                           || request()->routeIs('student.referencia.calendario'),
+                    'activos'              => request()->routeIs('student.activos-fijos')
+                                           || request()->routeIs('teacher.auditoria.activos-fijos')
+                                           || request()->routeIs('teacher.demo.activos-fijos')
+                                           || request()->routeIs('student.referencia.activos-fijos'),
+                    'conciliacion'         => request()->routeIs('student.conciliacion')
+                                           || request()->routeIs('teacher.auditoria.conciliacion')
+                                           || request()->routeIs('teacher.demo.conciliacion')
+                                           || request()->routeIs('student.referencia.conciliacion'),
+                    'banco'                => request()->routeIs('student.banco')
+                                           || request()->routeIs('teacher.auditoria.banco')
+                                           || request()->routeIs('teacher.demo.banco'),
+                    'negocios'             => request()->routeIs('student.negocios'),
+                    'fe'                   => request()->routeIs('student.fe.*')
+                                           || request()->routeIs('teacher.demo.fe.*'),
+                    'config'               => request()->routeIs('student.config')
+                                           || request()->routeIs('teacher.auditoria.config')
+                                           || request()->routeIs('teacher.demo.config'),
+                    'referencias'          => request()->routeIs('student.referencias')
+                                           || request()->routeIs('student.referencia.*'),
+                    default                => false,
                 };
             @endphp
             @if(!empty($item['fe_disabled']))

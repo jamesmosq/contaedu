@@ -86,6 +86,41 @@
                     </div>
                 @endif
 
+                {{-- Banner: Modo Aprendizaje (Sandbox) --}}
+                @if(request()->is('aprendizaje/*'))
+                <div style="
+                    background: rgba(234,179,8,0.10);
+                    border-left: 3px solid #ca8a04;
+                    padding: 0.5rem 1.5rem;
+                    font-size: 0.78rem;
+                    color: #92400e;
+                    display: flex;
+                    align-items: center;
+                    gap: 1rem;
+                ">
+                    <span style="display:flex;align-items:center;gap:0.4rem;">
+                        <svg style="width:0.9rem;height:0.9rem;flex-shrink:0;" fill="none" viewBox="0 0 24 24" stroke-width="1.75" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 0 1-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 0 1 4.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0 1 12 15a9.065 9.065 0 0 1-6.23-.693L4.2 15.3m15.6 0-1.12 2.688A2.25 2.25 0 0 1 16.596 19.5H7.404a2.25 2.25 0 0 1-2.083-1.413L4.2 15.3"/>
+                        </svg>
+                        <strong>Modo Aprendizaje</strong>
+                    </span>
+                    <span>Las operaciones aquí no afectan tu empresa real.</span>
+                    <form method="POST" action="{{ route('sandbox.reset') }}" style="margin-left:auto"
+                          onsubmit="return confirm('¿Reiniciar toda la empresa de aprendizaje? Esta acción no se puede deshacer.')">
+                        @csrf
+                        <button type="submit" style="
+                            font-size:0.72rem;
+                            padding:0.2rem 0.7rem;
+                            border:1px solid #ca8a04;
+                            background:transparent;
+                            color:#92400e;
+                            border-radius:4px;
+                            cursor:pointer;
+                        ">Reiniciar</button>
+                    </form>
+                </div>
+                @endif
+
                 {{-- Topbar móvil --}}
                 <div class="lg:hidden flex items-center justify-between px-4 py-3 bg-forest-900 shrink-0">
                     <span class="font-display text-lg font-bold text-white">Conta<span class="text-gold-400">Edu</span></span>

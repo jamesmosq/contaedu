@@ -1,11 +1,14 @@
 <x-tenant-layout :title="isset($resolucion) ? 'Editar Resolución' : 'Nueva Resolución'">
 
     <x-slot name="header">
-        <div class="flex items-center justify-between">
-            <h2 class="text-xl font-bold text-slate-800">
-                {{ isset($resolucion) ? 'Editar Resolución' : 'Nueva Resolución de Autorización' }}
-            </h2>
-            <a href="{{ fe_route('resoluciones.index') }}" class="text-sm text-slate-500 hover:text-slate-700">← Resoluciones</a>
+        <div class="flex items-start justify-between gap-4">
+            <div>
+                <p class="text-forest-400 text-xs font-medium uppercase tracking-widest mb-1">Facturación electrónica</p>
+                <h2 class="font-display text-2xl font-bold text-white">
+                    {{ isset($resolucion) ? 'Editar Resolución' : 'Nueva Resolución de Autorización' }}
+                </h2>
+            </div>
+            <a href="{{ fe_route('resoluciones.index') }}" class="shrink-0 text-sm text-forest-300 hover:text-white transition mt-1">← Resoluciones</a>
         </div>
     </x-slot>
 

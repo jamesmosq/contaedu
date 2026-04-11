@@ -1,8 +1,9 @@
 <x-tenant-layout title="Facturación Electrónica">
 
     <x-slot name="header">
-        <h2 class="text-xl font-bold text-slate-800">Facturación Electrónica</h2>
-        <p class="text-sm text-slate-500 mt-0.5">Simulador DIAN — Ambiente de Pruebas (código 02)</p>
+        <p class="text-forest-400 text-xs font-medium uppercase tracking-widest mb-1">Facturación electrónica</p>
+        <h2 class="font-display text-2xl font-bold text-white">Facturación Electrónica</h2>
+        <p class="text-forest-300 text-sm mt-1">Simulador DIAN — Ambiente de Pruebas (código 02)</p>
     </x-slot>
 
     <div class="py-8">

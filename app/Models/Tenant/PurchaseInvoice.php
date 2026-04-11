@@ -14,12 +14,17 @@ class PurchaseInvoice extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'third_id', 'purchase_order_id', 'supplier_invoice_number',
+        'modo', 'third_id', 'purchase_order_id', 'supplier_invoice_number',
         'date', 'due_date', 'status', 'subtotal', 'tax_amount', 'total', 'notes',
         // Retenciones
         'retencion_concepto', 'retefte_base', 'retefte_porcentaje',
         'retefte_valor', 'reteiva_valor', 'reteica_valor', 'total_retenciones',
     ];
+
+    public function scopeModoActual($query): void
+    {
+        $query->where('modo', modoContable());
+    }
 
     protected function casts(): array
     {

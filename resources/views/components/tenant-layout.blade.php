@@ -100,11 +100,11 @@
 
                 {{-- Header de página --}}
                 @isset($header)
-                    <header class="bg-white border-b border-cream-200 shadow-card-sm shrink-0">
-                        <div class="px-6 py-4">
+                    <div class="bg-gradient-to-br from-forest-900 via-forest-800 to-forest-950 px-6 py-8 lg:px-10 shrink-0">
+                        <div class="max-w-7xl mx-auto text-white">
                             {{ $header }}
                         </div>
-                    </header>
+                    </div>
                 @endisset
 
                 {{-- Contenido --}}

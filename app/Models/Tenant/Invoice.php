@@ -15,9 +15,14 @@ class Invoice extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'type', 'series', 'number', 'date', 'due_date',
+        'modo', 'type', 'series', 'number', 'date', 'due_date',
         'third_id', 'status', 'subtotal', 'tax_amount', 'total', 'notes',
     ];
+
+    public function scopeModoActual($query): void
+    {
+        $query->where('modo', modoContable());
+    }
 
     protected $casts = [
         'date' => 'date',

@@ -9,7 +9,12 @@ class JournalEntry extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['date', 'reference', 'description', 'document_type', 'document_id', 'auto_generated'];
+    protected $fillable = ['modo', 'date', 'reference', 'description', 'document_type', 'document_id', 'auto_generated'];
+
+    public function scopeModoActual($query): void
+    {
+        $query->where('modo', modoContable());
+    }
 
     protected $casts = [
         'date'           => 'date',

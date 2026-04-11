@@ -1,14 +1,15 @@
 <x-tenant-layout :title="'Factura ' . $factura->numero_completo">
 
     <x-slot name="header">
-        <div class="flex items-center justify-between">
+        <div class="flex items-start justify-between gap-4">
             <div>
-                <h2 class="text-xl font-bold text-slate-800">
+                <p class="text-forest-400 text-xs font-medium uppercase tracking-widest mb-1">Facturación electrónica</p>
+                <h2 class="font-display text-2xl font-bold text-white">
                     Factura Electrónica: {{ $factura->numero_completo !== 'PENDIENTE' ? $factura->numero_completo : '(Borrador)' }}
                 </h2>
-                <p class="text-sm text-slate-500 mt-0.5">{{ $factura->fecha_emision->format('d \d\e F \d\e Y') }}</p>
+                <p class="text-forest-300 text-sm mt-1">{{ $factura->fecha_emision->format('d \d\e F \d\e Y') }}</p>
             </div>
-            <a href="{{ fe_route('index') }}" class="text-sm text-slate-500 hover:text-slate-700">← Volver al listado</a>
+            <a href="{{ fe_route('index') }}" class="shrink-0 text-sm text-forest-300 hover:text-white transition mt-1">← Volver al listado</a>
         </div>
     </x-slot>
 

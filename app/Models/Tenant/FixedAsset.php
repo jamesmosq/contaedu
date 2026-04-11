@@ -12,11 +12,16 @@ class FixedAsset extends Model
     use SoftDeletes;
 
     protected $fillable = [
-        'code', 'name', 'description', 'category',
+        'modo', 'code', 'name', 'description', 'category',
         'acquisition_date', 'cost', 'salvage_value',
         'useful_life_months', 'accumulated_depreciation',
         'last_depreciation_date', 'status', 'notes',
     ];
+
+    public function scopeModoActual($query): void
+    {
+        $query->where('modo', modoContable());
+    }
 
     protected function casts(): array
     {

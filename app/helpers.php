@@ -76,3 +76,12 @@ function numero_a_letras(float $numero): string
 
     return ucfirst($texto) . $dePesos . ' pesos m/cte';
 }
+
+/**
+ * Retorna el modo contable activo ('real' | 'sandbox').
+ * Se determina por el prefijo de la ruta actual.
+ */
+function modoContable(): string
+{
+    return request()->is('aprendizaje/*') ? 'sandbox' : 'real';
+}
