@@ -64,11 +64,16 @@ class PurchaseService
      * Registra un pago a proveedor y genera el asiento.
      * $items = [['purchase_invoice_id' => X, 'amount_applied' => Y], ...]
      */
-    public function applyPayment(Payment $payment, array $items): Payment
+    /**
+     * Registra un pago a proveedor y genera el asiento.
+     * $items = [['purchase_invoice_id' => X, 'amount_applied' => Y], ...]
+     * Retorna [$payment, $journalEntry] para que el caller pueda registrar BankTransaction.
+     */
+    public function applyPayment(Payment $payment, array $items): array
     {
         return DB::transaction(function () use ($payment, $items) {
             $payment->load('third');
-            $this->accounting->generatePaymentEntry($payment);
+            $entry = $this->accounting->generatePaymentEntry($payment);
 
             foreach ($items as $item) {
                 PaymentItem::create([
@@ -76,7 +81,6 @@ class PurchaseService
                     'purchase_invoice_id' => $item['purchase_invoice_id'],
                     'amount_applied' => $item['amount_applied'],
                 ]);
-                // Si el pago cubre el total de la factura, marcarla como pagada
                 $inv = PurchaseInvoice::with('payments')->find($item['purchase_invoice_id']);
                 if ($inv && $inv->balance() <= 0.01) {
                     $inv->update(['status' => PurchaseInvoiceStatus::Pagada]);
@@ -85,7 +89,7 @@ class PurchaseService
 
             $payment->update(['status' => PaymentStatus::Aplicado]);
 
-            return $payment;
+            return [$payment, $entry];
         });
     }
 }

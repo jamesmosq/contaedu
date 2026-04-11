@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Tenant\Conciliacion;
 
+use App\Models\Tenant\BankAccount;
 use App\Models\Tenant\BankReconciliation;
 use App\Models\Tenant\BankReconciliationItem;
 use App\Services\BankReconciliationService;
@@ -17,6 +18,8 @@ class Index extends Component
     public bool $showNewForm = false;
 
     public int $rc_account_id = 0;
+
+    public ?int $rc_bank_account_id = null;
 
     public string $rc_period_from = '';
 
@@ -56,15 +59,19 @@ class Index extends Component
 
     public function openNewForm(BankReconciliationService $service): void
     {
-        $this->reset(['rc_account_id', 'rc_notes', 'rc_statement']);
+        $this->reset(['rc_account_id', 'rc_bank_account_id', 'rc_notes', 'rc_statement']);
         $this->rc_period_from = now()->startOfMonth()->toDateString();
         $this->rc_period_to = now()->endOfMonth()->toDateString();
 
-        // Preseleccionar la primera cuenta bancaria disponible
+        // Preseleccionar la primera cuenta bancaria PUC disponible
         $accounts = $service->bankAccounts();
         if ($accounts->isNotEmpty()) {
             $this->rc_account_id = $accounts->first()->id;
         }
+
+        // Preseleccionar la cuenta principal del banco si existe
+        $bankAccount = BankAccount::where('es_principal', true)->where('activa', true)->first();
+        $this->rc_bank_account_id = $bankAccount?->id;
 
         $this->showNewForm = true;
     }
@@ -79,9 +86,10 @@ class Index extends Component
         ]);
 
         $reconciliation = $service->create([
-            'account_id' => $this->rc_account_id,
-            'period_start' => $this->rc_period_from,
-            'period_end' => $this->rc_period_to,
+            'account_id'      => $this->rc_account_id,
+            'bank_account_id' => $this->rc_bank_account_id ?: null,
+            'period_start'    => $this->rc_period_from,
+            'period_end'      => $this->rc_period_to,
             'statement_balance' => $this->rc_statement,
             'notes' => $this->rc_notes ?: null,
         ]);
@@ -189,11 +197,13 @@ class Index extends Component
             : null;
 
         $bankAccounts = $service->bankAccounts();
+        $bankAccountsModulo = BankAccount::where('activa', true)->orderByDesc('es_principal')->get();
 
         return view('livewire.tenant.conciliacion.index', compact(
             'reconciliations',
             'activeReconciliation',
             'bankAccounts',
+            'bankAccountsModulo',
         ))->title('Conciliación Bancaria');
     }
 }

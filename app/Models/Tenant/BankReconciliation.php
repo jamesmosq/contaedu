@@ -13,6 +13,7 @@ class BankReconciliation extends Model
 
     protected $fillable = [
         'account_id',
+        'bank_account_id',
         'period_start',
         'period_end',
         'statement_balance',
@@ -32,6 +33,11 @@ class BankReconciliation extends Model
     public function account(): BelongsTo
     {
         return $this->belongsTo(Account::class);
+    }
+
+    public function bankAccount(): BelongsTo
+    {
+        return $this->belongsTo(BankAccount::class);
     }
 
     public function items(): HasMany

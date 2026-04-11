@@ -16,7 +16,7 @@ class CompanyConfig extends Component
 
     public string $razon_social = '';
 
-    public string $regimen = 'simplificado';
+    public string $regimen = 'no_responsable_iva';
 
     public string $ciiu_code = '';
 
@@ -32,6 +32,10 @@ class CompanyConfig extends Component
 
     public string $resolucion_dian = '';
 
+    public string $sector_empresarial = 'comercial';
+
+    public bool $fe_habilitada = false;
+
     public bool $isEditing = false;
 
     public function mount(): void
@@ -39,20 +43,20 @@ class CompanyConfig extends Component
         $config = CompanyConfigModel::first();
         if ($config) {
             $this->fill($config->only(['nit', 'razon_social', 'regimen', 'prefijo_factura']));
-            $this->ciiu_code = $config->ciiu_code ?? '';
-            $this->ciiu_description = $config->ciiu_description ?? '';
-            $this->direccion = $config->direccion ?? '';
-            $this->telefono = $config->telefono ?? '';
-            $this->email = $config->email ?? '';
-            $this->resolucion_dian = $config->resolucion_dian ?? '';
-            $this->isEditing = false;
+            $this->ciiu_code          = $config->ciiu_code ?? '';
+            $this->ciiu_description   = $config->ciiu_description ?? '';
+            $this->direccion          = $config->direccion ?? '';
+            $this->telefono           = $config->telefono ?? '';
+            $this->email              = $config->email ?? '';
+            $this->resolucion_dian    = $config->resolucion_dian ?? '';
+            $this->sector_empresarial = $config->sector_empresarial ?? 'comercial';
+            $this->fe_habilitada      = (bool) ($config->fe_habilitada ?? false);
+            $this->isEditing          = false;
         } else {
-            // Funciona en modo estudiante, demo y auditoría porque tenancy()->tenant
-            // siempre está inicializado cuando se llega a este componente.
             $tenant = tenancy()->tenant;
-            $this->nit = $tenant?->nit_empresa ?? '';
+            $this->nit         = $tenant?->nit_empresa ?? '';
             $this->razon_social = $tenant?->company_name ?? '';
-            $this->isEditing = true;
+            $this->isEditing   = true;
         }
     }
 
@@ -61,20 +65,9 @@ class CompanyConfig extends Component
         $this->isEditing = true;
     }
 
-    public function rules(): array
+    public function updatedRegimen(string $value): void
     {
-        return [
-            'nit' => ['required', 'string', 'max:20'],
-            'razon_social' => ['required', 'string', 'max:150'],
-            'regimen' => ['required', 'in:simplificado,comun,gran_contribuyente'],
-            'ciiu_code' => ['nullable', 'string', 'max:6'],
-            'ciiu_description' => ['nullable', 'string', 'max:255'],
-            'direccion' => ['nullable', 'string', 'max:200'],
-            'telefono' => ['nullable', 'string', 'max:20'],
-            'email' => ['nullable', 'email', 'max:100'],
-            'prefijo_factura' => ['required', 'string', 'max:5'],
-            'resolucion_dian' => ['nullable', 'string', 'max:100'],
-        ];
+        $this->fe_habilitada = ($value === 'responsable_iva');
     }
 
     public function updatedCiiuCode(string $value): void
@@ -89,27 +82,50 @@ class CompanyConfig extends Component
         $this->ciiu_description = $ciiu?->name ?? '';
     }
 
+    public function rules(): array
+    {
+        return [
+            'nit'                => ['required', 'string', 'max:20'],
+            'razon_social'       => ['required', 'string', 'max:150'],
+            'regimen'            => ['required', 'in:responsable_iva,no_responsable_iva'],
+            'ciiu_code'          => ['nullable', 'string', 'max:6'],
+            'ciiu_description'   => ['nullable', 'string', 'max:255'],
+            'direccion'          => ['nullable', 'string', 'max:200'],
+            'telefono'           => ['nullable', 'string', 'max:20'],
+            'email'              => ['nullable', 'email', 'max:100'],
+            'prefijo_factura'    => ['required', 'string', 'max:5'],
+            'resolucion_dian'    => ['nullable', 'string', 'max:100'],
+            'sector_empresarial' => ['required', 'in:industrial,comercial,servicios,avicola,ganadera,otros'],
+        ];
+    }
+
     public function save(): void
     {
         $this->validate();
 
+        // La habilitación de F.E. se determina exclusivamente por el régimen
+        $feHabilitada = ($this->regimen === 'responsable_iva');
+
         CompanyConfigModel::updateOrCreate(
             ['id' => CompanyConfigModel::first()?->id],
             [
-                'nit' => $this->nit,
-                'razon_social' => $this->razon_social,
-                'regimen' => $this->regimen,
-                'ciiu_code' => $this->ciiu_code ?: null,
-                'ciiu_description' => $this->ciiu_description ?: null,
-                'direccion' => $this->direccion ?: null,
-                'telefono' => $this->telefono ?: null,
-                'email' => $this->email ?: null,
-                'prefijo_factura' => $this->prefijo_factura,
-                'resolucion_dian' => $this->resolucion_dian ?: null,
+                'nit'                => $this->nit,
+                'razon_social'       => $this->razon_social,
+                'regimen'            => $this->regimen,
+                'ciiu_code'          => $this->ciiu_code ?: null,
+                'ciiu_description'   => $this->ciiu_description ?: null,
+                'direccion'          => $this->direccion ?: null,
+                'telefono'           => $this->telefono ?: null,
+                'email'              => $this->email ?: null,
+                'prefijo_factura'    => $this->prefijo_factura,
+                'resolucion_dian'    => $this->resolucion_dian ?: null,
+                'sector_empresarial' => $this->sector_empresarial,
+                'fe_habilitada'      => $feHabilitada,
             ]
         );
 
-        $this->isEditing = false;
+        $this->fe_habilitada = $feHabilitada;
+        $this->isEditing     = false;
         $this->dispatch('notify', type: 'success', message: 'Configuración guardada correctamente.');
     }
 

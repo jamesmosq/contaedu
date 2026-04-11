@@ -20,5 +20,11 @@ class CompanyConfig extends Model
         'logo_path',
         'prefijo_factura',
         'resolucion_dian',
+        'sector_empresarial',
+        'fe_habilitada',
+    ];
+
+    protected $casts = [
+        'fe_habilitada' => 'boolean',
     ];
 }

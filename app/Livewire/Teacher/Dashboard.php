@@ -6,6 +6,7 @@ use App\Models\Central\Group;
 use App\Models\Central\Institution;
 use App\Models\Central\StudentScore;
 use App\Models\Central\Tenant;
+use App\Models\Tenant\BankAccount;
 use App\Models\Tenant\CompanySummary;
 use App\Services\TenantProvisionService;
 use Livewire\Attributes\Layout;
@@ -475,11 +476,23 @@ class Dashboard extends Component
 
                     $tenantScores = $scoresByTenant->get($tenant->id, collect());
 
+                    // Actividad bancaria (cross-tenant)
+                    $bankAccounts = $tenant->run(fn () => BankAccount::where('activa', true)
+                        ->get(['bank', 'saldo', 'sobregiro_usado', 'bloqueada', 'es_principal']));
+                    $bankInfo = [
+                        'cuentas'         => $bankAccounts,
+                        'saldo_total'     => $bankAccounts->sum('saldo'),
+                        'tiene_banco'     => $bankAccounts->isNotEmpty(),
+                        'alguna_bloqueada'=> $bankAccounts->contains('bloqueada', true),
+                        'sobregiro_total' => $bankAccounts->sum('sobregiro_usado'),
+                    ];
+
                     $students[] = [
-                        'tenant' => $tenant,
-                        'metrics' => $metrics,
+                        'tenant'   => $tenant,
+                        'metrics'  => $metrics,
                         'promedio' => $tenantScores->isNotEmpty() ? round($tenantScores->avg('score'), 1) : null,
-                        'graded' => $tenantScores->count(),
+                        'graded'   => $tenantScores->count(),
+                        'bank'     => $bankInfo,
                     ];
                 }
             }

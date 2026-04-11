@@ -5,6 +5,8 @@ namespace App\Livewire\Tenant\Compras;
 use App\Enums\ConceptoRetencion;
 use App\Enums\PurchaseInvoiceStatus;
 use App\Enums\PurchaseOrderStatus;
+use App\Models\Tenant\BankAccount;
+use App\Models\Tenant\BankTransaction;
 use App\Models\Tenant\Payment;
 use App\Models\Tenant\Product;
 use App\Models\Tenant\PurchaseInvoice;
@@ -80,6 +82,7 @@ class Index extends Component
 
     // ─── Pago ────────────────────────────────────────────────────────────────
     public bool $showPaymentForm = false;
+    public ?int $payment_bank_account_id = null; // null = pago desde caja
 
     public int $payment_third_id = 0;
 
@@ -516,12 +519,26 @@ class Index extends Component
         try {
             $total = array_sum(array_column($this->payment_items, 'amount_applied'));
 
+            // Validar saldo si paga desde banco
+            if ($this->payment_bank_account_id) {
+                $cuentaBanco = BankAccount::find($this->payment_bank_account_id);
+                if ($cuentaBanco) {
+                    $gmf = \App\Services\BankService::calcularGmf('pago_proveedor', $total);
+                    if ($cuentaBanco->saldoDisponible() < ($total + $gmf)) {
+                        $this->dispatch('notify', type: 'error',
+                            message: 'Saldo insuficiente en ' . $cuentaBanco->nombreBanco() . '. Disponible: $' . number_format($cuentaBanco->saldoDisponible(), 0, ',', '.'));
+                        return;
+                    }
+                }
+            }
+
             $payment = Payment::create([
-                'third_id' => $this->payment_third_id,
-                'date' => $this->payment_date,
-                'total' => $total,
-                'notes' => $this->payment_notes ?: null,
-                'status' => 'borrador',
+                'third_id'        => $this->payment_third_id,
+                'date'            => $this->payment_date,
+                'total'           => $total,
+                'notes'           => $this->payment_notes ?: null,
+                'status'          => 'borrador',
+                'bank_account_id' => $this->payment_bank_account_id,
             ]);
 
             $items = array_map(fn ($i) => [
@@ -529,10 +546,30 @@ class Index extends Component
                 'amount_applied' => $i['amount_applied'],
             ], $this->payment_items);
 
-            $service->applyPayment($payment, $items);
+            [$payment, $entry] = $service->applyPayment($payment, $items);
+
+            // Registrar transacción bancaria si se pagó desde banco
+            if ($this->payment_bank_account_id && $cuentaBanco = BankAccount::find($this->payment_bank_account_id)) {
+                $gmf = \App\Services\BankService::calcularGmf('pago_proveedor', $total);
+                $totalCargo = $total + $gmf;
+                $cuentaBanco->decrement('saldo', $totalCargo);
+
+                BankTransaction::create([
+                    'bank_account_id'   => $cuentaBanco->id,
+                    'tipo'              => 'pago_proveedor',
+                    'valor'             => $total,
+                    'gmf'               => $gmf,
+                    'comision'          => 0,
+                    'saldo_despues'     => $cuentaBanco->fresh()->saldo,
+                    'descripcion'       => 'Pago proveedor PAG-' . str_pad($payment->id, 5, '0', STR_PAD_LEFT),
+                    'journal_entry_id'  => $entry?->id,
+                    'purchase_invoice_id' => $this->payment_items[0]['purchase_invoice_id'] ?? null,
+                    'fecha_transaccion' => $this->payment_date,
+                ]);
+            }
 
             $this->showPaymentForm = false;
-            $this->reset(['payment_third_id', 'payment_notes', 'payment_items']);
+            $this->reset(['payment_third_id', 'payment_notes', 'payment_items', 'payment_bank_account_id']);
             $this->dispatch('notify', type: 'success', message: 'Pago aplicado y asiento generado.');
         } catch (\Exception $e) {
             $this->dispatch('notify', type: 'error', message: $e->getMessage());

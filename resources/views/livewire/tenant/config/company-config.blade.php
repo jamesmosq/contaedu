@@ -18,24 +18,57 @@
                 <div class="px-6 py-5">
                     <h3 class="text-sm font-semibold text-slate-700 mb-4">Datos de la empresa</h3>
                     <div class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1.5">NIT</label>
-                                <input wire:model="nit" type="text" inputmode="numeric" pattern="[0-9\-]+"
-                                    @disabled(!$isEditing)
-                                    class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 disabled:bg-cream-50 disabled:text-slate-400 disabled:cursor-not-allowed" />
-                                @error('nit') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1.5">NIT</label>
+                            <input wire:model="nit" type="text" inputmode="numeric" pattern="[0-9\-]+"
+                                @disabled(!$isEditing)
+                                class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 disabled:bg-cream-50 disabled:text-slate-400 disabled:cursor-not-allowed" />
+                            @error('nit') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                        </div>
+
+                        {{-- Régimen tributario --}}
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                                Régimen tributario <span class="text-red-500">*</span>
+                            </label>
+                            <div class="flex gap-2">
+                                <button type="button"
+                                    @if(!$isEditing) disabled @endif
+                                    wire:click="$set('regimen', 'responsable_iva')"
+                                    class="flex-1 py-2.5 px-4 rounded-xl text-sm font-medium border transition
+                                        {{ $regimen === 'responsable_iva'
+                                            ? 'bg-forest-800 text-white border-forest-800'
+                                            : 'bg-white text-slate-600 border-cream-200 hover:border-forest-400 disabled:opacity-50 disabled:cursor-not-allowed' }}">
+                                    Responsable de IVA
+                                </button>
+                                <button type="button"
+                                    @if(!$isEditing) disabled @endif
+                                    wire:click="$set('regimen', 'no_responsable_iva')"
+                                    class="flex-1 py-2.5 px-4 rounded-xl text-sm font-medium border transition
+                                        {{ $regimen === 'no_responsable_iva'
+                                            ? 'bg-forest-800 text-white border-forest-800'
+                                            : 'bg-white text-slate-600 border-cream-200 hover:border-forest-400 disabled:opacity-50 disabled:cursor-not-allowed' }}">
+                                    No responsable de IVA
+                                </button>
                             </div>
-                            <div>
-                                <label class="block text-sm font-medium text-slate-700 mb-1.5">Régimen</label>
-                                <select wire:model="regimen"
-                                    @disabled(!$isEditing)
-                                    class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 disabled:bg-cream-50 disabled:text-slate-400 disabled:cursor-not-allowed">
-                                    <option value="simplificado">Régimen Simplificado</option>
-                                    <option value="comun">Régimen Común</option>
-                                    <option value="gran_contribuyente">Gran Contribuyente</option>
-                                </select>
-                            </div>
+                            @error('regimen') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+
+                            {{-- Indicador F. Electrónica --}}
+                            @if($regimen === 'responsable_iva')
+                                <div class="mt-2 flex items-center gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-xl">
+                                    <svg class="w-4 h-4 text-green-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="m3.75 13.5 10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75Z"/>
+                                    </svg>
+                                    <span class="text-xs font-medium text-green-800">Facturación Electrónica habilitada — requerida para este régimen</span>
+                                </div>
+                            @else
+                                <div class="mt-2 flex items-center gap-2 px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl">
+                                    <svg class="w-4 h-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M18.364 18.364A9 9 0 0 0 5.636 5.636m12.728 12.728A9 9 0 0 1 5.636 5.636m12.728 12.728L5.636 5.636"/>
+                                    </svg>
+                                    <span class="text-xs text-slate-500">Facturación Electrónica no disponible para este régimen</span>
+                                </div>
+                            @endif
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">Razón social</label>
@@ -103,6 +136,28 @@
                                     @endif
                                 </div>
                             @endif
+                        </div>
+
+                        {{-- Sector empresarial --}}
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                                Sector empresarial <span class="text-red-500">*</span>
+                            </label>
+                            <p class="text-xs text-slate-400 mb-2">Clasificación para el Mercado Interempresarial</p>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach(['industrial' => 'Industrial', 'comercial' => 'Comercial', 'servicios' => 'Servicios', 'avicola' => 'Avícola', 'ganadera' => 'Ganadera', 'otros' => 'Otros'] as $val => $label)
+                                    <button type="button"
+                                        @if(!$isEditing) disabled @endif
+                                        wire:click="$set('sector_empresarial', '{{ $val }}')"
+                                        class="px-4 py-1.5 rounded-xl text-sm font-medium border transition
+                                            {{ $sector_empresarial === $val
+                                                ? 'bg-forest-800 text-white border-forest-800'
+                                                : 'bg-white text-slate-600 border-cream-200 hover:border-forest-400 disabled:opacity-50 disabled:cursor-not-allowed' }}">
+                                        {{ $label }}
+                                    </button>
+                                @endforeach
+                            </div>
+                            @error('sector_empresarial') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
 
                         <div class="grid grid-cols-2 gap-4">

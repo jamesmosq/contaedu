@@ -3,8 +3,10 @@
 namespace App\Services;
 
 use App\Models\Tenant\Account;
+use App\Models\Tenant\BankAccount;
 use App\Models\Tenant\BankReconciliation;
 use App\Models\Tenant\BankReconciliationItem;
+use App\Models\Tenant\BankTransaction;
 use App\Models\Tenant\JournalLine;
 use Illuminate\Support\Collection;
 
@@ -12,21 +14,28 @@ class BankReconciliationService
 {
     /**
      * Crea una conciliación y carga los movimientos del libro para el período.
+     * Si se vincula una bank_account_id, también carga las bank_transactions como ítems del extracto.
      *
-     * @param  array{account_id: int, period_start: string, period_end: string, statement_balance: float, notes?: string}  $data
+     * @param  array{account_id: int, bank_account_id?: int|null, period_start: string, period_end: string, statement_balance: float, notes?: string}  $data
      */
     public function create(array $data): BankReconciliation
     {
         $reconciliation = BankReconciliation::create([
-            'account_id' => $data['account_id'],
-            'period_start' => $data['period_start'],
-            'period_end' => $data['period_end'],
+            'account_id'      => $data['account_id'],
+            'bank_account_id' => $data['bank_account_id'] ?? null,
+            'period_start'    => $data['period_start'],
+            'period_end'      => $data['period_end'],
             'statement_balance' => round((float) $data['statement_balance'], 2),
             'status' => 'borrador',
-            'notes' => $data['notes'] ?? null,
+            'notes'  => $data['notes'] ?? null,
         ]);
 
         $this->loadBookItems($reconciliation);
+
+        // Dirección 1: cargar bank_transactions no conciliadas como partidas del extracto
+        if (! empty($data['bank_account_id'])) {
+            $this->loadBankTransactionItems($reconciliation);
+        }
 
         return $reconciliation->load('items');
     }
@@ -68,6 +77,39 @@ class BankReconciliationService
         }
     }
 
+    /**
+     * Carga las bank_transactions del período como ítems del extracto bancario.
+     * Solo carga las no conciliadas aún.
+     */
+    public function loadBankTransactionItems(BankReconciliation $reconciliation): void
+    {
+        if (! $reconciliation->bank_account_id) {
+            return;
+        }
+
+        $transactions = BankTransaction::where('bank_account_id', $reconciliation->bank_account_id)
+            ->whereBetween('fecha_transaccion', [
+                $reconciliation->period_start->toDateString(),
+                $reconciliation->period_end->toDateString(),
+            ])
+            ->where('conciliado', false)
+            ->get();
+
+        foreach ($transactions as $tx) {
+            $esCargo = $tx->esCargo();
+            BankReconciliationItem::create([
+                'reconciliation_id' => $reconciliation->id,
+                'source'            => 'banco',
+                'journal_line_id'   => null,
+                'date'              => $tx->fecha_transaccion->toDateString(),
+                'description'       => $tx->descripcion . ($tx->gmf > 0 ? ' (+GMF $'.number_format($tx->gmf, 0, ',', '.').')' : ''),
+                'debit'             => $esCargo ? ($tx->valor + $tx->gmf + $tx->comision) : 0,
+                'credit'            => $esCargo ? 0 : $tx->valor,
+                'reconciled'        => false,
+            ]);
+        }
+    }
+
     /** Marca o desmarca un ítem de libro como cruzado con el extracto. */
     public function toggleReconciled(BankReconciliationItem $item): void
     {
@@ -77,21 +119,50 @@ class BankReconciliationService
     /**
      * Agrega una partida bancaria (nota crédito banco, cargo bancario, interés, etc.)
      * que aparece en el extracto pero no en los libros.
+     * Si la conciliación tiene bank_account_id vinculada, también crea la BankTransaction.
      *
      * @param  array{date: string, description: string, debit: float, credit: float}  $data
      */
     public function addBankItem(BankReconciliation $reconciliation, array $data): BankReconciliationItem
     {
-        return BankReconciliationItem::create([
+        $debit  = round((float) ($data['debit'] ?? 0), 2);
+        $credit = round((float) ($data['credit'] ?? 0), 2);
+
+        $item = BankReconciliationItem::create([
             'reconciliation_id' => $reconciliation->id,
-            'source' => 'banco',
-            'journal_line_id' => null,
-            'date' => $data['date'],
-            'description' => $data['description'],
-            'debit' => round((float) ($data['debit'] ?? 0), 2),
-            'credit' => round((float) ($data['credit'] ?? 0), 2),
-            'reconciled' => true,
+            'source'            => 'banco',
+            'journal_line_id'   => null,
+            'date'              => $data['date'],
+            'description'       => $data['description'],
+            'debit'             => $debit,
+            'credit'            => $credit,
+            'reconciled'        => true,
         ]);
+
+        // Dirección 2: registrar la nota bancaria en el módulo banco
+        if ($reconciliation->bank_account_id) {
+            $cuenta = BankAccount::find($reconciliation->bank_account_id);
+            if ($cuenta) {
+                $esCargo = $debit > 0;
+                $valor   = $esCargo ? $debit : $credit;
+
+                $cuenta->{$esCargo ? 'decrement' : 'increment'}('saldo', $valor);
+
+                BankTransaction::create([
+                    'bank_account_id'   => $cuenta->id,
+                    'tipo'              => $esCargo ? 'nota_debito_banco' : 'nota_credito_banco',
+                    'valor'             => $valor,
+                    'gmf'               => 0,
+                    'comision'          => 0,
+                    'saldo_despues'     => $cuenta->fresh()->saldo,
+                    'descripcion'       => 'Nota bancaria conciliación — ' . $data['description'],
+                    'fecha_transaccion' => $data['date'],
+                    'conciliado'        => true,
+                ]);
+            }
+        }
+
+        return $item;
     }
 
     /** Elimina una partida bancaria agregada manualmente. */

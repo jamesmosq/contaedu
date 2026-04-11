@@ -236,6 +236,7 @@
                                         <th class="text-left px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Empresa</th>
                                         <th class="text-right px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Facturas</th>
                                         <th class="text-right px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Total facturado</th>
+                                        <th class="text-right px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Saldo banco</th>
                                         <th class="text-center px-6 py-3.5 text-xs font-semibold text-slate-500 uppercase tracking-wide">Promedio</th>
                                         <th class="px-6 py-3.5"></th>
                                     </tr>
@@ -263,6 +264,29 @@
                                             </td>
                                             <td class="px-6 py-4 text-right">
                                                 <span class="text-slate-700 font-semibold">$ {{ number_format($s['metrics']['invoices_total'], 0, ',', '.') }}</span>
+                                            </td>
+                                            {{-- Banco --}}
+                                            <td class="px-6 py-4 text-right">
+                                                @if(!($s['bank']['tiene_banco'] ?? false))
+                                                    <span class="text-xs text-slate-400">Sin banco</span>
+                                                @else
+                                                    @if($s['bank']['alguna_bloqueada'])
+                                                        <span class="text-xs bg-red-100 text-red-700 rounded-full px-2 py-0.5 font-semibold">BLOQUEADA</span>
+                                                    @elseif($s['bank']['sobregiro_total'] > 0)
+                                                        <span class="block text-xs text-red-500 font-mono">${{ number_format($s['bank']['saldo_total'], 0, ',', '.') }}</span>
+                                                        <span class="text-xs text-red-400">Sobregiro</span>
+                                                    @else
+                                                        <span class="text-slate-700 font-mono text-xs font-semibold">${{ number_format($s['bank']['saldo_total'], 0, ',', '.') }}</span>
+                                                    @endif
+                                                    {{-- Bancos activos --}}
+                                                    <div class="flex items-center justify-end gap-1 mt-1">
+                                                        @foreach($s['bank']['cuentas'] as $bc)
+                                                            @php $dotC = match($bc->bank) { 'bancolombia' => '#3db872', 'davivienda' => '#f0cc5a', 'banco_bogota' => '#71c99c', default => '#a7dfc0' }; @endphp
+                                                            <span class="w-2 h-2 rounded-full" style="background-color:{{ $dotC }}"
+                                                                title="{{ match($bc->bank) { 'bancolombia' => 'Bancolombia', 'davivienda' => 'Davivienda', 'banco_bogota' => 'Banco de Bogotá', default => $bc->bank } }}"></span>
+                                                        @endforeach
+                                                    </div>
+                                                @endif
                                             </td>
                                             <td class="px-6 py-4 text-center">
                                                 @if($s['promedio'] !== null)

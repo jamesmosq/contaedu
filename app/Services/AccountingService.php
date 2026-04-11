@@ -374,6 +374,107 @@ class AccountingService
     }
 
     /**
+     * Genera el asiento de una factura de compra DIRECTA (sin OC).
+     * Cada línea debita su propia cuenta de gasto/costo (cuenta_gasto_codigo).
+     * Si la línea no tiene cuenta asignada usa 5195 (gastos generales).
+     *
+     * Débito  cuenta_gasto_codigo por ítem   $subtotal_línea
+     * Débito  240810 IVA descontable          $iva_total  (si aplica)
+     * Crédito 2205 Proveedores                $neto_a_pagar
+     * Crédito 2365 RteFte                     (si aplica)
+     * Crédito 2367 Reteiva                    (si aplica)
+     * Crédito 2368 Reteica                    (si aplica)
+     */
+    public function generateDirectPurchaseEntry(PurchaseInvoice $invoice): JournalEntry
+    {
+        $vatInput  = $this->accountId('240810') ?? $this->accountId('2408');
+        $suppliers = $this->accountId('2205');
+        $reteFte   = $this->accountId('2365');
+        $reteIva   = $this->accountId('2367');
+        $reteIca   = $this->accountId('2368');
+
+        $totalBruto     = $invoice->subtotal + $invoice->tax_amount;
+        $totalRet       = (float) ($invoice->total_retenciones ?? 0);
+        $totalNeto      = round($totalBruto - $totalRet, 2);
+
+        $lines = [];
+
+        // Débito por cada línea según su cuenta de gasto
+        foreach ($invoice->lines as $line) {
+            $codigoCuenta = $line->cuenta_gasto_codigo ?: '5195';
+            $accountId    = $this->accountId($codigoCuenta) ?? $this->accountId('5195');
+
+            if ($accountId) {
+                $lines[] = [
+                    'account_id'  => $accountId,
+                    'debit'       => $line->line_subtotal,
+                    'credit'      => 0,
+                    'description' => $line->description.' — '.($invoice->supplier_invoice_number ?? 'S/N'),
+                ];
+            }
+        }
+
+        // Débito IVA descontable (total IVA de la factura)
+        if ($invoice->tax_amount > 0 && $vatInput) {
+            $lines[] = [
+                'account_id'  => $vatInput,
+                'debit'       => $invoice->tax_amount,
+                'credit'      => 0,
+                'description' => 'IVA compra '.($invoice->supplier_invoice_number ?? 'S/N').' — '.$invoice->third->name,
+            ];
+        }
+
+        // Crédito proveedores — neto a pagar
+        if ($suppliers) {
+            $lines[] = [
+                'account_id'  => $suppliers,
+                'debit'       => 0,
+                'credit'      => $totalNeto,
+                'description' => 'CxP proveedor '.$invoice->third->name,
+            ];
+        }
+
+        // Crédito retención en la fuente
+        if (($invoice->retefte_valor ?? 0) > 0 && $reteFte) {
+            $lines[] = [
+                'account_id'  => $reteFte,
+                'debit'       => 0,
+                'credit'      => $invoice->retefte_valor,
+                'description' => 'RteFte — '.$invoice->third->name,
+            ];
+        }
+
+        // Crédito reteiva
+        if (($invoice->reteiva_valor ?? 0) > 0 && $reteIva) {
+            $lines[] = [
+                'account_id'  => $reteIva,
+                'debit'       => 0,
+                'credit'      => $invoice->reteiva_valor,
+                'description' => 'Reteiva — '.$invoice->third->name,
+            ];
+        }
+
+        // Crédito reteica
+        if (($invoice->reteica_valor ?? 0) > 0 && $reteIca) {
+            $lines[] = [
+                'account_id'  => $reteIca,
+                'debit'       => 0,
+                'credit'      => $invoice->reteica_valor,
+                'description' => 'Reteica — '.$invoice->third->name,
+            ];
+        }
+
+        return $this->createEntry([
+            'date'          => $invoice->date,
+            'reference'     => $invoice->supplier_invoice_number ?? 'FC-'.str_pad($invoice->id, 5, '0', STR_PAD_LEFT),
+            'description'   => 'Factura de compra directa — '.$invoice->third->name,
+            'document_type' => 'purchase_invoice',
+            'document_id'   => $invoice->id,
+            'auto_generated'=> true,
+        ], $lines);
+    }
+
+    /**
      * Genera el asiento de un pago a proveedor.
      * Débito 2205 Proveedores nacionales
      * Crédito 1105 Caja
@@ -381,12 +482,33 @@ class AccountingService
     public function generatePaymentEntry(Payment $payment): JournalEntry
     {
         $suppliers = $this->accountId('2205'); // Proveedores nacionales
-        $cash = $this->accountId('1105'); // Caja
+
+        // Si el pago viene de una cuenta bancaria → débita Bancos, sino Caja
+        $usaBanco    = ! empty($payment->bank_account_id);
+        $contrapartida = $usaBanco
+            ? $this->accountId('1110') // Bancos
+            : $this->accountId('1105'); // Caja
+        $contraDesc  = $usaBanco
+            ? 'Egreso banco — '.$payment->third->name
+            : 'Egreso caja — '.$payment->third->name;
 
         $lines = [
-            ['account_id' => $suppliers, 'debit' => $payment->total, 'credit' => 0,               'description' => 'Pago proveedor '.$payment->third->name],
-            ['account_id' => $cash,      'debit' => 0,               'credit' => $payment->total, 'description' => 'Egreso caja — '.$payment->third->name],
+            ['account_id' => $suppliers,    'debit' => $payment->total, 'credit' => 0,               'description' => 'Pago proveedor '.$payment->third->name],
+            ['account_id' => $contrapartida,'debit' => 0,               'credit' => $payment->total, 'description' => $contraDesc],
         ];
+
+        // Líneas adicionales: GMF y comisión ACH si se pagó por banco
+        if ($usaBanco) {
+            $gmf = \App\Services\BankService::calcularGmf('pago_proveedor', $payment->total);
+            if ($gmf > 0) {
+                $gmfAccount = $this->accountId('530520') ?? $this->accountId('5305');
+                if ($gmfAccount) {
+                    $lines[] = ['account_id' => $gmfAccount, 'debit' => $gmf, 'credit' => 0, 'description' => 'GMF 4x1000 pago proveedor'];
+                    // El crédito adicional de GMF también sale de Bancos
+                    $lines[] = ['account_id' => $contrapartida, 'debit' => 0, 'credit' => $gmf, 'description' => 'GMF débito banco'];
+                }
+            }
+        }
 
         return $this->createEntry([
             'date' => $payment->date,

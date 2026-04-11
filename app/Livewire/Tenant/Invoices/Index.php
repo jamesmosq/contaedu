@@ -4,13 +4,17 @@ namespace App\Livewire\Tenant\Invoices;
 
 use App\Enums\InvoiceStatus;
 use App\Enums\InvoiceType;
+use App\Enums\PurchaseInvoiceStatus;
 use App\Enums\ReceiptStatus;
+use App\Models\Tenant\Account;
 use App\Models\Tenant\CashReceipt;
 use App\Models\Tenant\CashReceiptItem;
 use App\Models\Tenant\CreditNote;
 use App\Models\Tenant\DebitNote;
 use App\Models\Tenant\Invoice;
 use App\Models\Tenant\Product;
+use App\Models\Tenant\PurchaseInvoice;
+use App\Models\Tenant\PurchaseInvoiceLine;
 use App\Models\Tenant\Third;
 use App\Services\AccountingService;
 use App\Services\DebitNoteService;
@@ -27,7 +31,7 @@ class Index extends Component
 {
     use WithPagination;
 
-    // Pestaña activa: 'facturas' | 'recibos' | 'notas' | 'notas_debito'
+    // Pestaña activa: 'facturas' | 'compras' | 'recibos' | 'notas' | 'notas_debito'
     public string $activeTab = 'facturas';
 
     // ─── Facturas ────────────────────────────────────────────────────────────
@@ -92,10 +96,28 @@ class Index extends Component
 
     public string $dn_invoice_ref = '';  // solo lectura, para mostrar en modal
 
+    // ─── Facturas de compra directas ─────────────────────────────────────────
+    public bool   $showPiForm      = false;
+    public ?int   $piEditingId     = null;
+    public int    $pi_third_id     = 0;
+    public string $pi_numero       = '';
+    public string $pi_date         = '';
+    public string $pi_due_date     = '';
+    public string $pi_notes        = '';
+    public string $pi_search       = '';
+    public string $pi_filterStatus = '';
+    public bool   $pi_aplica_retefte = false;
+    public float  $pi_retefte_pct    = 3.5;
+    public bool   $pi_aplica_reteiva = false;
+    public bool   $pi_aplica_reteica = false;
+    public array  $pi_lines          = [];
+
     public function mount(): void
     {
-        $this->date = now()->toDateString();
+        $this->date     = now()->toDateString();
         $this->due_date = now()->addDays(30)->toDateString();
+        $this->pi_date     = now()->toDateString();
+        $this->pi_due_date = now()->addDays(30)->toDateString();
     }
 
     // ─── Facturas: CRUD ──────────────────────────────────────────────────────
@@ -484,6 +506,246 @@ class Index extends Component
         }
     }
 
+    // ─── Facturas de compra directas ─────────────────────────────────────────
+
+    public function openPiCreate(): void
+    {
+        $this->resetPiForm();
+        $this->showPiForm = true;
+    }
+
+    public function openPiEdit(int $id): void
+    {
+        $invoice = PurchaseInvoice::with('lines')->findOrFail($id);
+        if ($invoice->status->value !== 'borrador') {
+            return;
+        }
+
+        $this->piEditingId  = $id;
+        $this->pi_third_id  = $invoice->third_id;
+        $this->pi_numero    = $invoice->supplier_invoice_number ?? '';
+        $this->pi_date      = $invoice->date->toDateString();
+        $this->pi_due_date  = $invoice->due_date?->toDateString() ?? '';
+        $this->pi_notes     = $invoice->notes ?? '';
+
+        $this->pi_lines = $invoice->lines->map(fn ($l) => [
+            'description'       => $l->description,
+            'qty'               => $l->qty,
+            'unit_cost'         => $l->unit_cost,
+            'tax_rate'          => $l->tax_rate,
+            'cuenta_gasto_codigo' => $l->cuenta_gasto_codigo ?? '',
+            'cuenta_gasto_nombre' => $l->cuenta_gasto_nombre ?? '',
+        ])->toArray();
+
+        $this->showPiForm = true;
+    }
+
+    public function addPiLine(): void
+    {
+        $this->pi_lines[] = [
+            'description'        => '',
+            'qty'                => 1,
+            'unit_cost'          => 0,
+            'tax_rate'           => 19,
+            'cuenta_gasto_codigo'=> '',
+            'cuenta_gasto_nombre'=> '',
+        ];
+    }
+
+    public function removePiLine(int $idx): void
+    {
+        array_splice($this->pi_lines, $idx, 1);
+        $this->pi_lines = array_values($this->pi_lines);
+    }
+
+    public function updatedPiLines(mixed $value, string $key): void
+    {
+        if (str_ends_with($key, '.cuenta_gasto_codigo') && $value) {
+            $idx     = (int) explode('.', $key)[0];
+            $account = Account::where('code', $value)->first();
+            if ($account) {
+                $this->pi_lines[$idx]['cuenta_gasto_nombre'] = $account->name;
+            }
+        }
+    }
+
+    public function savePurchaseInvoice(): void
+    {
+        $this->validate([
+            'pi_third_id'            => ['required', 'integer', 'min:1'],
+            'pi_numero'              => ['required', 'string', 'max:50'],
+            'pi_date'                => ['required', 'date'],
+            'pi_due_date'            => ['nullable', 'date'],
+            'pi_lines'               => ['required', 'array', 'min:1'],
+            'pi_lines.*.description' => ['required', 'string'],
+            'pi_lines.*.qty'         => ['required', 'numeric', 'min:0.01'],
+            'pi_lines.*.unit_cost'   => ['required', 'numeric', 'min:0'],
+            'pi_lines.*.cuenta_gasto_codigo' => ['required', 'string'],
+        ], [
+            'pi_third_id.min'                    => 'Selecciona un proveedor.',
+            'pi_numero.required'                  => 'Ingresa el número de factura del proveedor.',
+            'pi_lines.min'                        => 'Agrega al menos una línea.',
+            'pi_lines.*.description.required'     => 'La descripción es requerida.',
+            'pi_lines.*.qty.min'                  => 'La cantidad debe ser mayor a 0.',
+            'pi_lines.*.cuenta_gasto_codigo.required' => 'Selecciona la cuenta de gasto.',
+        ]);
+
+        $subtotal   = 0.0;
+        $taxAmount  = 0.0;
+        $lineData   = [];
+
+        foreach ($this->pi_lines as $l) {
+            $lineSub  = round((float) $l['qty'] * (float) $l['unit_cost'], 2);
+            $lineTax  = round($lineSub * ((int) $l['tax_rate'] / 100), 2);
+
+            $subtotal  += $lineSub;
+            $taxAmount += $lineTax;
+
+            $lineData[] = [
+                'description'        => $l['description'],
+                'qty'                => (float) $l['qty'],
+                'unit_cost'          => (float) $l['unit_cost'],
+                'tax_rate'           => (int) $l['tax_rate'],
+                'line_subtotal'      => $lineSub,
+                'line_tax'           => $lineTax,
+                'line_total'         => $lineSub + $lineTax,
+                'cuenta_gasto_codigo'=> $l['cuenta_gasto_codigo'],
+                'cuenta_gasto_nombre'=> $l['cuenta_gasto_nombre'] ?: $l['cuenta_gasto_codigo'],
+            ];
+        }
+
+        $subtotal  = round($subtotal, 2);
+        $taxAmount = round($taxAmount, 2);
+        $total     = $subtotal + $taxAmount;
+
+        DB::transaction(function () use ($subtotal, $taxAmount, $total, $lineData) {
+            $data = [
+                'third_id'                => $this->pi_third_id,
+                'supplier_invoice_number' => $this->pi_numero,
+                'date'                    => $this->pi_date,
+                'due_date'                => $this->pi_due_date ?: null,
+                'notes'                   => $this->pi_notes ?: null,
+                'subtotal'                => $subtotal,
+                'tax_amount'              => $taxAmount,
+                'total'                   => $total,
+                'status'                  => PurchaseInvoiceStatus::Borrador->value,
+            ];
+
+            if ($this->piEditingId) {
+                $invoice = PurchaseInvoice::findOrFail($this->piEditingId);
+                $invoice->update($data);
+                $invoice->lines()->delete();
+            } else {
+                $invoice = PurchaseInvoice::create($data);
+            }
+
+            foreach ($lineData as $ld) {
+                $invoice->lines()->create($ld);
+            }
+        });
+
+        $this->resetPiForm();
+        $this->dispatch('notify', type: 'success', message: 'Factura de compra guardada en borrador.');
+    }
+
+    public function confirmPurchaseInvoice(int $id, AccountingService $accounting): void
+    {
+        try {
+            DB::transaction(function () use ($id, $accounting) {
+                $invoice = PurchaseInvoice::with('lines', 'third')->findOrFail($id);
+
+                if ($invoice->status->value !== 'borrador') {
+                    throw new \RuntimeException('Solo se pueden confirmar facturas en borrador.');
+                }
+
+                // Calcular retenciones simples
+                $retefte = $this->pi_aplica_retefte
+                    ? round($invoice->subtotal * ($this->pi_retefte_pct / 100), 2)
+                    : 0;
+
+                $reteiva = ($this->pi_aplica_reteiva && $invoice->tax_amount > 0)
+                    ? round($invoice->tax_amount * 0.15, 2)
+                    : 0;
+
+                $reteica = $this->pi_aplica_reteica
+                    ? round($invoice->subtotal * 0.004, 2)
+                    : 0;
+
+                $totalRet = round($retefte + $reteiva + $reteica, 2);
+
+                if ($totalRet > 0) {
+                    $invoice->update([
+                        'retefte_valor'     => $retefte,
+                        'retefte_base'      => $invoice->subtotal,
+                        'retefte_porcentaje'=> $this->pi_retefte_pct,
+                        'reteiva_valor'     => $reteiva,
+                        'reteica_valor'     => $reteica,
+                        'total_retenciones' => $totalRet,
+                        'total'             => round($invoice->subtotal + $invoice->tax_amount - $totalRet, 2),
+                    ]);
+                    $invoice->refresh();
+                }
+
+                $accounting->generateDirectPurchaseEntry($invoice);
+                $invoice->update(['status' => PurchaseInvoiceStatus::Pendiente->value]);
+            });
+
+            $this->reset(['pi_aplica_retefte', 'pi_aplica_reteiva', 'pi_aplica_reteica']);
+            $this->pi_retefte_pct = 3.5;
+            $this->dispatch('notify', type: 'success', message: 'Factura confirmada. Asiento contable generado.');
+        } catch (\Exception $e) {
+            $this->dispatch('notify', type: 'error', message: $e->getMessage());
+        }
+    }
+
+    public function annulPurchaseInvoice(int $id, AccountingService $accounting): void
+    {
+        try {
+            DB::transaction(function () use ($id, $accounting) {
+                $invoice = PurchaseInvoice::with('lines', 'third')->findOrFail($id);
+
+                if (! in_array($invoice->status->value, ['pendiente', 'borrador'])) {
+                    throw new \RuntimeException('No se puede anular esta factura.');
+                }
+
+                // Reversar asiento si existe
+                $entry = \App\Models\Tenant\JournalEntry::where('document_type', 'purchase_invoice')
+                    ->where('document_id', $invoice->id)
+                    ->latest()
+                    ->first();
+
+                if ($entry) {
+                    $accounting->reverseEntry($entry, now()->toDateString(), 'Anulación factura compra '.$invoice->supplier_invoice_number);
+                }
+
+                $invoice->update(['status' => PurchaseInvoiceStatus::Anulada->value]);
+            });
+
+            $this->dispatch('notify', type: 'success', message: 'Factura anulada. Asiento de reverso generado.');
+        } catch (\Exception $e) {
+            $this->dispatch('notify', type: 'error', message: $e->getMessage());
+        }
+    }
+
+    public function deletePurchaseInvoice(int $id): void
+    {
+        $invoice = PurchaseInvoice::findOrFail($id);
+        if ($invoice->status->value === 'borrador') {
+            $invoice->lines()->delete();
+            $invoice->delete();
+        }
+    }
+
+    public function resetPiForm(): void
+    {
+        $this->reset(['piEditingId', 'pi_third_id', 'pi_numero', 'pi_notes', 'pi_lines',
+                      'pi_aplica_retefte', 'pi_aplica_reteiva', 'pi_aplica_reteica']);
+        $this->showPiForm       = false;
+        $this->pi_retefte_pct   = 3.5;
+        $this->pi_date          = now()->toDateString();
+        $this->pi_due_date      = now()->addDays(30)->toDateString();
+    }
+
     public function updatingSearch(): void
     {
         $this->resetPage();
@@ -522,12 +784,27 @@ class Index extends Component
             ->limit(50)
             ->get();
 
-        $thirds = Third::where('type', '!=', 'proveedor')->where('active', true)->orderBy('name')->get();
+        $purchaseInvoices = PurchaseInvoice::with('third')
+            ->when($this->pi_search, fn ($q) => $q
+                ->whereHas('third', fn ($q2) => $q2->where('name', 'ilike', "%{$this->pi_search}%"))
+                ->orWhere('supplier_invoice_number', 'ilike', "%{$this->pi_search}%"))
+            ->when($this->pi_filterStatus, fn ($q) => $q->where('status', $this->pi_filterStatus))
+            ->whereNull('purchase_order_id')
+            ->orderByDesc('date')
+            ->orderByDesc('id')
+            ->paginate(15, ['*'], 'pi_page');
+
+        $thirds = Third::whereIn('type', ['cliente', 'ambos'])->where('active', true)->orderBy('name')->get();
         $products = Product::where('active', true)->orderBy('name')->get();
         $statuses = InvoiceStatus::cases();
+        $piStatuses = PurchaseInvoiceStatus::cases();
+        $proveedores = Third::whereIn('type', ['proveedor', 'ambos'])->where('active', true)->orderBy('name')->get();
+        $cuentasGasto = Account::whereIn('type', ['gasto', 'costo'])->where('level', '>=', 3)->where('active', true)->orderBy('code')->get(['id', 'code', 'name']);
 
         return view('livewire.tenant.invoices.index', compact(
-            'invoices', 'receipts', 'creditNotes', 'debitNotes', 'thirds', 'products', 'statuses'
+            'invoices', 'receipts', 'creditNotes', 'debitNotes',
+            'purchaseInvoices', 'thirds', 'products', 'statuses',
+            'piStatuses', 'proveedores', 'cuentasGasto'
         ))->title('Facturación');
     }
 }

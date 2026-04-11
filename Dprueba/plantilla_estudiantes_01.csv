@@ -1,21 +1,21 @@
 ﻿cedula,nombre_estudiante,nombre_empresa,nit_empresa,password
-1023456001,"Ana García","Comercial García SAS",900100001-1,clave123
-1023456002,"Luis Pérez","Distribuciones Pérez",900100002-2,clave456
-1023456003,"María Torres","Soluciones Torres Ltda",900100003-3,clave789
-1023456004,"Carlos Ramírez","Inversiones Ramírez SAS",900100004-4,pass1234
-1023456005,"Sofía Herrera","Herrera & Asociados",900100005-5,pass5678
-1023456006,"Andrés Morales","Grupo Morales SAS",900100006-6,pass9012
-1023456007,"Valentina Castro","Castro Distribuciones",900100007-7,segura001
-1023456008,"Felipe Jiménez","Jiménez Tech SAS",900100008-8,segura002
-1023456009,"Daniela Vargas","Vargas Consultoría",900100009-9,segura003
-1023456010,"Sebastián López","López Ingeniería SAS",900100010-0,clave2024
-1023456011,"Isabella Martínez","Martínez & Cía",900100011-1,clave2025
-1023456012,"Diego Gómez","Gómez Soluciones SAS",900100012-2,abc12345
-1023456013,"Camila Sánchez","Sánchez Logística",900100013-3,abc67890
-1023456014,"Nicolás Rojas","Rojas Comercializadora",900100014-4,rojas2024
-1023456015,"Laura Díaz","Díaz & Asociados SAS",900100015-5,diaz5678
-1023456016,"Mateo Ruiz","Ruiz Importaciones",900100016-6,ruiz9012
-1023456017,"Juliana Flores","Flores Distribuciones SAS",900100017-7,flores01
-1023456018,"Santiago Mendoza","Mendoza Servicios",900100018-8,mendoz02
-1023456019,"Gabriela Ríos","Ríos Consultoría SAS",900100019-9,rios2024
-1023456020,"Alejandro Cruz","Cruz & Compañía Ltda",900100020-0,cruz5678
+"1023456001,""Ana García"",""Comercial García SAS"",900100001-1,clave123"
+"1023456002,""Luis Pérez"",""Distribuciones Pérez"",900100002-2,clave456"
+"1023456003,""María Torres"",""Soluciones Torres Ltda"",900100003-3,clave789"
+"1023456004,""Carlos Ramírez"",""Inversiones Ramírez SAS"",900100004-4,pass1234"
+"1023456005,""Sofía Herrera"",""Herrera & Asociados"",900100005-5,pass5678"
+"1023456006,""Andrés Morales"",""Grupo Morales SAS"",900100006-6,pass9012"
+"1023456007,""Valentina Castro"",""Castro Distribuciones"",900100007-7,segura001"
+"1023456008,""Felipe Jiménez"",""Jiménez Tech SAS"",900100008-8,segura002"
+"1023456009,""Daniela Vargas"",""Vargas Consultoría"",900100009-9,segura003"
+"1023456010,""Sebastián López"",""López Ingeniería SAS"",900100010-0,clave2024"
+"1023456011,""Isabella Martínez"",""Martínez & Cía"",900100011-1,clave2025"
+"1023456012,""Diego Gómez"",""Gómez Soluciones SAS"",900100012-2,abc12345"
+"1023456013,""Camila Sánchez"",""Sánchez Logística"",900100013-3,abc67890"
+"1023456014,""Nicolás Rojas"",""Rojas Comercializadora"",900100014-4,rojas2024"
+"1023456015,""Laura Díaz"",""Díaz & Asociados SAS"",900100015-5,diaz5678"
+"1023456016,""Mateo Ruiz"",""Ruiz Importaciones"",900100016-6,ruiz9012"
+"1023456017,""Juliana Flores"",""Flores Distribuciones SAS"",900100017-7,flores01"
+"1023456018,""Santiago Mendoza"",""Mendoza Servicios"",900100018-8,mendoz02"
+"1023456019,""Gabriela Ríos"",""Ríos Consultoría SAS"",900100019-9,rios2024"
+"1023456020,""Alejandro Cruz"",""Cruz & Compañía Ltda"",900100020-0,cruz5678"

@@ -7,11 +7,17 @@
                 <h1 class="font-display text-2xl font-bold text-white">Facturas de venta</h1>
                 <p class="text-forest-300 text-sm mt-1">Ciclo de facturación y cobro</p>
             </div>
-            @if(!session('audit_mode') && !session('reference_mode') && $activeTab === 'facturas')
+            @if(!session('audit_mode') && !session('reference_mode'))
                 <div>
-                    <button wire:click="openCreate" class="px-4 py-2 bg-gold-500 text-white text-sm font-semibold rounded-xl hover:bg-gold-400 transition">
-                        + Nueva factura
-                    </button>
+                    @if($activeTab === 'facturas')
+                        <button wire:click="openCreate" class="px-4 py-2 bg-gold-500 text-white text-sm font-semibold rounded-xl hover:bg-gold-400 transition">
+                            + Nueva factura
+                        </button>
+                    @elseif($activeTab === 'compras')
+                        <button wire:click="openPiCreate" class="px-4 py-2 bg-gold-500 text-white text-sm font-semibold rounded-xl hover:bg-gold-400 transition">
+                            + Nueva factura de compra
+                        </button>
+                    @endif
                 </div>
             @endif
         </div>
@@ -24,6 +30,9 @@
                 <button wire:click="$set('activeTab','facturas')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'facturas' ? 'border-b-2 border-forest-700 text-forest-800' : 'text-slate-500 hover:text-slate-700' }}">
                     Facturas de venta
                 </button>
+                <button wire:click="$set('activeTab','compras')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'compras' ? 'border-b-2 border-forest-700 text-forest-800' : 'text-slate-500 hover:text-slate-700' }}">
+                    Facturas de compra
+                </button>
                 <button wire:click="$set('activeTab','recibos')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'recibos' ? 'border-b-2 border-forest-700 text-forest-800' : 'text-slate-500 hover:text-slate-700' }}">
                     Recibos de caja
                 </button>
@@ -34,6 +43,163 @@
                     Notas débito
                 </button>
             </div>
+
+            {{-- ══════════════════════════════════ MODAL FACTURA DE COMPRA ══════════════════════════════════ --}}
+            @if($showPiForm && !session('audit_mode'))
+                <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto" wire:click.self="resetPiForm">
+                    <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl my-8">
+                        <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-10">
+                            <h3 class="font-semibold text-slate-800">{{ $piEditingId ? 'Editar factura de compra' : 'Nueva factura de compra' }}</h3>
+                            <button wire:click="resetPiForm" class="text-slate-400 hover:text-slate-600">✕</button>
+                        </div>
+                        <div class="px-6 py-5 space-y-5">
+
+                            {{-- Cabecera --}}
+                            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                                <div class="col-span-2">
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Proveedor *</label>
+                                    <select wire:model="pi_third_id" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
+                                        <option value="0">— Seleccionar proveedor —</option>
+                                        @foreach($proveedores as $p)
+                                            <option value="{{ $p->id }}">{{ $p->name }} ({{ $p->document }})</option>
+                                        @endforeach
+                                    </select>
+                                    @error('pi_third_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                                <div class="col-span-2">
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Nro. factura proveedor *</label>
+                                    <input wire:model="pi_numero" type="text" placeholder="ej: FV-2026-001"
+                                        class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                    @error('pi_numero') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Fecha factura *</label>
+                                    <input wire:model="pi_date" type="date" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1">Vencimiento</label>
+                                    <input wire:model="pi_due_date" type="date" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                </div>
+                            </div>
+
+                            {{-- Ítems --}}
+                            <div>
+                                <div class="flex items-center justify-between mb-2">
+                                    <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Ítems</p>
+                                    <button wire:click="addPiLine" type="button" class="text-xs text-forest-600 hover:text-forest-800 font-medium transition">+ Agregar ítem</button>
+                                </div>
+                                @error('pi_lines') <p class="text-red-500 text-xs mb-2">{{ $message }}</p> @enderror
+                                <div class="border border-cream-200 rounded-xl overflow-x-auto">
+                                    <table class="w-full text-sm min-w-[720px]">
+                                        <thead class="bg-slate-50 border-b border-cream-200">
+                                            <tr>
+                                                <th class="text-left px-3 py-2 text-xs font-semibold text-slate-500">Descripción</th>
+                                                <th class="text-right px-3 py-2 text-xs font-semibold text-slate-500 w-20">Cant.</th>
+                                                <th class="text-right px-3 py-2 text-xs font-semibold text-slate-500 w-28">Costo unit.</th>
+                                                <th class="text-right px-3 py-2 text-xs font-semibold text-slate-500 w-16">IVA%</th>
+                                                <th class="text-left px-3 py-2 text-xs font-semibold text-slate-500 w-44">Cta. gasto/costo</th>
+                                                <th class="text-right px-3 py-2 text-xs font-semibold text-slate-500 w-28">Total</th>
+                                                <th class="px-3 py-2 w-8"></th>
+                                            </tr>
+                                        </thead>
+                                        <tbody class="divide-y divide-slate-100">
+                                            @forelse($pi_lines as $i => $pil)
+                                                @php
+                                                    $piSub   = ($pil['unit_cost'] ?? 0) * ($pil['qty'] ?? 1);
+                                                    $piTax   = $piSub * (($pil['tax_rate'] ?? 19) / 100);
+                                                    $piTotal = $piSub + $piTax;
+                                                @endphp
+                                                <tr wire:key="pil-{{ $i }}">
+                                                    <td class="px-3 py-2">
+                                                        <input wire:model="pi_lines.{{ $i }}.description" type="text"
+                                                            class="block w-full rounded border-cream-200 text-xs focus:ring-forest-500 focus:border-forest-500" />
+                                                        @error("pi_lines.{$i}.description") <p class="text-red-500 text-xs">{{ $message }}</p> @enderror
+                                                    </td>
+                                                    <td class="px-3 py-2">
+                                                        <input wire:model.live="pi_lines.{{ $i }}.qty" type="number" step="0.01" min="0.01"
+                                                            class="block w-full rounded border-cream-200 text-xs text-right focus:ring-forest-500 focus:border-forest-500" />
+                                                    </td>
+                                                    <td class="px-3 py-2">
+                                                        <input wire:model.live="pi_lines.{{ $i }}.unit_cost" type="number" step="0.01" min="0"
+                                                            class="block w-full rounded border-cream-200 text-xs text-right focus:ring-forest-500 focus:border-forest-500" />
+                                                    </td>
+                                                    <td class="px-3 py-2">
+                                                        <select wire:model.live="pi_lines.{{ $i }}.tax_rate"
+                                                            class="block w-full rounded border-cream-200 text-xs focus:ring-forest-500 focus:border-forest-500">
+                                                            <option value="0">0%</option>
+                                                            <option value="5">5%</option>
+                                                            <option value="19">19%</option>
+                                                        </select>
+                                                    </td>
+                                                    <td class="px-3 py-2">
+                                                        <select wire:model.live="pi_lines.{{ $i }}.cuenta_gasto_codigo"
+                                                            class="block w-full rounded border-cream-200 text-xs focus:ring-forest-500 focus:border-forest-500">
+                                                            <option value="">— Cta. gasto —</option>
+                                                            @foreach($cuentasGasto as $cg)
+                                                                <option value="{{ $cg->code }}">{{ $cg->code }} {{ $cg->name }}</option>
+                                                            @endforeach
+                                                        </select>
+                                                        @error("pi_lines.{$i}.cuenta_gasto_codigo") <p class="text-red-500 text-xs">{{ $message }}</p> @enderror
+                                                    </td>
+                                                    <td class="px-3 py-2 text-right font-mono text-xs text-slate-700">
+                                                        $ {{ number_format($piTotal, 0, ',', '.') }}
+                                                    </td>
+                                                    <td class="px-3 py-2 text-center">
+                                                        <button wire:click="removePiLine({{ $i }})" type="button" class="text-red-400 hover:text-red-600 transition">✕</button>
+                                                    </td>
+                                                </tr>
+                                            @empty
+                                                <tr>
+                                                    <td colspan="7" class="px-3 py-6 text-center text-slate-400 text-xs">
+                                                        Sin ítems. <button wire:click="addPiLine" type="button" class="text-forest-600 hover:underline">Agregar el primero</button>
+                                                    </td>
+                                                </tr>
+                                            @endforelse
+                                        </tbody>
+                                    </table>
+                                </div>
+                                @if(count($pi_lines) > 0)
+                                    @php
+                                        $piGrandSub = array_sum(array_map(fn($l) => ($l['unit_cost'] ?? 0) * ($l['qty'] ?? 1), $pi_lines));
+                                        $piGrandTax = array_sum(array_map(fn($l) => ($l['unit_cost'] ?? 0) * ($l['qty'] ?? 1) * (($l['tax_rate'] ?? 19) / 100), $pi_lines));
+                                        $piGrandTotal = $piGrandSub + $piGrandTax;
+                                    @endphp
+                                    <div class="flex justify-end mt-2">
+                                        <div class="text-sm space-y-1 w-64">
+                                            <div class="flex justify-between text-slate-600"><span>Subtotal:</span><span class="font-mono">$ {{ number_format($piGrandSub, 0, ',', '.') }}</span></div>
+                                            <div class="flex justify-between text-slate-600"><span>IVA:</span><span class="font-mono">$ {{ number_format($piGrandTax, 0, ',', '.') }}</span></div>
+                                            <div class="flex justify-between font-bold text-slate-800 border-t border-cream-200 pt-1"><span>Total:</span><span class="font-mono">$ {{ number_format($piGrandTotal, 0, ',', '.') }}</span></div>
+                                        </div>
+                                    </div>
+                                @endif
+                            </div>
+
+                            {{-- Observaciones --}}
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Observaciones <span class="text-slate-400">(opcional)</span></label>
+                                <textarea wire:model="pi_notes" rows="2"
+                                    class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500"></textarea>
+                            </div>
+
+                            <div class="bg-blue-50 rounded-xl p-3 border border-blue-100">
+                                <p class="text-xs text-blue-700">
+                                    <strong>Asiento al confirmar:</strong>
+                                    Db Cuenta de gasto/costo + Db 240810 IVA descontable /
+                                    Cr 2205 Proveedores + Cr retenciones (si aplican).
+                                    Las retenciones se configuran al momento de confirmar.
+                                </p>
+                            </div>
+                        </div>
+                        <div class="px-6 py-4 border-t border-cream-100 flex justify-end gap-3 bg-white rounded-b-2xl">
+                            <button wire:click="resetPiForm" type="button" class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 transition">Cancelar</button>
+                            <button wire:click="savePurchaseInvoice" type="button" class="px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition">
+                                <span wire:loading.remove wire:target="savePurchaseInvoice">Guardar borrador</span>
+                                <span wire:loading wire:target="savePurchaseInvoice">Guardando...</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             {{-- ══════════════════════════════════ MODAL FACTURA ══════════════════════════════════ --}}
             @if($showForm && !session('audit_mode'))
@@ -382,6 +548,134 @@
                     </table>
                     @if($invoices->hasPages())
                         <div class="px-6 py-4 border-t border-cream-100">{{ $invoices->links() }}</div>
+                    @endif
+                </div>
+            @endif
+
+            {{-- ══════════════════════════════════ TAB: FACTURAS DE COMPRA ══════════════════════════════════ --}}
+            @if($activeTab === 'compras')
+                <div class="mb-5 flex flex-wrap gap-3">
+                    <input wire:model.live.debounce.300ms="pi_search" type="text" placeholder="Buscar proveedor o nro. factura..."
+                        class="w-72 rounded-xl border-cream-200 text-sm shadow-sm focus:ring-forest-500 focus:border-forest-500" />
+                    <select wire:model.live="pi_filterStatus" class="rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
+                        <option value="">Todos los estados</option>
+                        @foreach($piStatuses as $s)
+                            <option value="{{ $s->value }}">{{ $s->label() }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="bg-white rounded-2xl border border-cream-200 shadow-card overflow-hidden">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-forest-950 border-b border-forest-800">
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Nro. proveedor</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Fecha</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Proveedor</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Subtotal</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">IVA</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Total</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Estado</th>
+                                <th class="px-6 py-3"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100">
+                            @forelse($purchaseInvoices as $pi)
+                                <tr wire:key="pi-{{ $pi->id }}" class="hover:bg-slate-50 transition">
+                                    <td class="px-6 py-3 font-mono text-xs font-bold text-slate-700">{{ $pi->supplier_invoice_number }}</td>
+                                    <td class="px-6 py-3 text-slate-600">{{ $pi->date->format('d/m/Y') }}</td>
+                                    <td class="px-6 py-3 text-slate-700">{{ $pi->third?->name ?? '—' }}</td>
+                                    <td class="px-6 py-3 text-right font-mono text-sm text-slate-700">$ {{ number_format($pi->subtotal, 0, ',', '.') }}</td>
+                                    <td class="px-6 py-3 text-right font-mono text-sm text-slate-600">$ {{ number_format($pi->tax_amount, 0, ',', '.') }}</td>
+                                    <td class="px-6 py-3 text-right font-mono text-sm font-semibold text-slate-800">$ {{ number_format($pi->total, 0, ',', '.') }}</td>
+                                    <td class="px-6 py-3">
+                                        <span class="px-2 py-0.5 rounded text-xs font-medium {{ $pi->status->color() }}">
+                                            {{ $pi->status->label() }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-3">
+                                        @if(!session('audit_mode') && !session('reference_mode'))
+                                            <div class="flex items-center justify-end gap-3">
+                                                @if($pi->status->value === 'borrador')
+                                                    <button wire:click="openPiEdit({{ $pi->id }})" class="text-xs text-forest-600 hover:text-forest-800 font-medium">Editar</button>
+                                                    {{-- Modal inline de retenciones al confirmar --}}
+                                                    <button
+                                                        x-data="{
+                                                            open: false,
+                                                            retefte: false, reteftePct: 3.5,
+                                                            reteiva: false, reteica: false,
+                                                            confirm() {
+                                                                $wire.set('pi_aplica_retefte', this.retefte);
+                                                                $wire.set('pi_retefte_pct', this.reteftePct);
+                                                                $wire.set('pi_aplica_reteiva', this.reteiva);
+                                                                $wire.set('pi_aplica_reteica', this.reteica);
+                                                                $wire.confirmPurchaseInvoice({{ $pi->id }});
+                                                                this.open = false;
+                                                            }
+                                                        }"
+                                                        x-on:click="open = true"
+                                                        class="text-xs text-gold-600 hover:text-gold-800 font-medium">Confirmar</button>
+                                                    {{-- Retenciones popup --}}
+                                                    <template x-teleport="body">
+                                                        <div x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                                                            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4" @click.stop>
+                                                                <h4 class="font-semibold text-slate-800">Confirmar factura de compra</h4>
+                                                                <p class="text-xs text-slate-500">Selecciona las retenciones que aplican al proveedor:</p>
+                                                                <div class="space-y-3">
+                                                                    <label class="flex items-center gap-3 cursor-pointer">
+                                                                        <input type="checkbox" x-model="retefte" class="rounded text-forest-600" />
+                                                                        <span class="text-sm text-slate-700">Retención en la fuente</span>
+                                                                    </label>
+                                                                    <div x-show="retefte" class="ml-6">
+                                                                        <label class="block text-xs text-slate-500 mb-1">Tarifa (%)</label>
+                                                                        <input type="number" x-model="reteftePct" step="0.1" min="0" max="100"
+                                                                            class="w-28 rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                                                    </div>
+                                                                    <label class="flex items-center gap-3 cursor-pointer">
+                                                                        <input type="checkbox" x-model="reteiva" class="rounded text-forest-600" />
+                                                                        <span class="text-sm text-slate-700">Reteiva (15% del IVA)</span>
+                                                                    </label>
+                                                                    <label class="flex items-center gap-3 cursor-pointer">
+                                                                        <input type="checkbox" x-model="reteica" class="rounded text-forest-600" />
+                                                                        <span class="text-sm text-slate-700">Reteica (0.4‰ del subtotal)</span>
+                                                                    </label>
+                                                                </div>
+                                                                <div class="bg-blue-50 rounded-xl p-3 text-xs text-blue-700">
+                                                                    Se generará el asiento contable automáticamente al confirmar.
+                                                                </div>
+                                                                <div class="flex justify-end gap-3 pt-2">
+                                                                    <button @click="open = false" class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800">Cancelar</button>
+                                                                    <button @click="confirm()" class="px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition">
+                                                                        Confirmar y contabilizar
+                                                                    </button>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    </template>
+                                                    <button
+                                                        x-on:click="confirmAction('¿Eliminar este borrador?', () => $wire.deletePurchaseInvoice({{ $pi->id }}), {danger: true, confirmText: 'Sí, eliminar'})"
+                                                        class="text-xs text-red-500 hover:text-red-700 font-medium">Eliminar</button>
+                                                @elseif($pi->status->value === 'pendiente')
+                                                    <button
+                                                        x-on:click="confirmAction('¿Anular esta factura? Se generará un asiento de reverso.', () => $wire.annulPurchaseInvoice({{ $pi->id }}), {danger: true, confirmText: 'Sí, anular'})"
+                                                        class="text-xs text-red-500 hover:text-red-700 font-medium">Anular</button>
+                                                @endif
+                                            </div>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="px-6 py-10 text-center text-slate-400">
+                                        No hay facturas de compra directas.
+                                        <button wire:click="openPiCreate" class="ml-2 text-forest-600 hover:underline">Registrar la primera</button>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                    @if($purchaseInvoices->hasPages())
+                        <div class="px-6 py-4 border-t border-cream-100">{{ $purchaseInvoices->links() }}</div>
                     @endif
                 </div>
             @endif

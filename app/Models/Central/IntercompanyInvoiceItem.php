@@ -19,6 +19,7 @@ class IntercompanyInvoiceItem extends Model
         'iva',
         'porcentaje_iva',
         'cuenta_ingreso_codigo',
+        'portafolio_item_id',
     ];
 
     protected function casts(): array

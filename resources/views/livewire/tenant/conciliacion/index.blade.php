@@ -383,7 +383,7 @@
                 </div>
                 <div class="px-6 py-5 space-y-4">
                     <div>
-                        <label class="block text-xs font-medium text-slate-600 mb-1">Cuenta bancaria</label>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">Cuenta contable (PUC)</label>
                         <select wire:model="rc_account_id"
                             class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-forest-500 focus:border-forest-500 bg-white">
                             <option value="0">— Selecciona una cuenta —</option>
@@ -393,6 +393,29 @@
                         </select>
                         @error('rc_account_id') <p class="text-xs text-red-500 mt-1">{{ $message }}</p> @enderror
                     </div>
+
+                    {{-- Vinculación con módulo banco (opcional) --}}
+                    @if(isset($bankAccountsModulo) && $bankAccountsModulo->isNotEmpty())
+                    <div>
+                        <label class="block text-xs font-medium text-slate-600 mb-1">
+                            Vincular con cuenta del módulo banco
+                            <span class="text-slate-400 font-normal">(opcional)</span>
+                        </label>
+                        <select wire:model="rc_bank_account_id"
+                            class="w-full text-sm border border-slate-300 rounded-xl px-3 py-2 focus:ring-2 focus:ring-forest-500 focus:border-forest-500 bg-white">
+                            <option value="">— Sin vincular —</option>
+                            @foreach($bankAccountsModulo as $bc)
+                                <option value="{{ $bc->id }}">{{ $bc->nombreBanco() }} ***{{ $bc->ultimosDigitos() }} — ${{ number_format($bc->saldo, 0, ',', '.') }}</option>
+                            @endforeach
+                        </select>
+                        @if($rc_bank_account_id)
+                            <p class="text-xs text-sky-600 mt-1">
+                                Los movimientos bancarios no conciliados del período se cargarán como partidas del extracto.
+                            </p>
+                        @endif
+                    </div>
+                    @endif
+
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-xs font-medium text-slate-600 mb-1">Desde</label>

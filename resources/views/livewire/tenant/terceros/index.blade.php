@@ -36,6 +36,7 @@
                     <option value="">Todos los tipos</option>
                     <option value="cliente">Clientes</option>
                     <option value="proveedor">Proveedores</option>
+                    <option value="empleado">Empleados</option>
                 </select>
             </div>
 
@@ -63,6 +64,7 @@
                                         $colors = [
                                             'cliente'   => 'bg-blue-50 text-blue-700 border border-blue-100',
                                             'proveedor' => 'bg-violet-50 text-violet-700 border border-violet-100',
+                                            'empleado'  => 'bg-emerald-50 text-emerald-700 border border-emerald-100',
                                             'ambos'     => 'bg-gold-50 text-gold-700 border border-gold-100',
                                         ];
                                     @endphp
@@ -122,13 +124,31 @@
 
     {{-- ═══ Modal: Nuevo / Editar tercero ═══ --}}
     @if($showForm && ! session('audit_mode') && ! session('reference_mode'))
-        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[90vh] flex flex-col">
-                <div class="px-6 py-5 border-b border-cream-100 flex items-center justify-between">
+        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg my-8 flex flex-col">
+                <div class="px-6 py-5 border-b border-cream-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-10">
                     <h3 class="text-base font-semibold text-slate-800">{{ $editingId ? 'Editar tercero' : 'Nuevo tercero' }}</h3>
                     <button wire:click="cancelForm" class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition text-sm">✕</button>
                 </div>
-                <div class="px-6 py-5 space-y-4 overflow-y-auto flex-1">
+                <div class="px-6 py-5 space-y-4">
+
+                    {{-- Tipo de tercero (botones) --}}
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Tipo de tercero *</label>
+                        <div class="flex gap-2 flex-wrap">
+                            @foreach(['cliente' => 'Cliente', 'proveedor' => 'Proveedor', 'empleado' => 'Empleado'] as $val => $lbl)
+                                <button wire:click="$set('type','{{ $val }}')" type="button"
+                                    class="px-4 py-1.5 rounded-lg text-sm font-medium border transition
+                                        {{ $type === $val
+                                            ? ($val === 'empleado' ? 'bg-emerald-600 text-white border-emerald-600' : ($val === 'proveedor' ? 'bg-violet-600 text-white border-violet-600' : 'bg-forest-700 text-white border-forest-700'))
+                                            : 'bg-white text-slate-600 border-cream-200 hover:border-slate-300' }}">
+                                    {{ $lbl }}
+                                </button>
+                            @endforeach
+                        </div>
+                        @error('type') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                    </div>
+
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">Tipo documento</label>
@@ -145,19 +165,16 @@
                             @error('document') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>
+
                     <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Razón social / Nombre</label>
+                        <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                            {{ $type === 'empleado' ? 'Nombre completo' : 'Razón social / Nombre' }}
+                        </label>
                         <input wire:model="name" type="text" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                         @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Tipo</label>
-                            <select wire:model="type" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
-                                <option value="cliente">Cliente</option>
-                                <option value="proveedor">Proveedor</option>
-                            </select>
-                        </div>
+
+                    @if($type !== 'empleado')
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">Régimen</label>
                             <select wire:model="regimen" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
@@ -165,7 +182,8 @@
                                 <option value="comun">Común</option>
                             </select>
                         </div>
-                    </div>
+                    @endif
+
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">Teléfono</label>
@@ -177,6 +195,7 @@
                             @error('email') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
                     </div>
+
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1.5">Dirección</label>
                         <input wire:model="address" type="text" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
@@ -193,7 +212,6 @@
                             autocomplete="off"
                             class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500"
                         />
-
                         @if($municipios->isNotEmpty())
                             <div x-show="open"
                                 class="mt-1 border border-cream-200 rounded-xl bg-white shadow-lg z-50 max-h-48 overflow-y-auto divide-y divide-cream-100">
@@ -212,8 +230,89 @@
                         @error('municipio_codigo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
 
+                    {{-- ── Campos laborales (solo empleados) ── --}}
+                    @if($type === 'empleado')
+                        <div class="border-t border-cream-100 pt-4 space-y-4">
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Información laboral</p>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Cargo *</label>
+                                    <input wire:model="cargo" type="text" placeholder="ej: Contador" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                    @error('cargo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Fecha de ingreso *</label>
+                                    <input wire:model="fecha_ingreso" type="date" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                    @error('fecha_ingreso') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Salario básico mensual *</label>
+                                    <input wire:model="salario_basico" type="number" step="1000" min="0" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                    @error('salario_basico') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Tipo de contrato *</label>
+                                    <select wire:model="tipo_contrato" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
+                                        <option value="indefinido">Indefinido</option>
+                                        <option value="fijo">Fijo</option>
+                                        <option value="obra_labor">Obra / Labor</option>
+                                        <option value="prestacion_servicios">Prestación de servicios</option>
+                                    </select>
+                                    @error('tipo_contrato') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                                    Procedimiento de retención *
+                                    <span class="text-slate-400 font-normal">(Art. 383 E.T.)</span>
+                                </label>
+                                <div class="flex gap-3">
+                                    <button wire:click="$set('procedimiento_retencion','1')" type="button"
+                                        class="flex-1 py-2 px-3 rounded-xl border text-sm font-medium transition
+                                            {{ $procedimiento_retencion === '1' ? 'bg-forest-700 text-white border-forest-700' : 'bg-white text-slate-600 border-cream-200 hover:border-slate-300' }}">
+                                        Procedimiento 1 — Mensual fijo
+                                    </button>
+                                    <button wire:click="$set('procedimiento_retencion','2')" type="button"
+                                        class="flex-1 py-2 px-3 rounded-xl border text-sm font-medium transition
+                                            {{ $procedimiento_retencion === '2' ? 'bg-forest-700 text-white border-forest-700' : 'bg-white text-slate-600 border-cream-200 hover:border-slate-300' }}">
+                                        Procedimiento 2 — Promedio 6 meses
+                                    </button>
+                                </div>
+                                @error('procedimiento_retencion') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1.5">EPS</label>
+                                    <input wire:model="eps" type="text" placeholder="ej: Sura" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1.5">AFP (pensión)</label>
+                                    <input wire:model="afp" type="text" placeholder="ej: Porvenir" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                </div>
+                            </div>
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1.5">ARL</label>
+                                    <input wire:model="arl" type="text" placeholder="ej: Positiva" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Fecha de retiro</label>
+                                    <input wire:model="fecha_retiro" type="date" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                    @error('fecha_retiro') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                 </div>
-                <div class="px-6 py-4 border-t border-cream-100 flex justify-end gap-3">
+                <div class="px-6 py-4 border-t border-cream-100 flex justify-end gap-3 sticky bottom-0 bg-white rounded-b-2xl">
                     <button wire:click="cancelForm" class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-50 transition">Cancelar</button>
                     <button wire:click="save" wire:loading.attr="disabled"
                         class="px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition disabled:opacity-50">

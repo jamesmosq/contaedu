@@ -290,6 +290,45 @@
                                     </div>
                                 @endif
                             </div>
+
+                            {{-- Forma de pago: banco o caja --}}
+                            @php
+                                $cuentasPago = \App\Models\Tenant\BankAccount::where('activa', true)
+                                    ->orderByDesc('es_principal')->get();
+                            @endphp
+                            @if($cuentasPago->isNotEmpty())
+                            <div>
+                                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Pagar desde</p>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button type="button" wire:click="$set('payment_bank_account_id', null)"
+                                        class="flex items-center gap-2 px-3 py-2 rounded-xl border text-sm transition text-left
+                                            {{ is_null($payment_bank_account_id) ? 'border-forest-500 bg-forest-50 text-forest-700 font-semibold' : 'border-slate-200 text-slate-600 hover:border-slate-300' }}">
+                                        <span class="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
+                                        <div>
+                                            <p class="text-xs font-semibold">Caja (1105)</p>
+                                            <p class="text-xs opacity-60">Sin GMF</p>
+                                        </div>
+                                    </button>
+                                    @foreach($cuentasPago as $cta)
+                                        @php
+                                            $dot = match($cta->bank) { 'bancolombia' => 'bg-blue-500', 'davivienda' => 'bg-red-500', 'banco_bogota' => 'bg-green-600', default => 'bg-slate-400' };
+                                            $gmfEst = $payTotal > 0 ? round($payTotal * 0.004) : 0;
+                                        @endphp
+                                        <button type="button" wire:click="$set('payment_bank_account_id', {{ $cta->id }})"
+                                            class="flex items-center gap-2 px-3 py-2 rounded-xl border text-sm transition text-left
+                                                {{ $payment_bank_account_id === $cta->id ? 'border-gold-500 bg-gold-50 text-gold-700 font-semibold' : 'border-slate-200 text-slate-600 hover:border-slate-300' }}">
+                                            <span class="w-2 h-2 rounded-full {{ $dot }} shrink-0"></span>
+                                            <div class="min-w-0">
+                                                <p class="text-xs font-semibold truncate">{{ $cta->nombreBanco() }} ***{{ $cta->ultimosDigitos() }}</p>
+                                                <p class="text-xs opacity-60">${{ number_format($cta->saldo, 0, ',', '.') }}
+                                                    @if($gmfEst > 0) · GMF +${{ number_format($gmfEst, 0, ',', '.') }}@endif
+                                                </p>
+                                            </div>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            </div>
+                            @endif
                         </div>
                         <div class="px-6 py-4 border-t border-cream-100 flex justify-end gap-3">
                             <button wire:click="$set('showPaymentForm',false)" class="px-4 py-2 text-sm text-slate-600">Cancelar</button>

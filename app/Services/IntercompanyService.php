@@ -6,8 +6,11 @@ use App\Models\Central\IntercompanyInvoice;
 use App\Models\Central\IntercompanyJournalEntry;
 use App\Models\Central\Tenant as CentralTenant;
 use App\Models\Tenant\Account;
+use App\Models\Tenant\BankAccount;
+use App\Models\Tenant\BankTransaction;
 use App\Models\Tenant\JournalEntry;
 use App\Models\Tenant\JournalLine;
+use App\Services\BankService;
 use Illuminate\Support\Facades\DB;
 
 class IntercompanyService
@@ -25,15 +28,25 @@ class IntercompanyService
      *
      * @throws \Throwable Si falla la contabilización en alguna de las dos empresas.
      */
-    public function accept(IntercompanyInvoice $invoice, string $gastoCodigo): void
+    public function accept(IntercompanyInvoice $invoice, ?string $gastoCodigo = null): void
     {
         if (! $invoice->isPendiente()) {
             throw new \RuntimeException('Solo se pueden aceptar ofertas en estado pendiente.');
         }
 
+        // Si no se pasa la cuenta, usar la que el comprador eligió al crear el pedido
+        $gastoCodigo ??= $invoice->gasto_code_comprador ?? '5195';
+
         $sellerTenantId  = $invoice->seller_tenant_id;
         $buyerTenantId   = $invoice->buyer_tenant_id;
         $currentTenantId = tenancy()->tenant?->id;
+
+        // Pre-cargar modelos centrales ANTES de cualquier switch de tenancy.
+        // Después de tenancy()->initialize(), el search_path de PostgreSQL cambia
+        // al schema del tenant y las tablas centrales (public.tenants, etc.) quedan inaccesibles.
+        $sellerTenant  = CentralTenant::on('pgsql')->find($sellerTenantId);
+        $buyerTenant   = CentralTenant::on('pgsql')->find($buyerTenantId);
+        $currentTenant = $currentTenantId ? CentralTenant::on('pgsql')->find($currentTenantId) : null;
 
         try {
             // ── 1. Marcar como aceptada (BD central) ─────────────────────────
@@ -44,11 +57,26 @@ class IntercompanyService
 
             // ── 2. Asiento en la empresa del VENDEDOR ─────────────────────────
             tenancy()->end();
-            tenancy()->initialize(CentralTenant::find($sellerTenantId));
+            tenancy()->initialize($sellerTenant);
 
-            $sellerEntry = DB::transaction(fn () => $this->createSellerEntry($invoice));
+            $sellerEntry = DB::transaction(fn () => $this->createSellerEntry($invoice, $buyerTenant->company_name));
 
-            // Registrar vínculo en BD central
+            // Pago bancario en la empresa del VENDEDOR (si tiene cuenta principal activa)
+            $sellerBankAccountId = null;
+            $sellerBankName      = null;
+            // Prioridad: cuenta marcada como receptora de pagos, luego cuenta principal
+            $sellerBankAccount = BankAccount::where('activa', true)
+                ->orderByDesc('recibe_pagos_negocios')
+                ->orderByDesc('es_principal')
+                ->first();
+            if ($sellerBankAccount) {
+                $sellerBankAccountId = $sellerBankAccount->id;
+                $sellerBankName      = $sellerBankAccount->bank;
+                DB::transaction(fn () => $this->registerSellerBankReceipt($invoice, $sellerBankAccount, $sellerEntry));
+            }
+
+            // Volver a central ANTES de escribir en tablas centrales
+            tenancy()->end();
             IntercompanyJournalEntry::create([
                 'intercompany_invoice_id' => $invoice->id,
                 'party'                   => 'seller',
@@ -57,12 +85,40 @@ class IntercompanyService
             ]);
 
             // ── 3. Asiento en la empresa del COMPRADOR ────────────────────────
+            tenancy()->initialize($buyerTenant);
+
+            $buyerEntry = DB::transaction(fn () => $this->createBuyerEntry($invoice, $gastoCodigo, $sellerTenant->company_name));
+
+            // Pago bancario en la empresa del COMPRADOR (si eligió pagar desde banco)
+            if ($invoice->buyer_bank_account_id) {
+                $buyerBankAccount = BankAccount::find($invoice->buyer_bank_account_id);
+                if ($buyerBankAccount && $buyerBankAccount->activa && ! $buyerBankAccount->bloqueada) {
+                    $comisionAch = BankService::costoAch(
+                        $buyerBankAccount->bank,
+                        $sellerBankName ?? $buyerBankAccount->bank
+                    );
+                    DB::transaction(fn () => $this->registerBuyerBankPayment(
+                        $invoice, $buyerBankAccount, $buyerEntry, $comisionAch, $sellerBankName
+                    ));
+                    // Guardar costos bancarios en la factura central
+                    $gmf = BankService::calcularGmf('pago_proveedor', (float) $invoice->total);
+                    $invoice->update([
+                        'seller_bank_account_id' => $sellerBankAccountId,
+                        'seller_bank'            => $sellerBankName,
+                        'gmf_total'              => $gmf,
+                        'comision_ach'           => $comisionAch,
+                    ]);
+                }
+            } elseif ($sellerBankAccountId) {
+                // Solo actualizar el banco del vendedor aunque el comprador no pagó por banco
+                $invoice->update([
+                    'seller_bank_account_id' => $sellerBankAccountId,
+                    'seller_bank'            => $sellerBankName,
+                ]);
+            }
+
+            // Volver a central ANTES de escribir en tablas centrales
             tenancy()->end();
-            tenancy()->initialize(CentralTenant::find($buyerTenantId));
-
-            $buyerEntry = DB::transaction(fn () => $this->createBuyerEntry($invoice, $gastoCodigo));
-
-            // Registrar vínculo en BD central
             IntercompanyJournalEntry::create([
                 'intercompany_invoice_id' => $invoice->id,
                 'party'                   => 'buyer',
@@ -70,15 +126,20 @@ class IntercompanyService
                 'journal_entry_id'        => $buyerEntry->id,
             ]);
 
+            // Restaurar el tenant original al terminar
+            if ($currentTenant) {
+                tenancy()->initialize($currentTenant);
+            }
+
         } catch (\Throwable $e) {
             // Revertir estado de la factura y limpiar vínculos parciales
+            try { tenancy()->end(); } catch (\Throwable) {}
             $invoice->update(['status' => 'pendiente', 'accepted_at' => null]);
             IntercompanyJournalEntry::where('intercompany_invoice_id', $invoice->id)->delete();
 
             try {
-                tenancy()->end();
-                if ($currentTenantId) {
-                    tenancy()->initialize(CentralTenant::find($currentTenantId));
+                if ($currentTenant) {
+                    tenancy()->initialize($currentTenant);
                 }
             } catch (\Throwable) {}
 
@@ -100,12 +161,21 @@ class IntercompanyService
 
         $currentTenantId = tenancy()->tenant?->id;
 
+        // Pre-cargar tenants centrales antes de cualquier switch
+        $currentTenant = $currentTenantId ? CentralTenant::on('pgsql')->find($currentTenantId) : null;
+
         try {
             $links = IntercompanyJournalEntry::where('intercompany_invoice_id', $invoice->id)->get();
 
+            // Pre-cargar modelos de tenant para los links (evitar queries en contexto equivocado)
+            $tenantModels = [];
+            foreach ($links as $link) {
+                $tenantModels[$link->tenant_id] = CentralTenant::on('pgsql')->find($link->tenant_id);
+            }
+
             foreach ($links as $link) {
                 tenancy()->end();
-                tenancy()->initialize(CentralTenant::find($link->tenant_id));
+                tenancy()->initialize($tenantModels[$link->tenant_id]);
 
                 DB::transaction(function () use ($link) {
                     $entry = JournalEntry::find($link->journal_entry_id);
@@ -118,14 +188,19 @@ class IntercompanyService
 
             // Fallback: si no había vínculos, buscar por document_type/document_id
             if ($links->isEmpty()) {
-                foreach ([$invoice->seller_tenant_id, $invoice->buyer_tenant_id] as $tenantId) {
+                $fallbackTenants = [
+                    CentralTenant::on('pgsql')->find($invoice->seller_tenant_id),
+                    CentralTenant::on('pgsql')->find($invoice->buyer_tenant_id),
+                ];
+                foreach ($fallbackTenants as $ft) {
+                    if (! $ft) continue;
                     tenancy()->end();
-                    tenancy()->initialize(CentralTenant::find($tenantId));
+                    tenancy()->initialize($ft);
                     DB::transaction(fn () => $this->deleteIntercompanyEntry($invoice->id));
                 }
             }
 
-            // Limpiar vínculos y marcar como anulada (BD central)
+            // Limpiar vínculos y marcar como anulada (BD central) — siempre fuera de tenant context
             tenancy()->end();
             IntercompanyJournalEntry::where('intercompany_invoice_id', $invoice->id)->delete();
 
@@ -136,15 +211,15 @@ class IntercompanyService
                 'anulacion_motivo' => $motivo,
             ]);
 
-            if ($currentTenantId) {
-                tenancy()->initialize(CentralTenant::find($currentTenantId));
+            if ($currentTenant) {
+                tenancy()->initialize($currentTenant);
             }
 
         } catch (\Throwable $e) {
             try {
                 tenancy()->end();
-                if ($currentTenantId) {
-                    tenancy()->initialize(CentralTenant::find($currentTenantId));
+                if ($currentTenant) {
+                    tenancy()->initialize($currentTenant);
                 }
             } catch (\Throwable) {}
 
@@ -183,14 +258,12 @@ class IntercompanyService
 
     // ── Asiento VENDEDOR ─────────────────────────────────────────────────────
 
-    private function createSellerEntry(IntercompanyInvoice $invoice): JournalEntry
+    private function createSellerEntry(IntercompanyInvoice $invoice, string $buyerName): JournalEntry
     {
-        $buyer = CentralTenant::find($invoice->buyer_tenant_id);
-
         $entry = JournalEntry::create([
             'date'           => now()->toDateString(),
             'reference'      => $invoice->consecutive,
-            'description'    => "Venta interempresarial {$invoice->consecutive} a {$buyer->company_name}",
+            'description'    => "Venta interempresarial {$invoice->consecutive} a {$buyerName}",
             'document_type'  => 'intercompany',
             'document_id'    => $invoice->id,
             'auto_generated' => true,
@@ -271,14 +344,12 @@ class IntercompanyService
 
     // ── Asiento COMPRADOR ─────────────────────────────────────────────────────
 
-    private function createBuyerEntry(IntercompanyInvoice $invoice, string $gastoCodigo): JournalEntry
+    private function createBuyerEntry(IntercompanyInvoice $invoice, string $gastoCodigo, string $sellerName): JournalEntry
     {
-        $seller = CentralTenant::find($invoice->seller_tenant_id);
-
         $entry = JournalEntry::create([
             'date'           => now()->toDateString(),
             'reference'      => $invoice->consecutive,
-            'description'    => "Compra interempresarial {$invoice->consecutive} de {$seller->company_name}",
+            'description'    => "Compra interempresarial {$invoice->consecutive} de {$sellerName}",
             'document_type'  => 'intercompany',
             'document_id'    => $invoice->id,
             'auto_generated' => true,
@@ -362,6 +433,130 @@ class IntercompanyService
     private function accountId(string $code): ?int
     {
         return Account::where('code', $code)->value('id');
+    }
+
+    // ── Pago bancario COMPRADOR ───────────────────────────────────────────────
+
+    /**
+     * Registra el pago del comprador desde su cuenta bancaria.
+     * DR 2205 Proveedores | DR GMF | DR Comisión ACH | CR 1110 Bancos
+     */
+    private function registerBuyerBankPayment(
+        IntercompanyInvoice $invoice,
+        BankAccount $cuenta,
+        JournalEntry $buyerEntry,
+        float $comisionAch,
+        ?string $sellerBank
+    ): void {
+        $total = (float) $invoice->total;
+        $gmf   = BankService::calcularGmf('pago_proveedor', $total);
+        $totalCargo = $total + $gmf + $comisionAch;
+
+        // Asiento de pago bancario
+        $payEntry = JournalEntry::create([
+            'date'           => now()->toDateString(),
+            'reference'      => $invoice->consecutive . '-PAG',
+            'description'    => "Pago {$invoice->consecutive} desde {$cuenta->nombreBanco()}",
+            'document_type'  => 'pago_intercompany',
+            'document_id'    => $invoice->id,
+            'auto_generated' => true,
+        ]);
+
+        $proveedores = $this->accountId('2205');
+        $bancos      = $this->accountId('1110');
+        $gmfAccount  = $this->accountId('530520') ?? $this->accountId('5305');
+        $achAccount  = $this->accountId('5305');
+
+        if ($proveedores) {
+            JournalLine::create(['journal_entry_id' => $payEntry->id, 'account_id' => $proveedores, 'debit' => $total,   'credit' => 0,            'description' => 'Pago proveedor interempresarial']);
+        }
+        if ($gmfAccount && $gmf > 0) {
+            JournalLine::create(['journal_entry_id' => $payEntry->id, 'account_id' => $gmfAccount,  'debit' => $gmf,     'credit' => 0,            'description' => 'GMF 4x1000']);
+        }
+        if ($achAccount && $comisionAch > 0) {
+            JournalLine::create(['journal_entry_id' => $payEntry->id, 'account_id' => $achAccount,  'debit' => $comisionAch, 'credit' => 0,        'description' => 'Comisión ACH transferencia']);
+        }
+        if ($bancos) {
+            JournalLine::create(['journal_entry_id' => $payEntry->id, 'account_id' => $bancos,      'debit' => 0,        'credit' => $totalCargo,  'description' => "Salida {$cuenta->nombreBanco()}***{$cuenta->ultimosDigitos()}"]);
+        }
+
+        // Actualizar saldo de la cuenta
+        $cuenta->decrement('saldo', $totalCargo);
+
+        BankTransaction::create([
+            'bank_account_id'        => $cuenta->id,
+            'tipo'                   => 'pago_proveedor',
+            'valor'                  => $total,
+            'gmf'                    => $gmf,
+            'comision'               => $comisionAch,
+            'saldo_despues'          => $cuenta->fresh()->saldo,
+            'descripcion'            => "Pago {$invoice->consecutive}",
+            'banco_destino'          => $sellerBank,
+            'journal_entry_id'       => $payEntry->id,
+            'intercompany_invoice_id'=> $invoice->id,
+            'fecha_transaccion'      => now()->toDateString(),
+        ]);
+    }
+
+    // ── Cobro bancario VENDEDOR ───────────────────────────────────────────────
+
+    /**
+     * Registra el cobro del vendedor en su cuenta bancaria (si el comprador pagó por banco).
+     * DR 1110 Bancos | CR 1305 Clientes
+     */
+    private function registerSellerBankReceipt(
+        IntercompanyInvoice $invoice,
+        BankAccount $cuenta,
+        JournalEntry $sellerEntry
+    ): void {
+        // Solo registrar si el comprador eligió pagar por banco
+        if (! $invoice->buyer_bank_account_id) {
+            return;
+        }
+
+        $neto = (float) $invoice->total
+            - (float) $invoice->retencion_fuente
+            - (float) $invoice->retencion_iva
+            - (float) $invoice->retencion_ica;
+
+        if ($neto <= 0) {
+            return;
+        }
+
+        $recEntry = JournalEntry::create([
+            'date'           => now()->toDateString(),
+            'reference'      => $invoice->consecutive . '-COB',
+            'description'    => "Cobro {$invoice->consecutive} en {$cuenta->nombreBanco()}",
+            'document_type'  => 'cobro_intercompany',
+            'document_id'    => $invoice->id,
+            'auto_generated' => true,
+        ]);
+
+        $bancos  = $this->accountId('1110');
+        $clientes = $this->accountId('1305');
+
+        if ($bancos) {
+            JournalLine::create(['journal_entry_id' => $recEntry->id, 'account_id' => $bancos,   'debit' => $neto, 'credit' => 0,     'description' => "Cobro {$cuenta->nombreBanco()}***{$cuenta->ultimosDigitos()}"]);
+        }
+        if ($clientes) {
+            JournalLine::create(['journal_entry_id' => $recEntry->id, 'account_id' => $clientes, 'debit' => 0,     'credit' => $neto, 'description' => 'Cobro cartera cliente interempresarial']);
+        }
+
+        // Actualizar saldo
+        $cuenta->increment('saldo', $neto);
+
+        BankTransaction::create([
+            'bank_account_id'        => $cuenta->id,
+            'tipo'                   => 'cobro_cliente',
+            'valor'                  => $neto,
+            'gmf'                    => 0,
+            'comision'               => 0,
+            'saldo_despues'          => $cuenta->fresh()->saldo,
+            'descripcion'            => "Cobro {$invoice->consecutive}",
+            'journal_entry_id'       => $recEntry->id,
+            'intercompany_invoice_id'=> $invoice->id,
+            'fecha_transaccion'      => now()->toDateString(),
+        ]);
     }
 
     /** Calcula si aplica retención en la fuente y cuánto. */

@@ -7,6 +7,7 @@ use App\Http\Controllers\Teacher\AuditController;
 use App\Http\Controllers\Teacher\BulkTemplateController;
 use App\Http\Controllers\Teacher\DemoController;
 use App\Http\Controllers\Tenant\ActivosFijosPdfController;
+use App\Http\Controllers\Tenant\BancoPdfController;
 use App\Http\Controllers\Tenant\ConciliacionPdfController;
 use App\Http\Controllers\Tenant\DashboardController as TenantDashboard;
 use App\Http\Controllers\Tenant\FacturacionElectronica\FacturacionElectronicaController;
@@ -36,6 +37,7 @@ use App\Livewire\Tenant\PlanDeCuentas;
 use App\Livewire\Tenant\Productos\Index as ProductosIndex;
 use App\Livewire\Tenant\Reportes\Index as ReportesIndex;
 use App\Livewire\Teacher\Negocios\Index as TeacherNegociosIndex;
+use App\Livewire\Tenant\Banco\Index as BancoIndex;
 use App\Livewire\Tenant\Negocios\Index as NegociosIndex;
 use App\Livewire\Tenant\Terceros\Index as TercerosIndex;
 use Illuminate\Support\Facades\Route;
@@ -92,6 +94,8 @@ Route::middleware(['auth', 'role:coordinator'])->prefix('coordinador')->name('co
         Route::get('/reportes/pdf', ReportPdfController::class)->name('reportes.pdf');
         Route::get('/activos-fijos', ActivosFijosIndex::class)->name('activos-fijos');
         Route::get('/conciliacion-bancaria', ConciliacionIndex::class)->name('conciliacion');
+        Route::get('/banco', BancoIndex::class)->name('banco');
+        Route::get('/banco/documento/pdf', BancoPdfController::class)->name('banco.documento.pdf');
     });
 });
 
@@ -125,6 +129,8 @@ Route::middleware(['auth', 'role:teacher'])->prefix('docente')->name('teacher.')
         Route::get('/activos-fijos/pdf', ActivosFijosPdfController::class)->name('activos-fijos.pdf');
         Route::get('/conciliacion-bancaria', ConciliacionIndex::class)->name('conciliacion');
         Route::get('/conciliacion-bancaria/pdf', ConciliacionPdfController::class)->name('conciliacion.pdf');
+        Route::get('/banco', BancoIndex::class)->name('banco');
+        Route::get('/banco/documento/pdf', BancoPdfController::class)->name('banco.documento.pdf');
     });
 
     // ─── Empresas de demostración del docente ──────────────────────────────
@@ -148,6 +154,8 @@ Route::middleware(['auth', 'role:teacher'])->prefix('docente')->name('teacher.')
         Route::get('/activos-fijos/pdf', ActivosFijosPdfController::class)->name('activos-fijos.pdf');
         Route::get('/conciliacion-bancaria', ConciliacionIndex::class)->name('conciliacion');
         Route::get('/conciliacion-bancaria/pdf', ConciliacionPdfController::class)->name('conciliacion.pdf');
+        Route::get('/banco', BancoIndex::class)->name('banco');
+        Route::get('/banco/documento/pdf', BancoPdfController::class)->name('banco.documento.pdf');
 
         // Facturación Electrónica Simulada
         // Usamos closures para absorber {demoId} del prefijo y evitar que Laravel lo inyecte
@@ -278,6 +286,8 @@ Route::middleware(['auth:student', 'tenant.initialize'])
         Route::get('/activos-fijos/pdf', ActivosFijosPdfController::class)->name('activos-fijos.pdf');
         Route::get('/conciliacion-bancaria', ConciliacionIndex::class)->name('conciliacion');
         Route::get('/conciliacion-bancaria/pdf', ConciliacionPdfController::class)->name('conciliacion.pdf');
+        Route::get('/banco', BancoIndex::class)->name('banco');
+        Route::get('/banco/documento/pdf', BancoPdfController::class)->name('banco.documento.pdf');
 
         // ─── Empresas de referencia (demos del docente en solo lectura) ───────
         Route::get('/referencias', StudentReferencias::class)->name('referencias');
@@ -296,6 +306,8 @@ Route::middleware(['auth:student', 'tenant.initialize'])
             Route::get('/calendario-tributario', CalendarioIndex::class)->name('calendario');
             Route::get('/activos-fijos', ActivosFijosIndex::class)->name('activos-fijos');
             Route::get('/conciliacion-bancaria', ConciliacionIndex::class)->name('conciliacion');
+            Route::get('/banco', BancoIndex::class)->name('banco');
+            Route::get('/banco/documento/pdf', BancoPdfController::class)->name('banco.documento.pdf');
         });
 
         // Fase 6 — Facturación Electrónica Simulada
