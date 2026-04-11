@@ -21,6 +21,8 @@ class Index extends Component
 
     public bool $showForm = false;
 
+    public string $activeTab = 'basico'; // 'basico' | 'laboral'
+
     // Campos comunes
     public ?int $editingId = null;
 
@@ -69,7 +71,9 @@ class Index extends Component
     {
         $rules = [
             'document_type'  => ['required', 'in:cc,nit,ce,pasaporte'],
-            'document'       => ['required', 'string', 'max:20'],
+            'document'       => $this->document_type === 'nit'
+                ? ['required', 'string', 'regex:/^\d{6,10}-\d{1}$/', 'max:20']
+                : ['required', 'string', 'max:20'],
             'name'           => ['required', 'string', 'max:150'],
             'type'           => ['required', 'in:cliente,proveedor,empleado'],
             'regimen'        => ['required', 'in:simplificado,comun'],
@@ -91,8 +95,22 @@ class Index extends Component
         return $rules;
     }
 
+    public function messages(): array
+    {
+        return [
+            'document.regex' => 'El NIT debe incluir el dígito de verificación con guión. Ejemplo: 900123456-7',
+        ];
+    }
+
+    public function setTab(string $tab): void
+    {
+        $this->activeTab = $tab;
+    }
+
     public function updatedType(): void
     {
+        $this->activeTab = 'basico';
+
         // Limpiar campos laborales al cambiar a un tipo que no sea empleado
         if ($this->type !== 'empleado') {
             $this->cargo = '';
@@ -244,7 +262,8 @@ class Index extends Component
 
     private function resetAll(): void
     {
-        $this->showForm = false;
+        $this->showForm  = false;
+        $this->activeTab = 'basico';
         $this->reset([
             'editingId', 'document', 'name', 'address', 'phone', 'email',
             'municipio_codigo', 'municipioSearch', 'municipioLabel',

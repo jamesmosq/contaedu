@@ -85,3 +85,15 @@ function modoContable(): string
 {
     return request()->is('aprendizaje/*') ? 'sandbox' : 'real';
 }
+
+/**
+ * Formatea un NIT para mostrar.
+ * Si ya tiene guión lo devuelve igual. Si no, lo devuelve tal cual.
+ */
+function formatearNit(string $nit): string
+{
+    if (str_contains($nit, '-')) {
+        return $nit;
+    }
+    return $nit;
+}

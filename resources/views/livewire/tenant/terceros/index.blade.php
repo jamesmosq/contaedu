@@ -126,13 +126,20 @@
     @if($showForm && ! session('audit_mode') && ! session('reference_mode'))
         <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto">
             <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg my-8 flex flex-col">
+
+                {{-- Header --}}
                 <div class="px-6 py-5 border-b border-cream-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-10">
                     <h3 class="text-base font-semibold text-slate-800">{{ $editingId ? 'Editar tercero' : 'Nuevo tercero' }}</h3>
-                    <button wire:click="cancelForm" class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition text-sm">✕</button>
+                    <button wire:click="cancelForm" class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
+                    </button>
                 </div>
+
                 <div class="px-6 py-5 space-y-4">
 
-                    {{-- Tipo de tercero (botones) --}}
+                    {{-- Tipo de tercero --}}
                     <div>
                         <label class="block text-sm font-medium text-slate-700 mb-1.5">Tipo de tercero *</label>
                         <div class="flex gap-2 flex-wrap">
@@ -149,101 +156,141 @@
                         @error('type') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                     </div>
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Tipo documento</label>
-                            <select wire:model="document_type" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
-                                <option value="nit">NIT</option>
-                                <option value="cc">Cédula (CC)</option>
-                                <option value="ce">Cédula extranjería</option>
-                                <option value="pasaporte">Pasaporte</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Número documento</label>
-                            <input wire:model="document" type="text" inputmode="numeric" pattern="[0-9\-]+" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
-                            @error('document') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                        </div>
-                    </div>
-
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1.5">
-                            {{ $type === 'empleado' ? 'Nombre completo' : 'Razón social / Nombre' }}
-                        </label>
-                        <input wire:model="name" type="text" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
-                        @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                    </div>
-
-                    @if($type !== 'empleado')
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Régimen</label>
-                            <select wire:model="regimen" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
-                                <option value="simplificado">Simplificado</option>
-                                <option value="comun">Común</option>
-                            </select>
+                    {{-- Tabs (solo visibles para empleado) --}}
+                    @if($type === 'empleado')
+                        <div class="flex border-b border-cream-200">
+                            <button wire:click="setTab('basico')" type="button"
+                                class="px-4 py-2.5 text-sm font-medium border-b-2 transition -mb-px
+                                    {{ $activeTab === 'basico'
+                                        ? 'border-forest-700 text-forest-800'
+                                        : 'border-transparent text-slate-500 hover:text-slate-700' }}">
+                                Datos básicos
+                            </button>
+                            <button wire:click="setTab('laboral')" type="button"
+                                class="px-4 py-2.5 text-sm font-medium border-b-2 transition -mb-px
+                                    {{ $activeTab === 'laboral'
+                                        ? 'border-forest-700 text-forest-800'
+                                        : 'border-transparent text-slate-500 hover:text-slate-700' }}">
+                                Información laboral
+                            </button>
                         </div>
                     @endif
 
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Teléfono</label>
-                            <input wire:model="phone" type="tel" inputmode="tel" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Correo</label>
-                            <input wire:model="email" type="email" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
-                            @error('email') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                        </div>
-                    </div>
+                    {{-- TAB: Datos básicos (siempre visible si no es empleado, o si tab activo) --}}
+                    @if($activeTab === 'basico' || $type !== 'empleado')
+                        <div class="space-y-4">
 
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Dirección</label>
-                        <input wire:model="address" type="text" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
-                    </div>
-
-                    {{-- Municipio DIAN (autocomplete) --}}
-                    <div x-data="{ open: false }" @click.outside="open = false">
-                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Ciudad / Municipio</label>
-                        <input
-                            wire:model.live.debounce.300ms="municipioSearch"
-                            x-on:focus="open = true"
-                            type="text"
-                            placeholder="Escriba para buscar…"
-                            autocomplete="off"
-                            class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500"
-                        />
-                        @if($municipios->isNotEmpty())
-                            <div x-show="open"
-                                class="mt-1 border border-cream-200 rounded-xl bg-white shadow-lg z-50 max-h-48 overflow-y-auto divide-y divide-cream-100">
-                                @foreach($municipios as $m)
-                                    <button type="button"
-                                        wire:click="selectMunicipio('{{ $m->codigo }}', '{{ addslashes($m->label) }}')"
-                                        x-on:click="open = false"
-                                        class="w-full text-left px-4 py-2.5 hover:bg-forest-50 transition text-sm">
-                                        <span class="font-medium text-slate-700">{{ $m->municipio }}</span>
-                                        <span class="text-slate-400 text-xs ml-1">— {{ $m->departamento }}</span>
-                                        <span class="text-slate-300 text-xs ml-1">({{ $m->codigo }})</span>
-                                    </button>
-                                @endforeach
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Tipo documento</label>
+                                    <select wire:model.live="document_type" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
+                                        @if($type !== 'empleado')
+                                            <option value="nit">NIT</option>
+                                        @endif
+                                        <option value="cc">Cédula (CC)</option>
+                                        <option value="ce">Cédula extranjería</option>
+                                        <option value="pasaporte">Pasaporte</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Número documento</label>
+                                    <input wire:model.live="document" type="text" inputmode="numeric" pattern="[0-9\-]+"
+                                        placeholder="{{ $document_type === 'nit' ? 'ej: 900123456-7' : 'ej: 1234567890' }}"
+                                        class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                    @if($document_type === 'nit')
+                                        <p class="text-slate-400 text-xs mt-1">Formato: número-dígito verificación (ej: 900123456-7)</p>
+                                    @endif
+                                    @error('document') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
                             </div>
-                        @endif
-                        @error('municipio_codigo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                    </div>
 
-                    {{-- ── Campos laborales (solo empleados) ── --}}
-                    @if($type === 'empleado')
-                        <div class="border-t border-cream-100 pt-4 space-y-4">
-                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Información laboral</p>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                                    {{ $document_type === 'nit' ? 'Razón social' : 'Nombre completo' }}
+                                </label>
+                                <input wire:model="name" type="text"
+                                    placeholder="{{ $document_type === 'nit' ? 'ej: Distribuidora XYZ S.A.S.' : 'ej: Juan Pérez García' }}"
+                                    class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+
+                            @if($type !== 'empleado')
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Régimen</label>
+                                    <select wire:model="regimen" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
+                                        <option value="simplificado">No responsable de IVA (Simplificado)</option>
+                                        <option value="comun">Responsable de IVA (Común)</option>
+                                    </select>
+                                </div>
+                            @endif
+
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Teléfono</label>
+                                    <input wire:model="phone" type="tel" inputmode="tel" placeholder="ej: 3001234567"
+                                        class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Correo</label>
+                                    <input wire:model="email" type="email" placeholder="ej: correo@empresa.com"
+                                        class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                    @error('email') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1.5">Dirección</label>
+                                <input wire:model="address" type="text" placeholder="ej: Calle 10 # 5-23"
+                                    class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                            </div>
+
+                            {{-- Municipio DIAN (autocomplete) --}}
+                            <div x-data="{ open: false }" @click.outside="open = false">
+                                <label class="block text-sm font-medium text-slate-700 mb-1.5">Ciudad / Municipio</label>
+                                <input
+                                    wire:model.live.debounce.300ms="municipioSearch"
+                                    x-on:focus="open = true"
+                                    type="text"
+                                    placeholder="Escriba para buscar…"
+                                    autocomplete="off"
+                                    class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500"
+                                />
+                                @if($municipios->isNotEmpty())
+                                    <div x-show="open"
+                                        class="mt-1 border border-cream-200 rounded-xl bg-white shadow-lg z-50 max-h-48 overflow-y-auto divide-y divide-cream-100">
+                                        @foreach($municipios as $m)
+                                            <button type="button"
+                                                wire:click="selectMunicipio('{{ $m->codigo }}', '{{ addslashes($m->label) }}')"
+                                                x-on:click="open = false"
+                                                class="w-full text-left px-4 py-2.5 hover:bg-forest-50 transition text-sm">
+                                                <span class="font-medium text-slate-700">{{ $m->municipio }}</span>
+                                                <span class="text-slate-400 text-xs ml-1">— {{ $m->departamento }}</span>
+                                                <span class="text-slate-300 text-xs ml-1">({{ $m->codigo }})</span>
+                                            </button>
+                                        @endforeach
+                                    </div>
+                                @endif
+                                @error('municipio_codigo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+
+                        </div>
+                    @endif
+
+                    {{-- TAB: Información laboral (solo empleado) --}}
+                    @if($type === 'empleado' && $activeTab === 'laboral')
+                        <div class="space-y-4">
 
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Cargo *</label>
-                                    <input wire:model="cargo" type="text" placeholder="ej: Contador" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                    <input wire:model="cargo" type="text" placeholder="ej: Contador"
+                                        class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                                     @error('cargo') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Fecha de ingreso *</label>
-                                    <input wire:model="fecha_ingreso" type="date" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                    <input wire:model="fecha_ingreso" type="date"
+                                        class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                                     @error('fecha_ingreso') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
                             </div>
@@ -251,15 +298,17 @@
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Salario básico mensual *</label>
-                                    <input wire:model="salario_basico" type="number" step="1000" min="0" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                    <input wire:model="salario_basico" type="number" step="1000" min="0" placeholder="ej: 1300000"
+                                        class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                                     @error('salario_basico') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-1.5">Tipo de contrato *</label>
-                                    <select wire:model="tipo_contrato" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
-                                        <option value="indefinido">Indefinido</option>
-                                        <option value="fijo">Fijo</option>
-                                        <option value="obra_labor">Obra / Labor</option>
+                                    <select wire:model="tipo_contrato"
+                                        class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
+                                        <option value="indefinido">Término indefinido</option>
+                                        <option value="fijo">Término fijo</option>
+                                        <option value="obra_labor">Obra o labor</option>
                                         <option value="prestacion_servicios">Prestación de servicios</option>
                                     </select>
                                     @error('tipo_contrato') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
@@ -289,37 +338,66 @@
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-1.5">EPS</label>
-                                    <input wire:model="eps" type="text" placeholder="ej: Sura" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                    <input wire:model="eps" type="text" placeholder="ej: Sura"
+                                        class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                                 </div>
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-1.5">AFP (pensión)</label>
-                                    <input wire:model="afp" type="text" placeholder="ej: Porvenir" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                    <input wire:model="afp" type="text" placeholder="ej: Porvenir"
+                                        class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                                 </div>
                             </div>
 
                             <div class="grid grid-cols-2 gap-4">
                                 <div>
                                     <label class="block text-sm font-medium text-slate-700 mb-1.5">ARL</label>
-                                    <input wire:model="arl" type="text" placeholder="ej: Positiva" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                    <input wire:model="arl" type="text" placeholder="ej: Positiva"
+                                        class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                                 </div>
                                 <div>
-                                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Fecha de retiro</label>
-                                    <input wire:model="fecha_retiro" type="date" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Fecha de retiro <span class="text-slate-400 font-normal">(opcional)</span></label>
+                                    <input wire:model="fecha_retiro" type="date"
+                                        class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                                     @error('fecha_retiro') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                                 </div>
                             </div>
+
                         </div>
                     @endif
 
                 </div>
-                <div class="px-6 py-4 border-t border-cream-100 flex justify-end gap-3 sticky bottom-0 bg-white rounded-b-2xl">
-                    <button wire:click="cancelForm" class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-50 transition">Cancelar</button>
-                    <button wire:click="save" wire:loading.attr="disabled"
-                        class="px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition disabled:opacity-50">
-                        <span wire:loading.remove wire:target="save">{{ $editingId ? 'Actualizar' : 'Guardar' }}</span>
-                        <span wire:loading wire:target="save">Guardando…</span>
-                    </button>
+
+                {{-- Footer con navegación entre tabs --}}
+                <div class="px-6 py-4 border-t border-cream-100 flex items-center justify-between sticky bottom-0 bg-white rounded-b-2xl">
+                    <div>
+                        @if($type === 'empleado' && $activeTab === 'basico')
+                            <button wire:click="setTab('laboral')" type="button"
+                                class="flex items-center gap-1.5 px-4 py-2 text-sm text-forest-700 hover:text-forest-900 font-medium rounded-xl hover:bg-forest-50 transition">
+                                Siguiente: Info laboral
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                                </svg>
+                            </button>
+                        @elseif($type === 'empleado' && $activeTab === 'laboral')
+                            <button wire:click="setTab('basico')" type="button"
+                                class="flex items-center gap-1.5 px-4 py-2 text-sm text-forest-700 hover:text-forest-900 font-medium rounded-xl hover:bg-forest-50 transition">
+                                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                                </svg>
+                                Datos básicos
+                            </button>
+                        @endif
+                    </div>
+                    <div class="flex gap-3">
+                        <button wire:click="cancelForm" class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-50 transition">Cancelar</button>
+                        <button wire:click="save" wire:loading.attr="disabled"
+                            class="px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition disabled:opacity-50">
+                            <span wire:loading.remove wire:target="save">{{ $editingId ? 'Actualizar' : 'Guardar' }}</span>
+                            <span wire:loading wire:target="save">Guardando…</span>
+                        </button>
+                    </div>
                 </div>
+
             </div>
         </div>
     @endif

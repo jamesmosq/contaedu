@@ -21,8 +21,12 @@
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">NIT</label>
                             <input wire:model="nit" type="text" inputmode="numeric" pattern="[0-9\-]+"
+                                placeholder="ej: 900123456-7"
                                 @disabled(!$isEditing)
                                 class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 disabled:bg-cream-50 disabled:text-slate-400 disabled:cursor-not-allowed" />
+                            @if($isEditing)
+                                <p class="text-slate-400 text-xs mt-1">Incluye el dígito de verificación con guión. Ejemplo: 900123456-7</p>
+                            @endif
                             @error('nit') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
 

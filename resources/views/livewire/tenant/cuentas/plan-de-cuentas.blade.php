@@ -40,7 +40,7 @@
 
             {{-- Tabla de cuentas --}}
             @php
-                $clases = [
+                $clasesBadge = [
                     '1' => ['Activo',     'bg-blue-50 text-blue-700 border border-blue-100'],
                     '2' => ['Pasivo',     'bg-red-50 text-red-700 border border-red-100'],
                     '3' => ['Patrimonio', 'bg-violet-50 text-violet-700 border border-violet-100'],
@@ -66,28 +66,33 @@
                         @forelse($accounts->flatten()->sortBy('code') as $account)
                             @php
                                 $prefix    = substr($account->code, 0, 1);
-                                $badgeInfo = $clases[$prefix] ?? ['', 'bg-slate-100 text-slate-600 border border-slate-200'];
-                                $levelPad  = str_repeat('·· ', $account->level - 1);
+                                $badgeInfo = $clasesBadge[$prefix] ?? ['', 'bg-slate-100 text-slate-600 border border-slate-200'];
+                                $indent    = match($account->level) {
+                                    1 => 'ml-0',
+                                    2 => 'ml-5',
+                                    3 => 'ml-10',
+                                    default => 'ml-14',
+                                };
+                                $nameStyle = 'text-sm text-slate-700';
+                                $codeStyle = 'font-mono text-sm text-slate-600';
+                                $rowBg     = '';
                             @endphp
-                            <tr wire:key="account-{{ $account->id }}" class="hover:bg-cream-50 transition">
-                                <td class="px-6 py-2.5 font-mono text-sm text-slate-600">
+                            <tr wire:key="account-{{ $account->id }}" class="hover:bg-cream-50 transition {{ $rowBg }}">
+                                <td class="px-6 py-2 {{ $codeStyle }}">
                                     {{ $account->code }}
                                 </td>
-                                <td class="px-6 py-2.5 text-sm text-slate-700">
-                                    @if($account->level > 1)
-                                        <span class="text-slate-300 select-none mr-1">{{ $levelPad }}</span>
-                                    @endif
-                                    {{ $account->name }}
+                                <td class="px-6 py-2">
+                                    <span class="{{ $indent }} {{ $nameStyle }}">{{ ucwords(strtolower($account->name)) }}</span>
                                 </td>
-                                <td class="px-6 py-2.5 hidden sm:table-cell">
+                                <td class="px-6 py-2 hidden sm:table-cell">
                                     <span class="px-2 py-0.5 rounded-lg text-xs font-medium {{ $badgeInfo[1] }}">
                                         {{ $badgeInfo[0] ?: ucfirst($account->type) }}
                                     </span>
                                 </td>
-                                <td class="px-6 py-2.5 text-xs text-slate-500 capitalize hidden md:table-cell">
+                                <td class="px-6 py-2 text-xs text-slate-400 capitalize hidden md:table-cell">
                                     {{ $account->nature }}
                                 </td>
-                                <td class="px-6 py-2.5 text-right">
+                                <td class="px-6 py-2 text-right">
                                     @if(! session('audit_mode') && ! session('reference_mode') && $account->level < 5)
                                         <button wire:click="openForm({{ $account->id }})"
                                             class="text-xs text-forest-600 hover:text-forest-800 font-semibold px-2 py-1 rounded-lg hover:bg-forest-50 transition">
@@ -108,67 +113,146 @@
         </div>
     </div>
 
-    {{-- ═══ Modal: Nueva cuenta ═══ --}}
+    {{-- ═══ Modal: Nueva subcuenta (guiado) ═══ --}}
     @if($showForm)
-        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4" wire:click.self="cancelForm">
-            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md">
+        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg my-8">
+
+                {{-- Header --}}
                 <div class="px-6 py-5 border-b border-cream-100 flex items-center justify-between">
-                    <h3 class="text-base font-semibold text-slate-800">Nueva cuenta auxiliar</h3>
-                    <button wire:click="cancelForm" class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition text-sm">✕</button>
-                </div>
-                <div class="px-6 py-5 space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Cuenta padre</label>
-                        <select wire:model.live="parent_id" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
-                            <option value="">— Sin padre (clase) —</option>
-                            @foreach($parentAccounts as $pa)
-                                <option value="{{ $pa->id }}">{{ $pa->code }} — {{ $pa->name }}</option>
-                            @endforeach
-                        </select>
-                        @error('parent_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                    </div>
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Código</label>
-                            <input wire:model="code" type="text" placeholder="ej: 110505"
-                                class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
-                            @error('code') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                        </div>
-                        <div>
-                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Naturaleza</label>
-                            <select wire:model="nature" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
-                                <option value="debito">Débito</option>
-                                <option value="credito">Crédito</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Nombre</label>
-                        <input wire:model="name" type="text" placeholder="Nombre de la cuenta"
-                            class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
-                        @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-slate-700 mb-1.5">Tipo</label>
-                        <select wire:model="type" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
-                            <option value="activo">Activo</option>
-                            <option value="pasivo">Pasivo</option>
-                            <option value="patrimonio">Patrimonio</option>
-                            <option value="ingreso">Ingreso</option>
-                            <option value="costo">Costo</option>
-                            <option value="gasto">Gasto</option>
-                            <option value="orden">Orden</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="px-6 py-4 border-t border-cream-100 flex justify-end gap-3">
-                    <button wire:click="cancelForm" class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-50 transition">Cancelar</button>
-                    <button wire:click="save" wire:loading.attr="disabled"
-                        class="px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition disabled:opacity-50">
-                        <span wire:loading.remove wire:target="save">Guardar cuenta</span>
-                        <span wire:loading wire:target="save">Guardando…</span>
+                    <h3 class="text-base font-semibold text-slate-800">Nueva subcuenta auxiliar</h3>
+                    <button wire:click="cancelForm" class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" />
+                        </svg>
                     </button>
                 </div>
+
+                <div class="px-6 py-5">
+
+                    {{-- Breadcrumb de navegación --}}
+                    <div class="flex items-center gap-1.5 text-xs text-slate-400 mb-5 flex-wrap">
+                        <button wire:click="volverAPaso('clase')" type="button"
+                            class="font-medium transition {{ $selectedClase ? 'text-forest-700 hover:text-forest-900' : 'text-forest-700 cursor-default' }}">
+                            Clase
+                        </button>
+                        @if($selectedClase)
+                            <svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                            </svg>
+                            <button wire:click="volverAPaso('grupo')" type="button"
+                                class="font-medium transition {{ $selectedGrupo ? 'text-forest-700 hover:text-forest-900' : 'text-forest-700 cursor-default' }}">
+                                {{ $selectedClase }} Grupo
+                            </button>
+                        @endif
+                        @if($selectedGrupo)
+                            <svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                            </svg>
+                            <button wire:click="volverAPaso('cuenta')" type="button"
+                                class="font-medium transition {{ $selectedCuenta ? 'text-forest-700 hover:text-forest-900' : 'text-forest-700 cursor-default' }}">
+                                {{ $selectedGrupo }} Cuenta
+                            </button>
+                        @endif
+                        @if($selectedCuenta)
+                            <svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                            </svg>
+                            <span class="font-semibold text-forest-800">{{ $selectedCuenta }} Subcuenta</span>
+                        @endif
+                    </div>
+
+                    {{-- PASO 1: Seleccionar clase --}}
+                    @if($pasoActual === 'clase')
+                        <p class="text-sm text-slate-500 mb-4">Selecciona la clase del PUC a la que pertenece la nueva cuenta:</p>
+                        <div class="grid grid-cols-2 gap-2.5">
+                            @foreach($clases as $clase)
+                                <button wire:click="seleccionarClase('{{ $clase->code }}')" type="button"
+                                    class="text-left p-3.5 border border-cream-200 rounded-xl hover:border-forest-400 hover:bg-forest-50 transition group">
+                                    <div class="font-bold text-forest-800 text-base group-hover:text-forest-900">{{ $clase->code }}</div>
+                                    <div class="text-xs text-slate-500 mt-0.5">{{ $clase->name }}</div>
+                                </button>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    {{-- PASO 2: Seleccionar grupo --}}
+                    @if($pasoActual === 'grupo')
+                        <p class="text-sm text-slate-500 mb-4">Selecciona el grupo dentro de la Clase {{ $selectedClase }}:</p>
+                        <div class="flex flex-col gap-1.5 max-h-72 overflow-y-auto">
+                            @foreach($grupos as $grupo)
+                                <button wire:click="seleccionarGrupo('{{ $grupo->code }}')" type="button"
+                                    class="flex items-center gap-3 text-left px-4 py-2.5 border border-cream-200 rounded-xl hover:border-forest-400 hover:bg-forest-50 transition">
+                                    <span class="font-mono font-bold text-forest-800 min-w-[28px]">{{ $grupo->code }}</span>
+                                    <span class="text-sm text-slate-700">{{ $grupo->name }}</span>
+                                </button>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    {{-- PASO 3: Seleccionar cuenta --}}
+                    @if($pasoActual === 'cuenta')
+                        <p class="text-sm text-slate-500 mb-4">Selecciona la cuenta (4 dígitos) bajo el grupo {{ $selectedGrupo }}:</p>
+                        <div class="flex flex-col gap-1.5 max-h-72 overflow-y-auto">
+                            @foreach($cuentas as $cuenta)
+                                <button wire:click="seleccionarCuenta('{{ $cuenta->code }}')" type="button"
+                                    class="flex items-center gap-3 text-left px-4 py-2.5 border border-cream-200 rounded-xl hover:border-forest-400 hover:bg-forest-50 transition">
+                                    <span class="font-mono font-bold text-forest-800 min-w-[40px]">{{ $cuenta->code }}</span>
+                                    <span class="text-sm text-slate-700 flex-1">{{ $cuenta->name }}</span>
+                                    @if($cuenta->descripcion)
+                                        <span class="shrink-0 px-1.5 py-0.5 bg-green-50 text-green-700 text-xs font-medium rounded-md border border-green-100">con guía</span>
+                                    @endif
+                                </button>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    {{-- PASO 4: Definir subcuenta --}}
+                    @if($pasoActual === 'subcuenta')
+                        <p class="text-sm text-slate-500 mb-4">Define la nueva subcuenta bajo <strong class="text-slate-700">{{ $selectedCuenta }}</strong>:</p>
+
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1.5">Código de la subcuenta</label>
+                                <input wire:model="code" type="text"
+                                    placeholder="{{ $codigoSugerido ?: 'ej: 110520' }}"
+                                    class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 font-mono" />
+                                @if($codigoSugerido)
+                                    <p class="text-slate-400 text-xs mt-1">Sugerido: {{ $codigoSugerido }} — puedes modificarlo si necesitas otro</p>
+                                @endif
+                                @error('code') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1.5">Nombre de la subcuenta</label>
+                                <input wire:model="name" type="text" placeholder="ej: Caja sucursal norte"
+                                    class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                @error('name') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                            </div>
+
+                            <div class="flex items-center gap-2 px-4 py-3 bg-forest-50 border border-forest-100 rounded-xl text-sm text-slate-600">
+                                <svg class="w-4 h-4 text-forest-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+                                </svg>
+                                <span><strong>Tipo:</strong> {{ ucfirst($type) }} · <strong>Naturaleza:</strong> {{ ucfirst($nature) }} <span class="text-slate-400">(heredados del padre)</span></span>
+                            </div>
+                        </div>
+                    @endif
+
+                </div>
+
+                {{-- Footer --}}
+                <div class="px-6 py-4 border-t border-cream-100 flex justify-end gap-3">
+                    <button wire:click="cancelForm" class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-50 transition">Cancelar</button>
+                    @if($pasoActual === 'subcuenta')
+                        <button wire:click="save" wire:loading.attr="disabled"
+                            class="px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition disabled:opacity-50">
+                            <span wire:loading.remove wire:target="save">Guardar cuenta</span>
+                            <span wire:loading wire:target="save">Guardando…</span>
+                        </button>
+                    @endif
+                </div>
+
             </div>
         </div>
     @endif
