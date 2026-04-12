@@ -105,18 +105,28 @@
                         <strong>Modo Aprendizaje</strong>
                     </span>
                     <span>Las operaciones aquí no afectan tu empresa real.</span>
-                    <form method="POST" action="{{ route('sandbox.reset') }}" style="margin-left:auto"
-                          onsubmit="return confirm('¿Reiniciar toda la empresa de aprendizaje? Esta acción no se puede deshacer.')">
+                    <form id="sandbox-reset-form" method="POST" action="{{ route('sandbox.reset') }}" style="margin-left:auto">
                         @csrf
-                        <button type="submit" style="
-                            font-size:0.72rem;
-                            padding:0.2rem 0.7rem;
-                            border:1px solid #ca8a04;
-                            background:transparent;
-                            color:#92400e;
-                            border-radius:4px;
-                            cursor:pointer;
-                        ">Reiniciar</button>
+                        <button type="button"
+                            onclick="Swal.fire({
+                                title: '¿Reiniciar empresa de aprendizaje?',
+                                text: 'Se eliminarán todos los asientos, facturas, compras y operaciones del modo aprendizaje. Esta acción no se puede deshacer.',
+                                icon: 'warning',
+                                showCancelButton: true,
+                                confirmButtonColor: '#10472a',
+                                cancelButtonColor: '#6b7280',
+                                confirmButtonText: 'Sí, reiniciar',
+                                cancelButtonText: 'Cancelar'
+                            }).then(result => { if (result.isConfirmed) document.getElementById('sandbox-reset-form').submit(); })"
+                            style="
+                                font-size:0.72rem;
+                                padding:0.2rem 0.7rem;
+                                border:1px solid #ca8a04;
+                                background:transparent;
+                                color:#92400e;
+                                border-radius:4px;
+                                cursor:pointer;
+                            ">Reiniciar</button>
                     </form>
                 </div>
                 @endif
