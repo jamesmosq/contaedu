@@ -55,7 +55,9 @@
       "Bash(rm -f \"/c/Users/jmosquerarei/Herd/nominaedu/resources/views/pages/settings/⚡security.blade.php\")",
       "Bash(rm -f \"/c/Users/jmosquerarei/Herd/nominaedu/resources/views/pages/settings/⚡two-factor-setup-modal.blade.php\")",
       "Bash(composer show:*)",
-      "Bash(python -c ':*)"
+      "Bash(python -c ':*)",
+      "Bash(mkdir -p \"C:/Users/jmosquerarei/Herd/contaedu/.claude/skills/contaedu-testing\")",
+      "Bash(mkdir -p \"C:/Users/jmosquerarei/Herd/contaedu/.claude/skills/contaedu-deploy\")"
     ]
   },
   "enableAllProjectMcpServers": true,

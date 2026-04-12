@@ -257,5 +257,77 @@ wire:click="metodo"                   ← acción sin parámetro
 wire:click="metodo({{ $id }})"        ← acción con parámetro
 wire:loading.attr="disabled"          ← deshabilitar durante carga
 wire:loading.class="opacity-50"       ← opacidad durante carga
-wire:confirm="¿Estás seguro?"         ← confirmación antes de ejecutar
 ```
+
+---
+
+## Confirmaciones destructivas — SweetAlert2
+
+**NUNCA usar** `wire:confirm`, `onsubmit="return confirm()"` ni `wire:click.self`.
+Todos producen el dialog nativo del browser o cierran el modal con Ctrl.
+
+**Patrón correcto** — usar `confirmAction()` de `app.js` vía Alpine:
+
+```blade
+{{-- Eliminar un registro --}}
+<button
+    x-on:click="confirmAction(
+        '¿Eliminar este tercero?',
+        () => $wire.delete({{ $third->id }}),
+        { danger: true, confirmText: 'Sí, eliminar' }
+    )"
+    class="...">
+    Eliminar
+</button>
+
+{{-- Acción crítica con texto personalizado --}}
+<button
+    x-on:click="confirmAction(
+        '¿Anular esta factura? Esta acción no se puede deshacer.',
+        () => $wire.anular({{ $invoice->id }}),
+        { danger: true, confirmText: 'Sí, anular', cancelText: 'Cancelar' }
+    )"
+    class="...">
+    Anular
+</button>
+```
+
+**Para formularios POST normales** (no Livewire), usar `Swal.fire` directo:
+
+```blade
+<form id="mi-form" method="POST" action="{{ route('...') }}">
+    @csrf
+    <button type="button"
+        onclick="Swal.fire({
+            title: '¿Título de la acción?',
+            text: 'Descripción de consecuencias.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#10472a',
+            cancelButtonColor: '#6b7280',
+            confirmButtonText: 'Sí, confirmar',
+            cancelButtonText: 'Cancelar'
+        }).then(result => { if (result.isConfirmed) document.getElementById('mi-form').submit(); })">
+        Ejecutar
+    </button>
+</form>
+```
+
+**Firma de `confirmAction()`:**
+
+```js
+// app/resources/js/app.js
+window.confirmAction = function(message, callback, options = {})
+// options: { danger: bool, confirmText: string, cancelText: string }
+// Usa Swal.fire internamente con colores del proyecto (forest-800 / red-600)
+```
+
+---
+
+## Modales — reglas
+
+- **NO** poner `wire:click.self` en el overlay — cierra el modal al presionar Ctrl
+- El overlay es solo `fixed inset-0 bg-slate-900/60 z-40 ...` sin listeners de click
+- El cierre siempre va en el botón ✕ explícito y en "Cancelar"
+- Usar `x-show="$wire.showForm"` + `x-cloak` para modales reactivos
+  o `@if($showForm)` para modales simples sin animación

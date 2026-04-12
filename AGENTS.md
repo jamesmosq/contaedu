@@ -32,6 +32,7 @@ This project has domain-specific skills available. You MUST activate the relevan
 - `contaedu-asientos-puc` — Mapa completo de asientos PUC colombiano. Activar cuando se trabaje con AccountingService, IntercompanyService, JournalEntry, JournalLine, o cualquier lógica contable. Contiene todas las cuentas PUC usadas, asientos por operación, GMF, ACH y reglas de cuadre.
 - `contaedu-livewire-patterns` — Patrones Livewire específicos de ContaEdu. Activar cuando se cree o modifique cualquier componente Livewire. Cubre organización, filtrado por modo, notificaciones, layouts y convenciones del proyecto.
 - `contaedu-migrations` — Convenciones de migraciones de ContaEdu. Activar cuando se creen o modifiquen migraciones, seeders o estructura de BD. Cubre nomenclatura, separación Central/Tenant, guards de seguridad y estructura de tablas.
+- `contaedu-contabilidad-colombiana` — Normativa contable y tributaria colombiana aplicada a ContaEdu. Activar SIEMPRE que se trabaje con facturación, impuestos, retenciones, factura electrónica DIAN, reportes financieros, activos fijos, conciliación bancaria o cualquier lógica contable/tributaria. Contiene qué está implementado, qué está pendiente, reglas de IVA, retenciones, CUFE, ciclo contable y cuándo usar cada servicio.
 
 ## Conventions
 
