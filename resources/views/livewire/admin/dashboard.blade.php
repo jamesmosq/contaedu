@@ -431,7 +431,7 @@
     {{-- ── Modal transferencia de estudiante ────────────────────────── --}}
     @if($showTransferModal)
         @php $transferTenant = $tenants->firstWhere('id', $transferTenantId); @endphp
-        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4" wire:click.self="$set('showTransferModal',false)">
+        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl shadow-card-lg w-full max-w-lg">
                 <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
                     <div>
@@ -526,7 +526,7 @@
 
     {{-- ── Modal institución ───────────────────────────────────────────── --}}
     @if($showInstForm)
-        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4" wire:click.self="$set('showInstForm',false)">
+        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl shadow-card-lg w-full max-w-md">
                 <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
                     <h3 class="font-semibold text-slate-800">{{ $instEditingId ? 'Editar institución' : 'Nueva institución' }}</h3>
@@ -565,7 +565,7 @@
 
     {{-- ── Modal coordinador ─────────────────────────────────────────── --}}
     @if($showCoordinatorForm)
-        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4" wire:click.self="$set('showCoordinatorForm',false)">
+        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl shadow-card-lg w-full max-w-md">
                 <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
                     <div>
@@ -627,7 +627,7 @@
 
     {{-- ── Modal docente ───────────────────────────────────────────────── --}}
     @if($showTeacherForm)
-        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4" wire:click.self="$set('showTeacherForm',false)">
+        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl shadow-card-lg w-full max-w-md">
                 <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
                     <h3 class="font-semibold text-slate-800">{{ $teacherEditingId ? 'Editar docente' : 'Nuevo docente' }}</h3>

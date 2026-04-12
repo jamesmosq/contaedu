@@ -280,8 +280,7 @@
 
     {{-- ── Modal: Anular transacción ───────────────────────────────────────── --}}
     @if($showAnnulModal)
-        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
-             wire:click.self="$set('showAnnulModal', false)">
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
             <div class="bg-white rounded-2xl shadow-xl w-full max-w-md" @click.stop>
                 <div class="p-6 border-b border-cream-200">
                     <h3 class="font-display text-lg font-bold text-red-700">Anular transacción</h3>

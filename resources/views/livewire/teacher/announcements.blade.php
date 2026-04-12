@@ -157,7 +157,7 @@
 
     {{-- ═══ Modal: Nuevo / Editar aviso ═══ --}}
     @if($showForm)
-        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4" wire:click.self="$set('showForm', false)">
+        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg">
                 <div class="px-6 py-5 border-b border-cream-100 flex items-center justify-between">
                     <h3 class="text-base font-semibold text-slate-800">{{ $editingId ? 'Editar aviso' : 'Nuevo aviso' }}</h3>

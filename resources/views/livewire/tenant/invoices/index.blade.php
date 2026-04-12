@@ -46,7 +46,7 @@
 
             {{-- ══════════════════════════════════ MODAL FACTURA DE COMPRA ══════════════════════════════════ --}}
             @if($showPiForm && !session('audit_mode'))
-                <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto" wire:click.self="resetPiForm">
+                <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto">
                     <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl my-8">
                         <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-10">
                             <h3 class="font-semibold text-slate-800">{{ $piEditingId ? 'Editar factura de compra' : 'Nueva factura de compra' }}</h3>
@@ -203,7 +203,7 @@
 
             {{-- ══════════════════════════════════ MODAL FACTURA ══════════════════════════════════ --}}
             @if($showForm && !session('audit_mode'))
-                <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto" wire:click.self="cancelForm">
+                <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto">
                     <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl my-8">
                         <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-10">
                             <h3 class="font-semibold text-slate-800">{{ $editingId ? 'Editar factura' : 'Nueva factura de venta' }}</h3>
@@ -340,7 +340,7 @@
 
             {{-- ══════════════════════════════════ MODAL RECIBO DE CAJA ══════════════════════════════════ --}}
             @if($showReceiptForm && !session('audit_mode'))
-                <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4" wire:click.self="$set('showReceiptForm',false)">
+                <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4">
                     <div class="bg-white rounded-2xl shadow-xl w-full max-w-md">
                         <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
                             <h3 class="font-semibold text-slate-800">Registrar recibo de caja</h3>
@@ -381,7 +381,7 @@
 
             {{-- ══════════════════════════════════ MODAL NOTA DE CRÉDITO ══════════════════════════════════ --}}
             @if($showCreditNoteForm && !session('audit_mode'))
-                <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto" wire:click.self="$set('showCreditNoteForm',false)">
+                <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto">
                     <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl my-8">
                         <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-10">
                             <h3 class="font-semibold text-slate-800">Nueva nota de crédito</h3>

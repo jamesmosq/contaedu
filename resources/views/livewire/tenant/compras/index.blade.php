@@ -31,7 +31,7 @@
 
             {{-- ══════════════════════════════════ MODAL ORDEN DE COMPRA ══════════════════════════════════ --}}
             @if($showOrderForm && !session('audit_mode'))
-                <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto" wire:click.self="$set('showOrderForm',false)">
+                <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto">
                     <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl my-8">
                         <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-10">
                             <h3 class="font-semibold text-slate-800">{{ $editingOrderId ? 'Editar orden de compra' : 'Nueva orden de compra' }}</h3>
@@ -139,7 +139,7 @@
 
             {{-- Modal factura de compra --}}
             @if($showForm && !session('audit_mode'))
-                <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto" wire:click.self="$set('showForm',false)">
+                <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto">
                     <div class="bg-white rounded-2xl shadow-xl w-full max-w-4xl my-8">
                         <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-10">
                             <h3 class="font-semibold text-slate-800">{{ $editingId ? 'Editar factura de compra' : 'Nueva factura de compra' }}</h3>
@@ -258,7 +258,7 @@
 
             {{-- Modal pago --}}
             @if($showPaymentForm && !session('audit_mode'))
-                <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4" wire:click.self="$set('showPaymentForm',false)">
+                <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4">
                     <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg">
                         <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
                             <h3 class="font-semibold text-slate-800">Registrar pago a proveedor</h3>
@@ -498,8 +498,7 @@
 
     {{-- ══════════════ MODAL CONFIRMAR FACTURA CON RETENCIONES ══════════════ --}}
     @if($showConfirmModal && !session('audit_mode'))
-        <div class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4"
-             wire:click.self="$set('showConfirmModal', false)">
+        <div class="fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg">
 
                 <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">

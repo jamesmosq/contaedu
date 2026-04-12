@@ -331,8 +331,7 @@
 
     {{-- Creación de grupos y estudiantes: ver panel coordinador --}}
     @if(false)
-        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4"
-             wire:click.self="$set('showCreateForm', false)">
+        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl shadow-xl w-full {{ $createMode === 'bulk' ? 'max-w-3xl' : 'max-w-md' }}">
 
                 <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">

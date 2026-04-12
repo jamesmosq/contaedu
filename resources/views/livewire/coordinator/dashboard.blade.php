@@ -258,7 +258,7 @@
 
     {{-- ── Modal docente ──────────────────────────────────────────────── --}}
     @if($showTeacherForm)
-        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4" wire:click.self="$set('showTeacherForm',false)">
+        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl shadow-card-lg w-full max-w-md">
                 <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
                     <h3 class="font-semibold text-slate-800">{{ $teacherEditingId ? 'Editar docente' : 'Nuevo docente' }}</h3>
@@ -301,7 +301,7 @@
 
     {{-- ── Modal grupo ─────────────────────────────────────────────────── --}}
     @if($showGroupForm)
-        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4" wire:click.self="$set('showGroupForm',false)">
+        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl shadow-xl w-full max-w-md">
                 <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
                     <h3 class="font-semibold text-slate-800">{{ $groupEditingId ? 'Editar grupo' : 'Nuevo grupo' }}</h3>
@@ -348,7 +348,7 @@
     {{-- ── Modal crear estudiante ───────────────────────────────────────── --}}
     @if($showCreateForm)
         <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4"
-             wire:click.self="$set('showCreateForm',false)">
+            >
             <div class="bg-white rounded-2xl shadow-xl w-full {{ $createMode === 'bulk' ? 'max-w-3xl' : 'max-w-md' }}">
                 <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
                     <div class="flex gap-1 bg-cream-100 rounded-xl p-1">
@@ -573,7 +573,7 @@
     {{-- ── Modal transferencia ────────────────────────────────────────── --}}
     @if($showTransferModal)
         @php $transferTenant = $tenants->firstWhere('id', $transferTenantId); @endphp
-        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4" wire:click.self="$set('showTransferModal',false)">
+        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4">
             <div class="bg-white rounded-2xl shadow-card-lg w-full max-w-lg">
                 <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
                     <div>
