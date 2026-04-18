@@ -41,8 +41,12 @@ class PlanDeCuentas extends Component
 
     public function rules(): array
     {
+        $uniqueCode = $this->editingId
+            ? 'unique:accounts,code,' . $this->editingId
+            : 'unique:accounts,code';
+
         return [
-            'code'      => ['required', 'string', 'max:10'],
+            'code'      => ['required', 'string', 'max:10', $uniqueCode],
             'name'      => ['required', 'string', 'max:100'],
             'type'      => ['required', 'in:activo,pasivo,patrimonio,ingreso,costo,gasto,orden'],
             'nature'    => ['required', 'in:debito,credito'],
@@ -170,6 +174,14 @@ class PlanDeCuentas extends Component
         }
 
         $this->showForm = true;
+    }
+
+    public function validationAttributes(): array
+    {
+        return [
+            'code' => 'código de cuenta',
+            'name' => 'nombre',
+        ];
     }
 
     public function save(): void
