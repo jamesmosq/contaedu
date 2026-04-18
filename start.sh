@@ -10,6 +10,26 @@ mkdir -p /app/storage/logs
 echo "==> Limpiando config cache para usar variables de entorno actuales..."
 php artisan config:clear --quiet
 
+echo "==> Esperando conexión a Redis..."
+MAX_TRIES_R=15
+TRIES_R=0
+until php -r "
+\$host = getenv('REDIS_HOST') ?: '127.0.0.1';
+\$port = (int)(getenv('REDIS_PORT') ?: 6379);
+\$sock = @fsockopen(\$host, \$port, \$errno, \$errstr, 2);
+if (\$sock) { fclose(\$sock); exit(0); }
+exit(1);
+" > /dev/null 2>&1; do
+    TRIES_R=$((TRIES_R + 1))
+    if [ $TRIES_R -ge $MAX_TRIES_R ]; then
+        echo "WARN: Redis no disponible después de ${MAX_TRIES_R} intentos — continuando sin caché."
+        break
+    fi
+    echo "   Intento ${TRIES_R}/${MAX_TRIES_R} — esperando 2s..."
+    sleep 2
+done
+echo "   Redis listo."
+
 echo "==> Esperando conexión a PostgreSQL..."
 MAX_TRIES=30
 TRIES=0

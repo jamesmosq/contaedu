@@ -5,6 +5,7 @@ namespace App\Models\Tenant;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Cache;
 
 class Account extends Model
 {
@@ -30,6 +31,14 @@ class Account extends Model
             'is_custom' => 'boolean',
             'level'     => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        $flush = fn () => Cache::forget('puc_map');
+        static::created($flush);
+        static::updated($flush);
+        static::deleted($flush);
     }
 
     public function parent(): BelongsTo

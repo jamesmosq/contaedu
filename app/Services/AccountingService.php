@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\AccountingImbalanceException;
 use App\Models\Tenant\Account;
 use App\Models\Tenant\CashReceipt;
+use Illuminate\Support\Facades\Cache;
 use App\Models\Tenant\CreditNote;
 use App\Models\Tenant\DebitNote;
 use App\Models\Tenant\FixedAsset;
@@ -550,7 +551,12 @@ class AccountingService
 
     private function accountId(string $code): ?int
     {
-        return Account::where('code', $code)->value('id');
+        return $this->pucMap()[$code] ?? null;
+    }
+
+    private function pucMap(): array
+    {
+        return Cache::remember('puc_map', 86400, fn () => Account::pluck('id', 'code')->all());
     }
 
     private function createEntry(array $entryData, array $lines): JournalEntry
