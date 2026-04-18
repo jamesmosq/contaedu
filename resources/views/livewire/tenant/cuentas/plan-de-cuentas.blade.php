@@ -23,8 +23,8 @@
     <div class="px-6 py-8 lg:px-10">
         <div class="max-w-7xl mx-auto">
 
-            {{-- Buscador --}}
-            <div class="mb-6">
+            {{-- Buscador + filtro --}}
+            <div class="mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
                 <div class="relative w-full sm:w-80">
                     <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
@@ -36,6 +36,18 @@
                         class="w-full pl-9 rounded-xl border-cream-200 text-sm shadow-sm focus:ring-forest-500 focus:border-forest-500"
                     />
                 </div>
+
+                <button wire:click="$toggle('soloPersonalizadas')"
+                    class="flex items-center gap-2 px-4 py-2 rounded-xl border text-sm font-medium transition shrink-0
+                        {{ $soloPersonalizadas
+                            ? 'bg-forest-800 text-white border-forest-800'
+                            : 'bg-white text-slate-600 border-cream-200 hover:border-forest-400 hover:text-forest-700' }}">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M9.568 3H5.25A2.25 2.25 0 0 0 3 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 0 0 5.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 0 0 9.568 3Z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 6h.008v.008H6V6Z" />
+                    </svg>
+                    Mis cuentas
+                </button>
             </div>
 
             {{-- Tabla de cuentas --}}
@@ -83,6 +95,9 @@
                                 </td>
                                 <td class="px-6 py-2">
                                     <span class="{{ $indent }} {{ $nameStyle }}">{{ ucwords(strtolower($account->name)) }}</span>
+                                    @if($account->is_custom)
+                                        <span class="ml-2 px-1.5 py-0.5 bg-gold-50 text-gold-700 border border-gold-200 text-xs font-medium rounded-md">mía</span>
+                                    @endif
                                 </td>
                                 <td class="px-6 py-2 hidden sm:table-cell">
                                     <span class="px-2 py-0.5 rounded-lg text-xs font-medium {{ $badgeInfo[1] }}">

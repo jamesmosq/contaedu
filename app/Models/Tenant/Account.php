@@ -16,6 +16,7 @@ class Account extends Model
         'parent_id',
         'level',
         'active',
+        'is_custom',
         'descripcion',
         'dinamica_debe',
         'dinamica_haber',
@@ -25,8 +26,9 @@ class Account extends Model
     protected function casts(): array
     {
         return [
-            'active' => 'boolean',
-            'level' => 'integer',
+            'active'    => 'boolean',
+            'is_custom' => 'boolean',
+            'level'     => 'integer',
         ];
     }
 

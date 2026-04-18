@@ -15,6 +15,8 @@ class PlanDeCuentas extends Component
 
     public string $search = '';
 
+    public bool $soloPersonalizadas = false;
+
     // Form
     public ?int $editingId = null;
 
@@ -200,6 +202,7 @@ class PlanDeCuentas extends Component
             'parent_id' => $this->parent_id,
             'level'     => $level,
             'active'    => true,
+            'is_custom' => true,
         ]);
 
         $this->cancelForm();
@@ -223,6 +226,7 @@ class PlanDeCuentas extends Component
                 ->where('code', 'ilike', "%{$this->search}%")
                 ->orWhere('name', 'ilike', "%{$this->search}%")
             )
+            ->when($this->soloPersonalizadas, fn ($q) => $q->where('is_custom', true))
             ->orderBy('code')
             ->get()
             ->groupBy('level');
