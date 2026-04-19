@@ -601,8 +601,8 @@ class AccountingService
      */
     public function generateInitialStockEntry(Product $product, float $qty, float $costoUnitario): JournalEntry
     {
-        $inventario = $product->inventory_account_id ?? $this->accountId('1435');
-        $capital = $this->accountId('3115');
+        $inventario = $product->inventory_account_id ?? $this->requireAccountId('1435');
+        $capital = $this->requireAccountId('3115');
         $total = round($qty * $costoUnitario, 2);
 
         $lines = [
@@ -648,8 +648,8 @@ class AccountingService
 
     public function generateDepreciationEntry(FixedAsset $asset, float $cuota, Carbon $period): JournalEntry
     {
-        $gasto = $this->accountId('5160');
-        $acumula = $this->accountId('1592');
+        $gasto = $this->requireAccountId('5160');
+        $acumula = $this->requireAccountId('1592');
 
         $lines = [
             ['account_id' => $gasto,   'debit' => $cuota, 'credit' => 0,     'description' => 'Depreciación '.$asset->name.' '.$period->translatedFormat('F Y')],
@@ -671,6 +671,23 @@ class AccountingService
     private function accountId(string $code): ?int
     {
         return $this->pucMap()[$code] ?? null;
+    }
+
+    /** Igual que accountId() pero lanza excepción si la cuenta no existe en el PUC. */
+    private function requireAccountId(string $code): int
+    {
+        $id = $this->accountId($code);
+        if (! $id) {
+            // Limpiar caché y reintentar una vez por si el PUC se sembró después
+            Cache::forget('puc_map');
+            $id = $this->accountId($code);
+        }
+
+        if (! $id) {
+            throw new \RuntimeException("La cuenta PUC {$code} no existe. Verifica que el PUC esté sembrado correctamente.");
+        }
+
+        return $id;
     }
 
     private function pucMap(): array

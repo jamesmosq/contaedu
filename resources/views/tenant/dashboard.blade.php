@@ -128,6 +128,59 @@
                 </div>
             </div>
 
+            {{-- ── KPIs financieros ─────────────────────────────────────────── --}}
+            <div class="grid grid-cols-1 sm:grid-cols-{{ $saldoBancario !== null ? '3' : '2' }} gap-4">
+                {{-- CxC --}}
+                <div class="bg-white rounded-2xl border border-cream-200 shadow-card p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Cuentas por cobrar</p>
+                        <div class="w-8 h-8 bg-amber-50 rounded-xl flex items-center justify-center">
+                            <svg class="w-4 h-4 text-amber-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M2.25 8.25h19.5M2.25 9h19.5m-16.5 5.25h6m-6 2.25h3m-3.75 3h15a2.25 2.25 0 0 0 2.25-2.25V6.75A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25v10.5A2.25 2.25 0 0 0 4.5 19.5Z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="text-2xl font-bold {{ $porCobrar > 0 ? 'text-amber-700' : 'text-slate-800' }}">
+                        ${{ number_format($porCobrar, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-slate-400 mt-1">Saldo cuenta 1305 — Clientes</p>
+                </div>
+
+                {{-- CxP --}}
+                <div class="bg-white rounded-2xl border border-cream-200 shadow-card p-5">
+                    <div class="flex items-center justify-between mb-3">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Cuentas por pagar</p>
+                        <div class="w-8 h-8 bg-red-50 rounded-xl flex items-center justify-center">
+                            <svg class="w-4 h-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v12m-3-2.818.879.659c1.171.879 3.07.879 4.242 0 1.172-.879 1.172-2.303 0-3.182C13.536 12.219 12.768 12 12 12c-.725 0-1.45-.22-2.003-.659-1.106-.879-1.106-2.303 0-3.182s2.9-.879 4.006 0l.415.33M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+                            </svg>
+                        </div>
+                    </div>
+                    <p class="text-2xl font-bold {{ $porPagar > 0 ? 'text-red-600' : 'text-slate-800' }}">
+                        ${{ number_format($porPagar, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-slate-400 mt-1">Saldo cuenta 2205 — Proveedores</p>
+                </div>
+
+                {{-- Saldo bancario (solo modo real) --}}
+                @if($saldoBancario !== null)
+                    <div class="bg-white rounded-2xl border border-cream-200 shadow-card p-5">
+                        <div class="flex items-center justify-between mb-3">
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide">Saldo bancario</p>
+                            <div class="w-8 h-8 bg-forest-50 rounded-xl flex items-center justify-center">
+                                <svg class="w-4 h-4 text-forest-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0 0 12 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75Z" />
+                                </svg>
+                            </div>
+                        </div>
+                        <p class="text-2xl font-bold text-forest-700">
+                            ${{ number_format($saldoBancario, 0, ',', '.') }}
+                        </p>
+                        <p class="text-xs text-slate-400 mt-1">Total cuentas bancarias activas</p>
+                    </div>
+                @endif
+            </div>
+
             {{-- ── Progreso + Anuncios ──────────────────────────────────────── --}}
             @if(! $readOnly)
                 <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">

@@ -6,6 +6,7 @@ use App\Enums\FixedAssetCategory;
 use App\Models\Tenant\FixedAsset;
 use App\Services\FixedAssetService;
 use Carbon\Carbon;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -69,7 +70,7 @@ class Index extends Component
     public function saveAsset(FixedAssetService $service): void
     {
         $this->validate([
-            'fa_code' => ['required', 'string', 'max:20'],
+            'fa_code' => ['required', 'string', 'max:20', Rule::unique('fixed_assets', 'code')],
             'fa_name' => ['required', 'string', 'max:200'],
             'fa_category' => ['required', 'in:'.implode(',', array_column(FixedAssetCategory::cases(), 'value'))],
             'fa_date' => ['required', 'date'],

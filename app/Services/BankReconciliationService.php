@@ -191,6 +191,10 @@ class BankReconciliationService
     /** Finaliza la conciliación si está balanceada. */
     public function finalize(BankReconciliation $reconciliation): BankReconciliation
     {
+        if ($reconciliation->isFinalizada()) {
+            return $reconciliation;
+        }
+
         $reconciliation->load('items');
 
         abort_if(

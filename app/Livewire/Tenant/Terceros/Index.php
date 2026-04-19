@@ -4,6 +4,7 @@ namespace App\Livewire\Tenant\Terceros;
 
 use App\Models\Central\Municipio;
 use App\Models\Tenant\Third;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -72,8 +73,8 @@ class Index extends Component
         $rules = [
             'document_type' => ['required', 'in:cc,nit,ce,pasaporte'],
             'document' => $this->document_type === 'nit'
-                ? ['required', 'string', 'regex:/^\d{6,10}-\d{1}$/', 'max:20']
-                : ['required', 'string', 'max:20'],
+                ? ['required', 'string', 'regex:/^\d{6,10}-\d{1}$/', 'max:20', Rule::unique('thirds', 'document')->ignore($this->editingId)]
+                : ['required', 'string', 'max:20', Rule::unique('thirds', 'document')->ignore($this->editingId)],
             'name' => ['required', 'string', 'max:150'],
             'type' => ['required', 'in:cliente,proveedor,empleado'],
             'regimen' => ['required', 'in:simplificado,comun'],
@@ -247,6 +248,7 @@ class Index extends Component
 
     public function delete(int $id): void
     {
+        abort_if(session('audit_mode') || session('reference_mode'), 403);
         Third::findOrFail($id)->delete();
         $this->dispatch('notify', type: 'success', message: 'Tercero eliminado.');
     }

@@ -9,6 +9,7 @@ use App\Models\Tenant\Product;
 use App\Models\Tenant\StockMovement;
 use App\Services\AccountingService;
 use App\Services\StockService;
+use Illuminate\Validation\Rule;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -60,7 +61,7 @@ class Index extends Component
     public function rules(): array
     {
         return [
-            'code' => ['required', 'string', 'max:20'],
+            'code' => ['required', 'string', 'max:20', Rule::unique('products', 'code')->ignore($this->editingId)->where('modo', modoContable())],
             'name' => ['required', 'string', 'max:150'],
             'description' => ['nullable', 'string'],
             'unit' => ['required', 'in:und,kg,lt,m,caja,par,otro'],
@@ -164,6 +165,7 @@ class Index extends Component
 
     public function delete(int $id): void
     {
+        abort_if(session('audit_mode') || session('reference_mode'), 403);
         Product::findOrFail($id)->delete();
         $this->dispatch('notify', type: 'success', message: 'Producto eliminado.');
     }

@@ -5,10 +5,12 @@ namespace App\Http\Controllers\Tenant;
 use App\Http\Controllers\Controller;
 use App\Models\Central\Announcement;
 use App\Models\Central\StudentScore;
+use App\Models\Tenant\BankAccount;
 use App\Models\Tenant\CompanyConfig;
 use App\Models\Tenant\CompanySummary;
 use App\Models\Tenant\Product;
 use App\Models\Tenant\Third;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
@@ -20,6 +22,30 @@ class DashboardController extends Controller
 
         // KPIs del resumen materializado
         $summary = CompanySummary::first();
+
+        $modo = modoContable();
+
+        $porCobrar = (float) DB::table('journal_lines')
+            ->join('accounts', 'accounts.id', '=', 'journal_lines.account_id')
+            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.journal_entry_id')
+            ->where('accounts.code', 'like', '1305%')
+            ->where('journal_entries.modo', $modo)
+            ->whereNull('journal_entries.deleted_at')
+            ->selectRaw('COALESCE(SUM(debit) - SUM(credit), 0) as saldo')
+            ->value('saldo');
+
+        $porPagar = (float) DB::table('journal_lines')
+            ->join('accounts', 'accounts.id', '=', 'journal_lines.account_id')
+            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.journal_entry_id')
+            ->where('accounts.code', 'like', '2205%')
+            ->where('journal_entries.modo', $modo)
+            ->whereNull('journal_entries.deleted_at')
+            ->selectRaw('COALESCE(SUM(credit) - SUM(debit), 0) as saldo')
+            ->value('saldo');
+
+        $saldoBancario = $modo === 'real'
+            ? (float) BankAccount::where('activa', true)->sum('saldo')
+            : null;
 
         // Indicador de progreso — 6 hitos del ciclo contable
         $hasConfig = CompanyConfig::whereNotNull('razon_social')
@@ -71,6 +97,9 @@ class DashboardController extends Controller
             'completedCount',
             'announcements',
             'scores',
+            'porCobrar',
+            'porPagar',
+            'saldoBancario',
         ));
     }
 }
