@@ -2,6 +2,7 @@
 
 namespace App\Models\Central;
 
+use App\Models\User;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -12,6 +13,7 @@ class IntercompanyInvoice extends Model
     use SoftDeletes;
 
     protected $connection = 'pgsql';
+
     protected $table = 'intercompany_invoices';
 
     protected $fillable = [
@@ -39,19 +41,23 @@ class IntercompanyInvoice extends Model
         'anulada_by',
         'anulada_at',
         'anulacion_motivo',
+        'paid_at',
+        'collected_at',
     ];
 
     protected function casts(): array
     {
         return [
-            'subtotal'         => 'decimal:2',
-            'iva'              => 'decimal:2',
+            'subtotal' => 'decimal:2',
+            'iva' => 'decimal:2',
             'retencion_fuente' => 'decimal:2',
-            'retencion_iva'    => 'decimal:2',
-            'retencion_ica'    => 'decimal:2',
-            'total'            => 'decimal:2',
-            'accepted_at'      => 'datetime',
-            'anulada_at'       => 'datetime',
+            'retencion_iva' => 'decimal:2',
+            'retencion_ica' => 'decimal:2',
+            'total' => 'decimal:2',
+            'accepted_at' => 'datetime',
+            'anulada_at' => 'datetime',
+            'paid_at' => 'datetime',
+            'collected_at' => 'datetime',
         ];
     }
 
@@ -75,19 +81,46 @@ class IntercompanyInvoice extends Model
         return $this->hasMany(IntercompanyInvoiceItem::class);
     }
 
-    public function isPendiente(): bool { return $this->status === 'pendiente'; }
-    public function isAceptada(): bool  { return $this->status === 'aceptada'; }
-    public function isRechazada(): bool { return $this->status === 'rechazada'; }
-    public function isAnulada(): bool   { return $this->status === 'anulada'; }
+    public function isPendiente(): bool
+    {
+        return $this->status === 'pendiente';
+    }
+
+    public function isAceptada(): bool
+    {
+        return $this->status === 'aceptada';
+    }
+
+    public function isRechazada(): bool
+    {
+        return $this->status === 'rechazada';
+    }
+
+    public function isAnulada(): bool
+    {
+        return $this->status === 'anulada';
+    }
+
+    /** Comprador pagó a crédito y aún no ha registrado el pago. */
+    public function pendientePago(): bool
+    {
+        return $this->isAceptada() && ! $this->buyer_bank_account_id && ! $this->paid_at;
+    }
+
+    /** Vendedor no cobró por banco y aún no ha registrado el cobro. */
+    public function pendienteCobro(): bool
+    {
+        return $this->isAceptada() && ! $this->seller_bank_account_id && ! $this->collected_at;
+    }
 
     public function statusLabel(): string
     {
         return match ($this->status) {
             'pendiente' => 'Pendiente',
-            'aceptada'  => 'Aceptada',
+            'aceptada' => 'Aceptada',
             'rechazada' => 'Rechazada',
-            'anulada'   => 'Anulada',
-            default     => $this->status,
+            'anulada' => 'Anulada',
+            default => $this->status,
         };
     }
 
@@ -95,16 +128,16 @@ class IntercompanyInvoice extends Model
     {
         return match ($this->status) {
             'pendiente' => 'bg-amber-100 text-amber-800',
-            'aceptada'  => 'bg-green-100 text-green-800',
+            'aceptada' => 'bg-green-100 text-green-800',
             'rechazada' => 'bg-red-100 text-red-800',
-            'anulada'   => 'bg-slate-100 text-slate-600',
-            default     => 'bg-slate-100 text-slate-700',
+            'anulada' => 'bg-slate-100 text-slate-600',
+            default => 'bg-slate-100 text-slate-700',
         };
     }
 
     public function anuladoPor(): BelongsTo
     {
-        return $this->belongsTo(\App\Models\User::class, 'anulada_by');
+        return $this->belongsTo(User::class, 'anulada_by');
     }
 
     /** Genera el consecutivo para un vendedor dado. */
@@ -112,6 +145,6 @@ class IntercompanyInvoice extends Model
     {
         $count = self::where('seller_tenant_id', $sellerTenantId)->withTrashed()->count();
 
-        return 'NI-' . str_pad($count + 1, 5, '0', STR_PAD_LEFT);
+        return 'NI-'.str_pad($count + 1, 5, '0', STR_PAD_LEFT);
     }
 }

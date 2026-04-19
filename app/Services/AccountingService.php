@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Exceptions\AccountingImbalanceException;
 use App\Models\Tenant\Account;
 use App\Models\Tenant\CashReceipt;
-use Illuminate\Support\Facades\Cache;
 use App\Models\Tenant\CreditNote;
 use App\Models\Tenant\DebitNote;
 use App\Models\Tenant\FixedAsset;
@@ -13,8 +12,10 @@ use App\Models\Tenant\Invoice;
 use App\Models\Tenant\JournalEntry;
 use App\Models\Tenant\JournalLine;
 use App\Models\Tenant\Payment;
+use App\Models\Tenant\Product;
 use App\Models\Tenant\PurchaseInvoice;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\Cache;
 
 class AccountingService
 {
@@ -24,6 +25,7 @@ class AccountingService
      */
     public function generateSaleEntry(Invoice $invoice): JournalEntry
     {
+        $invoice->loadMissing('lines.product');
         $lines = [];
 
         // Cuentas base del PUC colombiano
@@ -59,14 +61,23 @@ class AccountingService
             ];
         }
 
-        // 4. Asiento de costo (si algún producto tiene costo)
-        $totalCost = $invoice->lines->sum(fn ($line) => ($line->product?->cost_price ?? 0) * $line->qty);
+        // 4. Asiento de costo (costo promedio ponderado si el producto tiene kardex)
+        $totalCost = $invoice->lines->sum(function ($line) {
+            if (! $line->product) {
+                return 0;
+            }
+            $costoUnit = $line->product->inventory_account_id
+                ? StockService::costoPromedio($line->product)
+                : (float) ($line->product->cost_price ?? 0);
+
+            return round($costoUnit * $line->qty, 2);
+        });
         if ($totalCost > 0 && $cogs && $inv) {
             $lines[] = ['account_id' => $cogs, 'debit' => $totalCost, 'credit' => 0,          'description' => 'Costo de ventas'];
             $lines[] = ['account_id' => $inv,  'debit' => 0,          'credit' => $totalCost, 'description' => 'Salida de inventario'];
         }
 
-        return $this->createEntry([
+        $entry = $this->createEntry([
             'date' => $invoice->date,
             'reference' => $invoice->fullReference(),
             'description' => 'Factura de venta '.$invoice->fullReference().' — '.$invoice->third->name,
@@ -74,6 +85,23 @@ class AccountingService
             'document_id' => $invoice->id,
             'auto_generated' => true,
         ], $lines);
+
+        // Kardex: salidas de inventario por línea
+        foreach ($invoice->lines as $line) {
+            if ($line->product && $line->product->inventory_account_id) {
+                StockService::registrarSalida(
+                    product: $line->product,
+                    qty: (float) $line->qty,
+                    referenciaTipo: 'factura',
+                    referenciaId: $invoice->id,
+                    fecha: $invoice->date->toDateString(),
+                    descripcion: "Venta {$invoice->fullReference()}",
+                    thirdId: $invoice->third_id,
+                );
+            }
+        }
+
+        return $entry;
     }
 
     /**
@@ -288,6 +316,8 @@ class AccountingService
      */
     public function generatePurchaseEntry(PurchaseInvoice $invoice): JournalEntry
     {
+        $invoice->loadMissing('lines.product');
+
         $inventory = $this->accountId('1435'); // Inventario
         $vatInput = $this->accountId('2408'); // IVA descontable
         $suppliers = $this->accountId('2205'); // Proveedores nacionales
@@ -364,7 +394,7 @@ class AccountingService
             ];
         }
 
-        return $this->createEntry([
+        $entry = $this->createEntry([
             'date' => $invoice->date,
             'reference' => $invoice->supplier_invoice_number ?? 'FC-'.str_pad($invoice->id, 5, '0', STR_PAD_LEFT),
             'description' => 'Factura de compra — '.$invoice->third->name,
@@ -372,6 +402,24 @@ class AccountingService
             'document_id' => $invoice->id,
             'auto_generated' => true,
         ], $lines);
+
+        // Kardex: entradas de inventario por línea
+        foreach ($invoice->lines as $line) {
+            if ($line->product_id && $line->product?->inventory_account_id) {
+                StockService::registrarEntrada(
+                    product: $line->product,
+                    qty: (float) $line->qty,
+                    costoUnitario: (float) $line->unit_cost,
+                    referenciaTipo: 'compra',
+                    referenciaId: $invoice->id,
+                    fecha: $invoice->date->toDateString(),
+                    descripcion: 'Compra '.($invoice->supplier_invoice_number ?? 'S/N').' — '.$invoice->third->name,
+                    thirdId: $invoice->third_id,
+                );
+            }
+        }
+
+        return $entry;
     }
 
     /**
@@ -388,28 +436,30 @@ class AccountingService
      */
     public function generateDirectPurchaseEntry(PurchaseInvoice $invoice): JournalEntry
     {
-        $vatInput  = $this->accountId('240810') ?? $this->accountId('2408');
-        $suppliers = $this->accountId('2205');
-        $reteFte   = $this->accountId('2365');
-        $reteIva   = $this->accountId('2367');
-        $reteIca   = $this->accountId('2368');
+        $invoice->loadMissing('lines.product');
 
-        $totalBruto     = $invoice->subtotal + $invoice->tax_amount;
-        $totalRet       = (float) ($invoice->total_retenciones ?? 0);
-        $totalNeto      = round($totalBruto - $totalRet, 2);
+        $vatInput = $this->accountId('240810') ?? $this->accountId('2408');
+        $suppliers = $this->accountId('2205');
+        $reteFte = $this->accountId('2365');
+        $reteIva = $this->accountId('2367');
+        $reteIca = $this->accountId('2368');
+
+        $totalBruto = $invoice->subtotal + $invoice->tax_amount;
+        $totalRet = (float) ($invoice->total_retenciones ?? 0);
+        $totalNeto = round($totalBruto - $totalRet, 2);
 
         $lines = [];
 
         // Débito por cada línea según su cuenta de gasto
         foreach ($invoice->lines as $line) {
             $codigoCuenta = $line->cuenta_gasto_codigo ?: '5195';
-            $accountId    = $this->accountId($codigoCuenta) ?? $this->accountId('5195');
+            $accountId = $this->accountId($codigoCuenta) ?? $this->accountId('5195');
 
             if ($accountId) {
                 $lines[] = [
-                    'account_id'  => $accountId,
-                    'debit'       => $line->line_subtotal,
-                    'credit'      => 0,
+                    'account_id' => $accountId,
+                    'debit' => $line->line_subtotal,
+                    'credit' => 0,
                     'description' => $line->description.' — '.($invoice->supplier_invoice_number ?? 'S/N'),
                 ];
             }
@@ -418,9 +468,9 @@ class AccountingService
         // Débito IVA descontable (total IVA de la factura)
         if ($invoice->tax_amount > 0 && $vatInput) {
             $lines[] = [
-                'account_id'  => $vatInput,
-                'debit'       => $invoice->tax_amount,
-                'credit'      => 0,
+                'account_id' => $vatInput,
+                'debit' => $invoice->tax_amount,
+                'credit' => 0,
                 'description' => 'IVA compra '.($invoice->supplier_invoice_number ?? 'S/N').' — '.$invoice->third->name,
             ];
         }
@@ -428,9 +478,9 @@ class AccountingService
         // Crédito proveedores — neto a pagar
         if ($suppliers) {
             $lines[] = [
-                'account_id'  => $suppliers,
-                'debit'       => 0,
-                'credit'      => $totalNeto,
+                'account_id' => $suppliers,
+                'debit' => 0,
+                'credit' => $totalNeto,
                 'description' => 'CxP proveedor '.$invoice->third->name,
             ];
         }
@@ -438,9 +488,9 @@ class AccountingService
         // Crédito retención en la fuente
         if (($invoice->retefte_valor ?? 0) > 0 && $reteFte) {
             $lines[] = [
-                'account_id'  => $reteFte,
-                'debit'       => 0,
-                'credit'      => $invoice->retefte_valor,
+                'account_id' => $reteFte,
+                'debit' => 0,
+                'credit' => $invoice->retefte_valor,
                 'description' => 'RteFte — '.$invoice->third->name,
             ];
         }
@@ -448,9 +498,9 @@ class AccountingService
         // Crédito reteiva
         if (($invoice->reteiva_valor ?? 0) > 0 && $reteIva) {
             $lines[] = [
-                'account_id'  => $reteIva,
-                'debit'       => 0,
-                'credit'      => $invoice->reteiva_valor,
+                'account_id' => $reteIva,
+                'debit' => 0,
+                'credit' => $invoice->reteiva_valor,
                 'description' => 'Reteiva — '.$invoice->third->name,
             ];
         }
@@ -458,21 +508,39 @@ class AccountingService
         // Crédito reteica
         if (($invoice->reteica_valor ?? 0) > 0 && $reteIca) {
             $lines[] = [
-                'account_id'  => $reteIca,
-                'debit'       => 0,
-                'credit'      => $invoice->reteica_valor,
+                'account_id' => $reteIca,
+                'debit' => 0,
+                'credit' => $invoice->reteica_valor,
                 'description' => 'Reteica — '.$invoice->third->name,
             ];
         }
 
-        return $this->createEntry([
-            'date'          => $invoice->date,
-            'reference'     => $invoice->supplier_invoice_number ?? 'FC-'.str_pad($invoice->id, 5, '0', STR_PAD_LEFT),
-            'description'   => 'Factura de compra directa — '.$invoice->third->name,
+        $entry = $this->createEntry([
+            'date' => $invoice->date,
+            'reference' => $invoice->supplier_invoice_number ?? 'FC-'.str_pad($invoice->id, 5, '0', STR_PAD_LEFT),
+            'description' => 'Factura de compra directa — '.$invoice->third->name,
             'document_type' => 'purchase_invoice',
-            'document_id'   => $invoice->id,
-            'auto_generated'=> true,
+            'document_id' => $invoice->id,
+            'auto_generated' => true,
         ], $lines);
+
+        // Kardex: entradas de inventario por línea (compra directa con producto)
+        foreach ($invoice->lines as $line) {
+            if ($line->product_id && $line->product?->inventory_account_id) {
+                StockService::registrarEntrada(
+                    product: $line->product,
+                    qty: (float) $line->qty,
+                    costoUnitario: (float) $line->unit_cost,
+                    referenciaTipo: 'compra',
+                    referenciaId: $invoice->id,
+                    fecha: $invoice->date->toDateString(),
+                    descripcion: 'Compra directa '.($invoice->supplier_invoice_number ?? 'S/N').' — '.$invoice->third->name,
+                    thirdId: $invoice->third_id,
+                );
+            }
+        }
+
+        return $entry;
     }
 
     /**
@@ -485,22 +553,22 @@ class AccountingService
         $suppliers = $this->accountId('2205'); // Proveedores nacionales
 
         // Si el pago viene de una cuenta bancaria → débita Bancos, sino Caja
-        $usaBanco    = ! empty($payment->bank_account_id);
+        $usaBanco = ! empty($payment->bank_account_id);
         $contrapartida = $usaBanco
             ? $this->accountId('1110') // Bancos
             : $this->accountId('1105'); // Caja
-        $contraDesc  = $usaBanco
+        $contraDesc = $usaBanco
             ? 'Egreso banco — '.$payment->third->name
             : 'Egreso caja — '.$payment->third->name;
 
         $lines = [
             ['account_id' => $suppliers,    'debit' => $payment->total, 'credit' => 0,               'description' => 'Pago proveedor '.$payment->third->name],
-            ['account_id' => $contrapartida,'debit' => 0,               'credit' => $payment->total, 'description' => $contraDesc],
+            ['account_id' => $contrapartida, 'debit' => 0,               'credit' => $payment->total, 'description' => $contraDesc],
         ];
 
         // Líneas adicionales: GMF y comisión ACH si se pagó por banco
         if ($usaBanco) {
-            $gmf = \App\Services\BankService::calcularGmf('pago_proveedor', $payment->total);
+            $gmf = BankService::calcularGmf('pago_proveedor', $payment->total);
             if ($gmf > 0) {
                 $gmfAccount = $this->accountId('530520') ?? $this->accountId('5305');
                 if ($gmfAccount) {
@@ -527,6 +595,57 @@ class AccountingService
      * DR 5160 Gasto depreciación    $cuota
      * CR 1592 Depreciación acumulada $cuota
      */
+    /**
+     * Asiento de stock inicial de un producto.
+     * DR cuenta inventario (1435) / CR 3115 Capital (aporte inicial de mercancía).
+     */
+    public function generateInitialStockEntry(Product $product, float $qty, float $costoUnitario): JournalEntry
+    {
+        $inventario = $product->inventory_account_id ?? $this->accountId('1435');
+        $capital = $this->accountId('3115');
+        $total = round($qty * $costoUnitario, 2);
+
+        $lines = [
+            ['account_id' => $inventario, 'debit' => $total, 'credit' => 0,      'description' => 'Stock inicial '.$product->name.' ('.$qty.' uds.)'],
+            ['account_id' => $capital,    'debit' => 0,      'credit' => $total, 'description' => 'Aporte inicial inventario — '.$product->name],
+        ];
+
+        return $this->createEntry([
+            'date' => now()->toDateString(),
+            'reference' => 'INV-INI-'.str_pad($product->id, 5, '0', STR_PAD_LEFT),
+            'description' => 'Stock inicial — '.$product->name.' ['.$product->code.']',
+            'document_type' => 'stock_opening',
+            'document_id' => $product->id,
+            'auto_generated' => true,
+        ], $lines);
+    }
+
+    /**
+     * Asiento de adquisición de activo fijo.
+     * DR 15XX (cuenta del activo según categoría) / CR 1110 (contado) o 2205 (crédito).
+     */
+    public function generateAcquisitionEntry(FixedAsset $asset, string $formaPago = 'contado'): JournalEntry
+    {
+        $cuentaActivo = $this->accountId($asset->category->cuentaActivoCodigo());
+        $cuentaContraparte = $this->accountId($formaPago === 'credito' ? '2205' : '1110');
+
+        $contraDesc = $formaPago === 'credito' ? 'CxP adquisición ' : 'Caja — compra ';
+
+        $lines = [
+            ['account_id' => $cuentaActivo,      'debit' => $asset->cost, 'credit' => 0,           'description' => 'Adquisición '.$asset->name.' ['.$asset->code.']'],
+            ['account_id' => $cuentaContraparte, 'debit' => 0,            'credit' => $asset->cost, 'description' => $contraDesc.$asset->name],
+        ];
+
+        return $this->createEntry([
+            'date' => $asset->acquisition_date->toDateString(),
+            'reference' => 'AF-ADQ-'.str_pad($asset->id, 5, '0', STR_PAD_LEFT),
+            'description' => 'Adquisición activo fijo — '.$asset->name.' ['.$asset->code.']',
+            'document_type' => 'fixed_asset',
+            'document_id' => $asset->id,
+            'auto_generated' => true,
+        ], $lines);
+    }
+
     public function generateDepreciationEntry(FixedAsset $asset, float $cuota, Carbon $period): JournalEntry
     {
         $gasto = $this->accountId('5160');

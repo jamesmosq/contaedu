@@ -13,6 +13,7 @@ use App\Models\Tenant\FeEventoReceptor;
 use App\Models\Tenant\FeFactura;
 use App\Models\Tenant\FeNotaCredito;
 use App\Models\Tenant\FeResolucion;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use RuntimeException;
@@ -73,10 +74,14 @@ class FacturaService
             $this->cambiarEstado($factura, EstadoFacturaEnum::Generada, 'sistema', 'XML y CUFE generados correctamente.');
             $factura->save();
 
-            // 7. Enviar al simulador DIAN
+            // 7. Marcar como 'enviada' (estado intermedio pedagógico: la factura viaja hacia la DIAN)
+            $this->cambiarEstado($factura, EstadoFacturaEnum::Enviada, 'sistema', 'Factura enviada al simulador DIAN. Esperando respuesta de validación.');
+            $factura->save();
+
+            // 8. Enviar al simulador DIAN
             $respuesta = $this->simulador->validar($factura, $resolucion);
 
-            // 8. Procesar respuesta
+            // 9. Procesar respuesta
             if ($respuesta->aceptada) {
                 $this->cambiarEstado($factura, EstadoFacturaEnum::Validada, 'simulador_dian', $respuesta->mensaje);
                 $factura->codigo_respuesta_dian = $respuesta->codigoRespuesta;
@@ -120,7 +125,10 @@ class FacturaService
             $factura->cufe = $this->cufeService->calcular($factura, $factura->resolucion);
             $factura->xml_factura = $this->xmlService->generarFactura($factura);
 
-            $this->cambiarEstado($factura, EstadoFacturaEnum::Generada, 'usuario', 'Reenvío al simulador DIAN.');
+            $this->cambiarEstado($factura, EstadoFacturaEnum::Generada, 'usuario', 'Reenvío — XML y CUFE recalculados.');
+            $factura->save();
+
+            $this->cambiarEstado($factura, EstadoFacturaEnum::Enviada, 'sistema', 'Factura reenviada al simulador DIAN. Esperando respuesta de validación.');
             $factura->save();
 
             $respuesta = $this->simulador->validar($factura, $factura->resolucion);
@@ -142,6 +150,29 @@ class FacturaService
                 $factura->xml_application_response = $respuesta->xmlResponse;
                 $factura->save();
             }
+
+            return $factura;
+        });
+    }
+
+    /**
+     * Devuelve una factura rechazada a borrador para que el usuario corrija los datos.
+     */
+    public function corregir(FeFactura $factura): FeFactura
+    {
+        if (! $factura->esRechazada()) {
+            throw new TransicionEstadoInvalidaException($factura->estado->value, EstadoFacturaEnum::Borrador->value);
+        }
+
+        return DB::transaction(function () use ($factura) {
+            $factura->cufe = null;
+            $factura->xml_factura = null;
+            $factura->xml_application_response = null;
+            $factura->codigo_respuesta_dian = null;
+            $factura->mensaje_dian = null;
+            $factura->qr_data = null;
+            $this->cambiarEstado($factura, EstadoFacturaEnum::Borrador, 'usuario', 'Factura devuelta a borrador para corrección.');
+            $factura->save();
 
             return $factura;
         });
@@ -245,14 +276,18 @@ class FacturaService
             Str::uuid(),
         ]));
 
-        return $factura->eventosReceptor()->create([
-            'tipo_evento' => $tipoEvento->value,
-            'cude_evento' => $cudeEvento,
-            'fecha_evento' => now(),
-            'observaciones' => $observaciones,
-            'estado' => 'registrado',
-            'user_id' => $factura->user_id,
-        ]);
+        try {
+            return $factura->eventosReceptor()->create([
+                'tipo_evento' => $tipoEvento->value,
+                'cude_evento' => $cudeEvento,
+                'fecha_evento' => now(),
+                'observaciones' => $observaciones,
+                'estado' => 'registrado',
+                'user_id' => $factura->user_id,
+            ]);
+        } catch (UniqueConstraintViolationException) {
+            throw new RuntimeException("El evento {$tipoEvento->label()} ya fue registrado para esta factura.");
+        }
     }
 
     private function cambiarEstado(FeFactura $factura, EstadoFacturaEnum $nuevoEstado, string $origen, string $descripcion): void

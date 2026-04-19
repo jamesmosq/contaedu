@@ -11,6 +11,7 @@ class Third extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'modo',
         'document_type',
         'document',
         'name',
@@ -37,12 +38,12 @@ class Third extends Model
     protected function casts(): array
     {
         return [
-            'active'              => 'boolean',
+            'active' => 'boolean',
             'activo_laboralmente' => 'boolean',
-            'salario_basico'      => 'float',
-            'fecha_ingreso'       => 'date',
-            'fecha_retiro'        => 'date',
-            'type'                => ThirdType::class,
+            'salario_basico' => 'float',
+            'fecha_ingreso' => 'date',
+            'fecha_retiro' => 'date',
+            'type' => ThirdType::class,
         ];
     }
 
@@ -59,6 +60,11 @@ class Third extends Model
     public function esEmpleado(): bool
     {
         return $this->type === ThirdType::Empleado;
+    }
+
+    public function scopeModoActual($query): void
+    {
+        $query->where('modo', modoContable());
     }
 
     public function scopeClientes($query): mixed

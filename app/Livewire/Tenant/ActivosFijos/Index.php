@@ -35,6 +35,8 @@ class Index extends Component
 
     public string $fa_notes = '';
 
+    public string $fa_forma_pago = 'contado';
+
     // ── Depreciación ────────────────────────────────────────────────────────
     public string $dep_period = '';
 
@@ -50,7 +52,7 @@ class Index extends Component
 
     public function openForm(): void
     {
-        $this->reset(['fa_name', 'fa_desc', 'fa_notes', 'fa_cost', 'fa_salvage']);
+        $this->reset(['fa_name', 'fa_desc', 'fa_notes', 'fa_cost', 'fa_salvage', 'fa_forma_pago']);
         $this->fa_code = FixedAsset::nextCode();
         $this->fa_date = now()->toDateString();
         $this->fa_category = 'equipo_computo';
@@ -74,6 +76,7 @@ class Index extends Component
             'fa_cost' => ['required', 'numeric', 'min:0.01'],
             'fa_salvage' => ['nullable', 'numeric', 'min:0'],
             'fa_months' => ['required', 'integer', 'min:1', 'max:600'],
+            'fa_forma_pago' => ['required', 'in:contado,credito'],
         ]);
 
         $service->create([
@@ -86,6 +89,7 @@ class Index extends Component
             'salvage_value' => $this->fa_salvage ?: 0,
             'useful_life_months' => $this->fa_months,
             'notes' => $this->fa_notes ?: null,
+            'forma_pago' => $this->fa_forma_pago,
         ]);
 
         $this->showForm = false;

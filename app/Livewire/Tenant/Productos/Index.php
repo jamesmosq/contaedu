@@ -6,6 +6,9 @@ use App\Enums\ProductUnit;
 use App\Enums\TaxRate;
 use App\Models\Tenant\Account;
 use App\Models\Tenant\Product;
+use App\Models\Tenant\StockMovement;
+use App\Services\AccountingService;
+use App\Services\StockService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -22,6 +25,12 @@ class Index extends Component
     public bool $showForm = false;
 
     public ?int $editingId = null;
+
+    public bool $showKardex = false;
+
+    public ?int $kardexProductId = null;
+
+    public string $kardexProductName = '';
 
     // Form
     public string $code = '';
@@ -44,6 +53,10 @@ class Index extends Component
 
     public ?int $cogs_account_id = null;
 
+    public string $initial_stock = '0';
+
+    public string $initial_cost = '0';
+
     public function rules(): array
     {
         return [
@@ -57,16 +70,20 @@ class Index extends Component
             'inventory_account_id' => ['nullable', 'exists:accounts,id'],
             'revenue_account_id' => ['nullable', 'exists:accounts,id'],
             'cogs_account_id' => ['nullable', 'exists:accounts,id'],
+            'initial_stock' => ['nullable', 'numeric', 'min:0'],
+            'initial_cost' => ['nullable', 'numeric', 'min:0'],
         ];
     }
 
     public function openCreate(): void
     {
-        $this->reset(['editingId', 'code', 'name', 'description', 'sale_price', 'cost_price', 'inventory_account_id', 'revenue_account_id', 'cogs_account_id']);
+        $this->reset(['editingId', 'code', 'name', 'description', 'sale_price', 'cost_price', 'inventory_account_id', 'revenue_account_id', 'cogs_account_id', 'initial_stock', 'initial_cost']);
         $this->unit = 'und';
         $this->tax_rate = '19';
         $this->sale_price = '0';
         $this->cost_price = '0';
+        $this->initial_stock = '0';
+        $this->initial_cost = '0';
 
         // Preseleccionar cuentas por defecto del PUC
         $this->inventory_account_id = Account::where('code', '1435')->value('id');
@@ -93,13 +110,16 @@ class Index extends Component
         $this->showForm = true;
     }
 
-    public function save(): void
+    public function save(AccountingService $accounting): void
     {
         $this->validate();
 
-        Product::updateOrCreate(
+        $isNew = ! $this->editingId;
+
+        $product = Product::updateOrCreate(
             ['id' => $this->editingId],
             [
+                'modo' => modoContable(),
                 'code' => $this->code,
                 'name' => $this->name,
                 'description' => $this->description ?: null,
@@ -114,12 +134,29 @@ class Index extends Component
             ]
         );
 
-        $label = $this->editingId ? 'actualizado' : 'guardado';
+        // Registrar stock inicial solo en creación y si la cantidad es mayor a 0
+        $qty = (float) $this->initial_stock;
+        if ($isNew && $qty > 0 && $product->inventory_account_id) {
+            $costo = (float) $this->initial_cost ?: (float) $this->cost_price;
+            StockService::registrarEntrada(
+                product: $product,
+                qty: $qty,
+                costoUnitario: $costo,
+                referenciaTipo: 'apertura',
+                referenciaId: null,
+                fecha: now()->toDateString(),
+                descripcion: 'Stock inicial — '.$product->name,
+            );
+            $accounting->generateInitialStockEntry($product, $qty, $costo);
+        }
+
+        $label = $isNew ? 'guardado' : 'actualizado';
 
         $this->reset([
             'showForm', 'editingId', 'code', 'name', 'description',
             'unit', 'sale_price', 'cost_price', 'tax_rate',
             'inventory_account_id', 'revenue_account_id', 'cogs_account_id',
+            'initial_stock', 'initial_cost',
         ]);
         $this->resetPage();
         $this->dispatch('notify', type: 'success', message: "Producto {$label} correctamente.");
@@ -140,6 +177,19 @@ class Index extends Component
         ]);
     }
 
+    public function openKardex(int $id): void
+    {
+        $product = Product::findOrFail($id);
+        $this->kardexProductId = $id;
+        $this->kardexProductName = $product->name;
+        $this->showKardex = true;
+    }
+
+    public function closeKardex(): void
+    {
+        $this->reset(['showKardex', 'kardexProductId', 'kardexProductName']);
+    }
+
     public function updatingSearch(): void
     {
         $this->resetPage();
@@ -147,7 +197,7 @@ class Index extends Component
 
     public function render(): mixed
     {
-        $products = Product::query()
+        $products = Product::modoActual()
             ->when($this->search, fn ($q) => $q
                 ->where('name', 'ilike', "%{$this->search}%")
                 ->orWhere('code', 'ilike', "%{$this->search}%")
@@ -159,7 +209,20 @@ class Index extends Component
         $units = ProductUnit::cases();
         $taxRates = TaxRate::cases();
 
-        return view('livewire.tenant.productos.index', compact('products', 'accounts', 'units', 'taxRates'))
+        $kardexMovements = collect();
+        $kardexStock = 0.0;
+        if ($this->showKardex && $this->kardexProductId) {
+            $kardexMovements = StockMovement::with('third')
+                ->where('product_id', $this->kardexProductId)
+                ->where('modo', modoContable())
+                ->orderByDesc('fecha')
+                ->orderByDesc('id')
+                ->limit(20)
+                ->get();
+            $kardexStock = $kardexMovements->first()?->saldo_qty ?? 0.0;
+        }
+
+        return view('livewire.tenant.productos.index', compact('products', 'accounts', 'units', 'taxRates', 'kardexMovements', 'kardexStock'))
             ->title('Productos');
     }
 }

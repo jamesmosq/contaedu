@@ -133,6 +133,11 @@ class FeFactura extends Model
         return $this->estado === EstadoFacturaEnum::Anulada;
     }
 
+    public function esRechazada(): bool
+    {
+        return $this->estado === EstadoFacturaEnum::Rechazada;
+    }
+
     public function medioPagoLabel(): string
     {
         return match ($this->medio_pago) {

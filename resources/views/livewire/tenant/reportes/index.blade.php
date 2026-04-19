@@ -31,6 +31,12 @@
     <div class="px-6 py-8 lg:px-10">
         <div class="max-w-7xl mx-auto">
 
+            {{-- Nota pedagógica --}}
+            <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4 text-sm text-sky-800 mb-6">
+                <p class="font-semibold mb-1">¿Qué son los estados financieros y para qué sirven?</p>
+                <p>Los estados financieros son el resultado del ciclo contable: el <strong>Balance General</strong> muestra lo que la empresa tiene (activos), debe (pasivos) y le pertenece a los socios (patrimonio). El <strong>Estado de Resultados</strong> muestra si ganó o perdió en el período. El <strong>Libro Diario</strong> y el <strong>Libro Mayor</strong> son los registros cronológicos y por cuenta que soportan todo. En Colombia, su presentación está regulada por las NIIF (Normas Internacionales de Información Financiera).</p>
+            </div>
+
             {{-- Controles --}}
             <div class="bg-white rounded-2xl border border-cream-200 shadow-card p-5 mb-6">
                 <div class="flex flex-wrap gap-4 items-end">

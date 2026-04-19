@@ -12,6 +12,7 @@ use App\Models\Tenant\Product;
 use App\Models\Tenant\PurchaseInvoice;
 use App\Models\Tenant\PurchaseOrder;
 use App\Models\Tenant\Third;
+use App\Services\BankService;
 use App\Services\PurchaseService;
 use App\Services\RetencionService;
 use Illuminate\Support\Facades\DB;
@@ -82,6 +83,7 @@ class Index extends Component
 
     // ─── Pago ────────────────────────────────────────────────────────────────
     public bool $showPaymentForm = false;
+
     public ?int $payment_bank_account_id = null; // null = pago desde caja
 
     public int $payment_third_id = 0;
@@ -523,21 +525,22 @@ class Index extends Component
             if ($this->payment_bank_account_id) {
                 $cuentaBanco = BankAccount::find($this->payment_bank_account_id);
                 if ($cuentaBanco) {
-                    $gmf = \App\Services\BankService::calcularGmf('pago_proveedor', $total);
+                    $gmf = BankService::calcularGmf('pago_proveedor', $total);
                     if ($cuentaBanco->saldoDisponible() < ($total + $gmf)) {
                         $this->dispatch('notify', type: 'error',
-                            message: 'Saldo insuficiente en ' . $cuentaBanco->nombreBanco() . '. Disponible: $' . number_format($cuentaBanco->saldoDisponible(), 0, ',', '.'));
+                            message: 'Saldo insuficiente en '.$cuentaBanco->nombreBanco().'. Disponible: $'.number_format($cuentaBanco->saldoDisponible(), 0, ',', '.'));
+
                         return;
                     }
                 }
             }
 
             $payment = Payment::create([
-                'third_id'        => $this->payment_third_id,
-                'date'            => $this->payment_date,
-                'total'           => $total,
-                'notes'           => $this->payment_notes ?: null,
-                'status'          => 'borrador',
+                'third_id' => $this->payment_third_id,
+                'date' => $this->payment_date,
+                'total' => $total,
+                'notes' => $this->payment_notes ?: null,
+                'status' => 'borrador',
                 'bank_account_id' => $this->payment_bank_account_id,
             ]);
 
@@ -550,19 +553,19 @@ class Index extends Component
 
             // Registrar transacción bancaria si se pagó desde banco
             if ($this->payment_bank_account_id && $cuentaBanco = BankAccount::find($this->payment_bank_account_id)) {
-                $gmf = \App\Services\BankService::calcularGmf('pago_proveedor', $total);
+                $gmf = BankService::calcularGmf('pago_proveedor', $total);
                 $totalCargo = $total + $gmf;
                 $cuentaBanco->decrement('saldo', $totalCargo);
 
                 BankTransaction::create([
-                    'bank_account_id'   => $cuentaBanco->id,
-                    'tipo'              => 'pago_proveedor',
-                    'valor'             => $total,
-                    'gmf'               => $gmf,
-                    'comision'          => 0,
-                    'saldo_despues'     => $cuentaBanco->fresh()->saldo,
-                    'descripcion'       => 'Pago proveedor PAG-' . str_pad($payment->id, 5, '0', STR_PAD_LEFT),
-                    'journal_entry_id'  => $entry?->id,
+                    'bank_account_id' => $cuentaBanco->id,
+                    'tipo' => 'pago_proveedor',
+                    'valor' => $total,
+                    'gmf' => $gmf,
+                    'comision' => 0,
+                    'saldo_despues' => $cuentaBanco->fresh()->saldo,
+                    'descripcion' => 'Pago proveedor PAG-'.str_pad($payment->id, 5, '0', STR_PAD_LEFT),
+                    'journal_entry_id' => $entry?->id,
                     'purchase_invoice_id' => $this->payment_items[0]['purchase_invoice_id'] ?? null,
                     'fecha_transaccion' => $this->payment_date,
                 ]);
@@ -592,15 +595,45 @@ class Index extends Component
             ->orderByDesc('date')->orderByDesc('id')
             ->paginate(15);
 
-        $suppliers = Third::where('type', 'proveedor')->where('active', true)->orderBy('name')->get();
-        $products = Product::where('active', true)->orderBy('name')->get();
+        $suppliers = Third::modoActual()->where('type', 'proveedor')->where('active', true)->orderBy('name')->get();
+        $products = Product::modoActual()->where('active', true)->orderBy('name')->get();
         $statuses = PurchaseInvoiceStatus::cases();
         $payments = Payment::with('third')->orderByDesc('date')->orderByDesc('id')->limit(50)->get();
 
         $conceptosRetencion = ConceptoRetencion::cases();
 
+        $modo = modoContable();
+
+        $porPagar = (float) DB::table('journal_lines')
+            ->join('accounts', 'accounts.id', '=', 'journal_lines.account_id')
+            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.journal_entry_id')
+            ->where('accounts.code', 'like', '2205%')
+            ->where('journal_entries.modo', $modo)
+            ->selectRaw('COALESCE(SUM(credit) - SUM(debit), 0) as saldo')
+            ->value('saldo');
+
+        $porCobrar = (float) DB::table('journal_lines')
+            ->join('accounts', 'accounts.id', '=', 'journal_lines.account_id')
+            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.journal_entry_id')
+            ->where('accounts.code', 'like', '1305%')
+            ->where('journal_entries.modo', $modo)
+            ->selectRaw('COALESCE(SUM(debit) - SUM(credit), 0) as saldo')
+            ->value('saldo');
+
+        $compradoMes = (float) PurchaseInvoice::modoActual()
+            ->whereNotIn('status', [PurchaseInvoiceStatus::Borrador->value])
+            ->whereMonth('date', now()->month)
+            ->whereYear('date', now()->year)
+            ->sum('total');
+
+        $pagadoMes = (float) Payment::modoActual()
+            ->whereMonth('date', now()->month)
+            ->whereYear('date', now()->year)
+            ->sum('total');
+
         return view('livewire.tenant.compras.index', compact(
-            'invoices', 'orders', 'suppliers', 'products', 'statuses', 'payments', 'conceptosRetencion'
+            'invoices', 'orders', 'suppliers', 'products', 'statuses', 'payments', 'conceptosRetencion',
+            'porPagar', 'porCobrar', 'compradoMes', 'pagadoMes'
         ))->title('Compras');
     }
 }

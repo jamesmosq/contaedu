@@ -4,8 +4,10 @@ namespace App\Models\Tenant;
 
 use App\Enums\ProductUnit;
 use App\Enums\TaxRate;
+use App\Services\StockService;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
@@ -13,6 +15,7 @@ class Product extends Model
     use SoftDeletes;
 
     protected $fillable = [
+        'modo',
         'code',
         'name',
         'description',
@@ -37,6 +40,11 @@ class Product extends Model
         ];
     }
 
+    public function scopeModoActual($query): void
+    {
+        $query->where('modo', modoContable());
+    }
+
     public function inventoryAccount(): BelongsTo
     {
         return $this->belongsTo(Account::class, 'inventory_account_id');
@@ -50,5 +58,15 @@ class Product extends Model
     public function cogsAccount(): BelongsTo
     {
         return $this->belongsTo(Account::class, 'cogs_account_id');
+    }
+
+    public function stockMovements(): HasMany
+    {
+        return $this->hasMany(StockMovement::class);
+    }
+
+    public function stockActual(): float
+    {
+        return StockService::stockActual($this);
     }
 }

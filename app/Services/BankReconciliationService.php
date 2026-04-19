@@ -20,14 +20,18 @@ class BankReconciliationService
      */
     public function create(array $data): BankReconciliation
     {
+        if ($data['period_start'] > $data['period_end']) {
+            throw new \InvalidArgumentException('La fecha de inicio del período no puede ser posterior a la fecha de cierre.');
+        }
+
         $reconciliation = BankReconciliation::create([
-            'account_id'      => $data['account_id'],
+            'account_id' => $data['account_id'],
             'bank_account_id' => $data['bank_account_id'] ?? null,
-            'period_start'    => $data['period_start'],
-            'period_end'      => $data['period_end'],
+            'period_start' => $data['period_start'],
+            'period_end' => $data['period_end'],
             'statement_balance' => round((float) $data['statement_balance'], 2),
             'status' => 'borrador',
-            'notes'  => $data['notes'] ?? null,
+            'notes' => $data['notes'] ?? null,
         ]);
 
         $this->loadBookItems($reconciliation);
@@ -54,10 +58,12 @@ class BankReconciliationService
         $lines = JournalLine::query()
             ->where('account_id', $reconciliation->account_id)
             ->whereHas('journalEntry', function ($q) use ($reconciliation) {
-                $q->whereBetween('date', [
-                    $reconciliation->period_start->toDateString(),
-                    $reconciliation->period_end->toDateString(),
-                ]);
+                $q->where('modo', modoContable())
+                    ->whereBetween('date', [
+                        $reconciliation->period_start->toDateString(),
+                        $reconciliation->period_end->toDateString(),
+                    ])
+                    ->whereNull('deleted_at');
             })
             ->with('journalEntry')
             ->whereNotIn('id', $existingLineIds)
@@ -99,21 +105,31 @@ class BankReconciliationService
             $esCargo = $tx->esCargo();
             BankReconciliationItem::create([
                 'reconciliation_id' => $reconciliation->id,
-                'source'            => 'banco',
-                'journal_line_id'   => null,
-                'date'              => $tx->fecha_transaccion->toDateString(),
-                'description'       => $tx->descripcion . ($tx->gmf > 0 ? ' (+GMF $'.number_format($tx->gmf, 0, ',', '.').')' : ''),
-                'debit'             => $esCargo ? ($tx->valor + $tx->gmf + $tx->comision) : 0,
-                'credit'            => $esCargo ? 0 : $tx->valor,
-                'reconciled'        => false,
+                'source' => 'banco',
+                'journal_line_id' => null,
+                'date' => $tx->fecha_transaccion->toDateString(),
+                'description' => $tx->descripcion.($tx->gmf > 0 ? ' (+GMF $'.number_format($tx->gmf, 0, ',', '.').')' : ''),
+                'debit' => $esCargo ? ($tx->valor + $tx->gmf + $tx->comision) : 0,
+                'credit' => $esCargo ? 0 : $tx->valor,
+                'reconciled' => false,
             ]);
         }
     }
 
-    /** Marca o desmarca un ítem de libro como cruzado con el extracto. */
+    /** Marca o desmarca un ítem de libro como cruzado con el extracto. Sincroniza BankTransaction. */
     public function toggleReconciled(BankReconciliationItem $item): void
     {
-        $item->update(['reconciled' => ! $item->reconciled]);
+        $newState = ! $item->reconciled;
+        $item->update(['reconciled' => $newState]);
+
+        // Sincronizar conciliado en BankTransaction vía journal_entry_id
+        if ($item->journal_line_id) {
+            $entryId = JournalLine::where('id', $item->journal_line_id)->value('journal_entry_id');
+            if ($entryId) {
+                BankTransaction::where('journal_entry_id', $entryId)
+                    ->update(['conciliado' => $newState]);
+            }
+        }
     }
 
     /**
@@ -125,18 +141,18 @@ class BankReconciliationService
      */
     public function addBankItem(BankReconciliation $reconciliation, array $data): BankReconciliationItem
     {
-        $debit  = round((float) ($data['debit'] ?? 0), 2);
+        $debit = round((float) ($data['debit'] ?? 0), 2);
         $credit = round((float) ($data['credit'] ?? 0), 2);
 
         $item = BankReconciliationItem::create([
             'reconciliation_id' => $reconciliation->id,
-            'source'            => 'banco',
-            'journal_line_id'   => null,
-            'date'              => $data['date'],
-            'description'       => $data['description'],
-            'debit'             => $debit,
-            'credit'            => $credit,
-            'reconciled'        => true,
+            'source' => 'banco',
+            'journal_line_id' => null,
+            'date' => $data['date'],
+            'description' => $data['description'],
+            'debit' => $debit,
+            'credit' => $credit,
+            'reconciled' => true,
         ]);
 
         // Dirección 2: registrar la nota bancaria en el módulo banco
@@ -144,20 +160,20 @@ class BankReconciliationService
             $cuenta = BankAccount::find($reconciliation->bank_account_id);
             if ($cuenta) {
                 $esCargo = $debit > 0;
-                $valor   = $esCargo ? $debit : $credit;
+                $valor = $esCargo ? $debit : $credit;
 
                 $cuenta->{$esCargo ? 'decrement' : 'increment'}('saldo', $valor);
 
                 BankTransaction::create([
-                    'bank_account_id'   => $cuenta->id,
-                    'tipo'              => $esCargo ? 'nota_debito_banco' : 'nota_credito_banco',
-                    'valor'             => $valor,
-                    'gmf'               => 0,
-                    'comision'          => 0,
-                    'saldo_despues'     => $cuenta->fresh()->saldo,
-                    'descripcion'       => 'Nota bancaria conciliación — ' . $data['description'],
+                    'bank_account_id' => $cuenta->id,
+                    'tipo' => $esCargo ? 'nota_debito_banco' : 'nota_credito_banco',
+                    'valor' => $valor,
+                    'gmf' => 0,
+                    'comision' => 0,
+                    'saldo_despues' => $cuenta->fresh()->saldo,
+                    'descripcion' => 'Nota bancaria conciliación — '.$data['description'],
                     'fecha_transaccion' => $data['date'],
-                    'conciliado'        => true,
+                    'conciliado' => true,
                 ]);
             }
         }

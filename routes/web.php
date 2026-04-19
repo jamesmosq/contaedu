@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Coordinator\AuditController as CoordinatorAudit;
+use App\Http\Controllers\SandboxController;
 use App\Http\Controllers\Student\AuthController as StudentAuth;
 use App\Http\Controllers\Student\ReferenceController;
 use App\Http\Controllers\Teacher\AuditController;
@@ -13,9 +14,6 @@ use App\Http\Controllers\Tenant\DashboardController as TenantDashboard;
 use App\Http\Controllers\Tenant\FacturacionElectronica\FacturacionElectronicaController;
 use App\Http\Controllers\Tenant\FacturacionElectronica\FeResolucionController;
 use App\Http\Controllers\Tenant\ReportPdfController;
-use App\Models\Tenant\FeFactura;
-use App\Models\Tenant\FeResolucion;
-use Illuminate\Http\Request;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\SecurityLogs as AdminSecurityLogs;
 use App\Livewire\Admin\TransferRequests as AdminTransferRequests;
@@ -25,22 +23,25 @@ use App\Livewire\Teacher\Announcements as TeacherAnnouncements;
 use App\Livewire\Teacher\Comparativo as TeacherComparativo;
 use App\Livewire\Teacher\Dashboard as TeacherDashboard;
 use App\Livewire\Teacher\DemoCompanies as TeacherDemoCompanies;
+use App\Livewire\Teacher\Negocios\Index as TeacherNegociosIndex;
 use App\Livewire\Teacher\Rubrica as TeacherRubrica;
 use App\Livewire\Teacher\StudentSearch as TeacherStudentSearch;
 use App\Livewire\Tenant\ActivosFijos\Index as ActivosFijosIndex;
+use App\Livewire\Tenant\Banco\Index as BancoIndex;
 use App\Livewire\Tenant\Calendario\Index as CalendarioIndex;
 use App\Livewire\Tenant\Compras\Index as ComprasIndex;
 use App\Livewire\Tenant\Conciliacion\Index as ConciliacionIndex;
 use App\Livewire\Tenant\Config\CompanyConfig;
 use App\Livewire\Tenant\Invoices\Index as InvoicesIndex;
+use App\Livewire\Tenant\Negocios\Index as NegociosIndex;
 use App\Livewire\Tenant\PlanDeCuentas;
 use App\Livewire\Tenant\Productos\Index as ProductosIndex;
+use App\Livewire\Tenant\PucInteractivo;
 use App\Livewire\Tenant\Reportes\Index as ReportesIndex;
-use App\Livewire\Teacher\Negocios\Index as TeacherNegociosIndex;
-use App\Livewire\Tenant\Banco\Index as BancoIndex;
-use App\Livewire\Tenant\Negocios\Index as NegociosIndex;
 use App\Livewire\Tenant\Terceros\Index as TercerosIndex;
-use App\Http\Controllers\SandboxController;
+use App\Models\Tenant\FeFactura;
+use App\Models\Tenant\FeResolucion;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
 // ─── Página principal ──────────────────────────────────────────────────────
@@ -162,86 +163,69 @@ Route::middleware(['auth', 'role:teacher'])->prefix('docente')->name('teacher.')
         // Usamos closures para absorber {demoId} del prefijo y evitar que Laravel lo inyecte
         // posicionalmente en los métodos del controlador antes que el modelo FeFactura.
         Route::prefix('facturacion-electronica')->name('fe.')->group(function () {
-            Route::get('/', fn (string $demoId) =>
-                app(FacturacionElectronicaController::class)->index()
+            Route::get('/', fn (string $demoId) => app(FacturacionElectronicaController::class)->index()
             )->name('index');
 
-            Route::get('/crear', fn (string $demoId) =>
-                app(FacturacionElectronicaController::class)->crear()
+            Route::get('/crear', fn (string $demoId) => app(FacturacionElectronicaController::class)->crear()
             )->name('crear');
 
-            Route::post('/', fn (Request $request, string $demoId) =>
-                app(FacturacionElectronicaController::class)->store($request)
+            Route::post('/', fn (Request $request, string $demoId) => app(FacturacionElectronicaController::class)->store($request)
             )->name('store');
 
             // Resoluciones (expandido desde resource para poder usar closures)
-            Route::get('/resoluciones', fn (string $demoId) =>
-                app(FeResolucionController::class)->index()
+            Route::get('/resoluciones', fn (string $demoId) => app(FeResolucionController::class)->index()
             )->name('resoluciones.index');
 
-            Route::get('/resoluciones/create', fn (string $demoId) =>
-                app(FeResolucionController::class)->create()
+            Route::get('/resoluciones/create', fn (string $demoId) => app(FeResolucionController::class)->create()
             )->name('resoluciones.create');
 
-            Route::post('/resoluciones', fn (Request $request, string $demoId) =>
-                app(FeResolucionController::class)->store($request)
+            Route::post('/resoluciones', fn (Request $request, string $demoId) => app(FeResolucionController::class)->store($request)
             )->name('resoluciones.store');
 
-            Route::get('/resoluciones/{resolucion}', fn (string $demoId, FeResolucion $resolucion) =>
-                app(FeResolucionController::class)->show($resolucion)
+            Route::get('/resoluciones/{resolucion}', fn (string $demoId, FeResolucion $resolucion) => app(FeResolucionController::class)->show($resolucion)
             )->name('resoluciones.show');
 
-            Route::get('/resoluciones/{resolucion}/edit', fn (string $demoId, FeResolucion $resolucion) =>
-                app(FeResolucionController::class)->edit($resolucion)
+            Route::get('/resoluciones/{resolucion}/edit', fn (string $demoId, FeResolucion $resolucion) => app(FeResolucionController::class)->edit($resolucion)
             )->name('resoluciones.edit');
 
-            Route::match(['put', 'patch'], '/resoluciones/{resolucion}', fn (Request $request, string $demoId, FeResolucion $resolucion) =>
-                app(FeResolucionController::class)->update($request, $resolucion)
+            Route::match(['put', 'patch'], '/resoluciones/{resolucion}', fn (Request $request, string $demoId, FeResolucion $resolucion) => app(FeResolucionController::class)->update($request, $resolucion)
             )->name('resoluciones.update');
 
             // Facturas — {factura} va DESPUÉS de {demoId} en la firma del closure
-            Route::get('/{factura}', fn (string $demoId, FeFactura $factura) =>
-                app(FacturacionElectronicaController::class)->show($factura)
+            Route::get('/{factura}', fn (string $demoId, FeFactura $factura) => app(FacturacionElectronicaController::class)->show($factura)
             )->name('show');
 
-            Route::get('/{factura}/editar', fn (string $demoId, FeFactura $factura) =>
-                app(FacturacionElectronicaController::class)->edit($factura)
+            Route::get('/{factura}/editar', fn (string $demoId, FeFactura $factura) => app(FacturacionElectronicaController::class)->edit($factura)
             )->name('edit');
 
-            Route::put('/{factura}', fn (Request $request, string $demoId, FeFactura $factura) =>
-                app(FacturacionElectronicaController::class)->update($request, $factura)
+            Route::put('/{factura}', fn (Request $request, string $demoId, FeFactura $factura) => app(FacturacionElectronicaController::class)->update($request, $factura)
             )->name('update');
 
-            Route::delete('/{factura}', fn (string $demoId, FeFactura $factura) =>
-                app(FacturacionElectronicaController::class)->destroy($factura)
+            Route::delete('/{factura}', fn (string $demoId, FeFactura $factura) => app(FacturacionElectronicaController::class)->destroy($factura)
             )->name('destroy');
 
-            Route::post('/{factura}/emitir', fn (string $demoId, FeFactura $factura) =>
-                app(FacturacionElectronicaController::class)->emitir($factura)
+            Route::post('/{factura}/emitir', fn (string $demoId, FeFactura $factura) => app(FacturacionElectronicaController::class)->emitir($factura)
             )->name('emitir');
 
-            Route::post('/{factura}/reenviar', fn (string $demoId, FeFactura $factura) =>
-                app(FacturacionElectronicaController::class)->reenviar($factura)
+            Route::post('/{factura}/reenviar', fn (string $demoId, FeFactura $factura) => app(FacturacionElectronicaController::class)->reenviar($factura)
             )->name('reenviar');
 
-            Route::post('/{factura}/anular', fn (Request $request, string $demoId, FeFactura $factura) =>
-                app(FacturacionElectronicaController::class)->anular($request, $factura)
+            Route::post('/{factura}/corregir', fn (string $demoId, FeFactura $factura) => app(FacturacionElectronicaController::class)->corregir($factura)
+            )->name('corregir');
+
+            Route::post('/{factura}/anular', fn (Request $request, string $demoId, FeFactura $factura) => app(FacturacionElectronicaController::class)->anular($request, $factura)
             )->name('anular');
 
-            Route::get('/{factura}/xml', fn (string $demoId, FeFactura $factura) =>
-                app(FacturacionElectronicaController::class)->verXml($factura)
+            Route::get('/{factura}/xml', fn (string $demoId, FeFactura $factura) => app(FacturacionElectronicaController::class)->verXml($factura)
             )->name('xml');
 
-            Route::get('/{factura}/representacion', fn (string $demoId, FeFactura $factura) =>
-                app(FacturacionElectronicaController::class)->representacion($factura)
+            Route::get('/{factura}/representacion', fn (string $demoId, FeFactura $factura) => app(FacturacionElectronicaController::class)->representacion($factura)
             )->name('representacion');
 
-            Route::get('/{factura}/pdf', fn (string $demoId, FeFactura $factura) =>
-                app(FacturacionElectronicaController::class)->pdf($factura)
+            Route::get('/{factura}/pdf', fn (string $demoId, FeFactura $factura) => app(FacturacionElectronicaController::class)->pdf($factura)
             )->name('pdf');
 
-            Route::post('/{factura}/eventos', fn (Request $request, string $demoId, FeFactura $factura) =>
-                app(FacturacionElectronicaController::class)->registrarEvento($request, $factura)
+            Route::post('/{factura}/eventos', fn (Request $request, string $demoId, FeFactura $factura) => app(FacturacionElectronicaController::class)->registrarEvento($request, $factura)
             )->name('eventos.store');
         });
     });
@@ -291,7 +275,7 @@ Route::middleware(['auth:student', 'tenant.initialize'])
         Route::get('/banco/documento/pdf', BancoPdfController::class)->name('banco.documento.pdf');
 
         // PUC Interactivo (referencia rápida desde la zona real)
-        Route::get('/puc', \App\Livewire\Tenant\PucInteractivo::class)->name('puc');
+        Route::get('/puc', PucInteractivo::class)->name('puc');
 
         // ─── Empresas de referencia (demos del docente en solo lectura) ───────
         Route::get('/referencias', StudentReferencias::class)->name('referencias');
@@ -327,6 +311,7 @@ Route::middleware(['auth:student', 'tenant.initialize'])
             Route::delete('/{factura}', [FacturacionElectronicaController::class, 'destroy'])->name('destroy');
             Route::post('/{factura}/emitir', [FacturacionElectronicaController::class, 'emitir'])->name('emitir');
             Route::post('/{factura}/reenviar', [FacturacionElectronicaController::class, 'reenviar'])->name('reenviar');
+            Route::post('/{factura}/corregir', [FacturacionElectronicaController::class, 'corregir'])->name('corregir');
             Route::post('/{factura}/anular', [FacturacionElectronicaController::class, 'anular'])->name('anular');
             Route::get('/{factura}/xml', [FacturacionElectronicaController::class, 'verXml'])->name('xml');
             Route::get('/{factura}/representacion', [FacturacionElectronicaController::class, 'representacion'])->name('representacion');
@@ -380,7 +365,7 @@ Route::middleware(['auth:student', 'tenant.initialize'])
         });
 
         // PUC Interactivo
-        Route::get('/puc', \App\Livewire\Tenant\PucInteractivo::class)->name('puc');
+        Route::get('/puc', PucInteractivo::class)->name('puc');
 
         // Reset sandbox
         Route::post('/reset', [SandboxController::class, 'reset'])->name('reset');

@@ -351,8 +351,8 @@
 
     {{-- ── Libro Mayor ── --}}
     @if($report === 'mayor')
-        @foreach($data as $entry)
-            <div class="entry-header">{{ $entry['account_code'] ?? '' }} — {{ $entry['account_name'] ?? '' }}</div>
+        @if(isset($data['account']))
+            <div class="entry-header">{{ $data['account']->code }} — {{ $data['account']->name }}</div>
             <table>
                 <thead>
                     <tr>
@@ -365,7 +365,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($entry['lines'] ?? [] as $line)
+                    @foreach($data['rows'] as $line)
                         <tr>
                             <td>{{ \Carbon\Carbon::parse($line['date'])->format('d/m/Y') }}</td>
                             <td class="mono">{{ $line['reference'] }}</td>
@@ -377,7 +377,7 @@
                     @endforeach
                 </tbody>
             </table>
-        @endforeach
+        @endif
     @endif
 
     <div class="footer">

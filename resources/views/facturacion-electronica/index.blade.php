@@ -38,6 +38,12 @@
                 </div>
             @endif
 
+            {{-- Nota pedagógica --}}
+            <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4 text-sm text-sky-800 mb-6">
+                <p class="font-semibold mb-1">¿Qué es la facturación electrónica en Colombia y por qué es obligatoria?</p>
+                <p>Desde 2020 la DIAN exige facturación electrónica para la mayoría de contribuyentes. Una factura electrónica es un documento XML firmado digitalmente, validado por la DIAN antes de entregarse al cliente. El ciclo es: <strong>Emisión → Envío al simulador DIAN → Validación → Entrega al cliente</strong>. En ContaEdu simulamos este proceso con los estados: Borrador → Generada → Enviada → Validada/Rechazada. El receptor también puede registrar <strong>eventos</strong>: acuse de recibo, aceptación expresa o reclamo.</p>
+            </div>
+
             {{-- Acciones --}}
             @if(! session('audit_mode'))
             <div class="flex gap-3 mb-6 justify-end">

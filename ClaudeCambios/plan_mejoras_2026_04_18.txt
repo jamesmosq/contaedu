@@ -1,0 +1,180 @@
+PLAN DE MEJORAS — ContaEdu
+2026-04-18
+======================================================
+
+CONTEXTO
+--------
+Mejoras acordadas tras análisis de la plataforma. NO incluye cotizaciones/CRM.
+Archivos clave: layouts/tenant.blade.php, Livewire/Tenant/Invoices/Index.php,
+AccountingService.php, BankService.php, database/migrations/tenant/
+
+ESTADO DE NOTAS PEDAGÓGICAS
+----------------------------
+✅ COMPLETADO — 13/13 módulos con nota bg-sky-50.
+
+======================================================
+TAREA A — Banner contextual Aprendizaje vs Mi Empresa
+======================================================
+Archivo: resources/views/layouts/tenant.blade.php
+Problema: El estudiante no sabe visualmente en qué zona está.
+          El banner de auditoría (bg-amber-500) ya es el patrón.
+Acción:
+  - Agregar bloque @if(request()->is('aprendizaje/*')) con banner
+    bg-indigo-600 text-white que diga:
+    "Zona de Aprendizaje — los datos aquí son de práctica y no afectan tu empresa real"
+  - Solo mostrar si NO hay session('audit_mode') ni session('demo_mode')
+  - El banner de empresa real NO necesita aviso (es el estado normal)
+Riesgo: NINGUNO — solo HTML en el layout.
+Estado: COMPLETADA (banner ya existía en tenant.blade.php línea 90)
+
+======================================================
+TAREA B — Fechas de vencimiento en facturas (UI)
+======================================================
+Archivos:
+  - app/Livewire/Tenant/Invoices/Index.php
+  - resources/views/livewire/tenant/invoices/index.blade.php
+
+Contexto: due_date YA EXISTE en invoices y purchase_invoices (nullable).
+          Solo falta mostrarlo y editarlo en la UI.
+
+Acción:
+  B1. En el formulario de factura de venta:
+      - Agregar campo "Fecha de vencimiento" (date input) → wire:model="due_date"
+      - Mostrar junto a "Fecha de emisión"
+      - Opcional: calcular automáticamente +30 días al seleccionar fecha emisión
+  B2. En la tabla de facturas:
+      - Agregar columna "Vence" con due_date formateado
+      - Si due_date < hoy y status != 'pagada': texto rojo + badge "Vencida"
+  B3. Mismo para compras (purchase_invoices) en su sección de la UI
+
+Riesgo: BAJO — due_date ya existe en BD, solo cambios de UI y Livewire props.
+Estado: COMPLETADA — columna Vence en tablas CxC y CxP, badge rojo "Vencida"
+
+======================================================
+TAREA C — Panel de cartera vencida (aging)
+======================================================
+Estado: COMPLETADA — tab "Cartera vencida" con buckets aging CxC y CxP,
+        resumen por bucket + tabla detalle ordenada por días de mora
+
+======================================================
+TAREA D — Kardex de inventario
+======================================================
+Archivos nuevos:
+  - database/migrations/tenant/2026_04_18_000001_create_stock_movements_table.php
+  - app/Models/Tenant/StockMovement.php
+  - app/Services/StockService.php
+
+Archivos modificados:
+  - app/Services/AccountingService.php → hooks en generateSaleEntry() y generatePurchaseEntry()
+  - app/Models/Tenant/Product.php → relación stockMovements() + método stockActual()
+  - resources/views/livewire/tenant/productos/index.blade.php → mostrar stock actual
+
+D1. Migración stock_movements:
+    - id, product_id FK, tipo ENUM('entrada','salida'),
+      qty DECIMAL(15,4), costo_unitario DECIMAL(15,4),
+      costo_total DECIMAL(15,2),
+      referencia_tipo VARCHAR(30) [factura|compra|ajuste],
+      referencia_id UNSIGNEDBIGINT nullable,
+      saldo_qty DECIMAL(15,4) [stock acumulado después del movimiento],
+      saldo_valor DECIMAL(15,2) [valor acumulado],
+      fecha DATE, descripcion TEXT nullable,
+      created_at, updated_at
+
+D2. StockService::registrarEntrada(Product, qty, costoUnitario, refTipo, refId, fecha)
+    StockService::registrarSalida(Product, qty, fecha, refTipo, refId)
+      - Usa costo promedio ponderado: saldo_valor / saldo_qty
+    StockService::stockActual(Product): float
+    StockService::costoPromedio(Product): float
+
+D3. Hooks en AccountingService (dentro de DB::transaction existente):
+    - generateSaleEntry(): después del asiento, llamar StockService::registrarSalida()
+      por cada InvoiceLine que tenga product con inventory_account_id
+    - generatePurchaseEntry() / generateDirectPurchaseEntry(): llamar
+      StockService::registrarEntrada() si la línea tiene product_id con inventory_account_id
+
+D4. Vista en productos:
+    - Columna "Stock" en tabla de productos (stockActual())
+    - Al hacer clic en un producto: panel lateral con historial KARDEX (últimos 20 movimientos)
+
+D5. Costo promedio en generateSaleEntry():
+    - Reemplazar product.cost_price fijo por StockService::costoPromedio(product)
+    - Si no hay stock: usar cost_price del producto como fallback
+
+Riesgo: MEDIO
+  - Asegurarse de que los hooks estén DENTRO del DB::transaction de AccountingService
+  - No duplicar: solo registrar movimiento si product.inventory_account_id IS NOT NULL
+  - El saldo_qty puede ser negativo si se vende más de lo que hay (en modo educativo, permitirlo)
+  - modo 'sandbox' vs 'real': stock_movements NO tiene campo modo
+    → Solución: agregar campo modo VARCHAR(10) DEFAULT 'real' en la tabla
+    → StockService debe pasar modoContable() al crear el movimiento
+
+Estado: COMPLETADA — StockService::registrarEntrada/Salida/costoPromedio/stockActual,
+        hooks en generateSaleEntry/generatePurchaseEntry/generateDirectPurchaseEntry,
+        columna Stock + botón Kardex + panel KARDEX (últimos 20 movimientos) en productos
+
+======================================================
+TAREA E — Asientos contables desde banco (operaciones diarias)
+======================================================
+Archivo: app/Services/BankService.php
+
+Operaciones que DEBEN generar asiento (no generan actualmente):
+  - consignacion    → DR 1110 Bancos / CR 1305 Cartera (si viene de cliente)
+                      O DR 1110 Bancos / CR 1105 Caja (si es depósito directo)
+  - retiro          → DR código-a-definir / CR 1110 Bancos
+  - transferencia_salida / transferencia_entrada → DR/CR 1110 cuenta destino
+
+Operaciones que YA generan asiento (NO tocar):
+  - pago_proveedor  → via AccountingService::generatePaymentEntry()
+  - cuota_manejo    → via BankService::aplicarCuotaManejo()
+  - intereses_*     → via BankService::aplicarInteresSobregiro/Ahorros()
+
+DECISIÓN DE DISEÑO (para evitar duplicación):
+  Las transferencias entre cuentas propias son movimientos INTERNOS:
+  DR 1110 Cuenta destino / CR 1110 Cuenta origen (neto $0 para el balance)
+
+  Los depósitos directos de efectivo son:
+  DR 1110 Bancos / CR 1105 Caja (salida de caja → entrada a banco)
+
+  Los retiros de efectivo son:
+  DR 1105 Caja / CR 1110 Bancos (salida de banco → entrada a caja)
+
+  NOTA: consignacion que viene de pago de cliente YA tiene asiento via CashReceipt.
+  Solo generar asiento para consignaciones manuales (sin referencia a CashReceipt).
+
+Acción:
+  E1. Crear método privado BankService::generarAsientoBancario() similar a aplicarCuotaManejo()
+  E2. Llamarlo desde registrarTransaccion() según el tipo, solo si NO hay journal_entry_id ya
+  E3. Vincular BankTransaction.journal_entry_id al asiento generado
+
+Riesgo: ALTO — puede duplicar asientos si no se maneja bien el caso pago_proveedor y receipts
+  → ESTRATEGIA SEGURA: solo generar asiento para tipos: retiro, consignacion (sin referencia)
+  → Las transferencias entre cuentas propias: generar 1 asiento con 2 líneas
+  → Pagar proveedor: NO — ya lo hace AccountingService
+  → Resto: sin asiento por ahora (se puede expandir después)
+
+Estado: COMPLETADA — BankService::generarAsientoBancario() cubre retiro, consignacion,
+        transferencia_salida. Llamado desde Banco/Index.php en los 4 puntos de creación de
+        transacciones. Idempotente (no duplica si journal_entry_id ya existe).
+
+======================================================
+ORDEN DE EJECUCIÓN
+======================================================
+1. TAREA A — Banner contextual         ← AHORA (5 min, cero riesgo)
+2. TAREA B — Due dates UI              ← SIGUIENTE (30 min, bajo riesgo)
+3. TAREA C — Cartera vencida panel     ← SIGUIENTE (1h, bajo riesgo)
+4. TAREA D — Kardex inventario         ← DESPUÉS (2-3h, medio riesgo)
+5. TAREA E — Asientos desde banco      ← AL FINAL (1h, alto riesgo)
+
+======================================================
+NOTAS GENERALES
+======================================================
+- Cada tarea marca Estado: COMPLETADA al terminar
+- Pint --dirty después de cada tarea
+- No modificar fórmula de conciliación (ya correcta)
+- No modificar cálculo de GMF (ya correcto)
+- Todo nuevo código con DB::transaction() donde haya múltiples escrituras
+- Nuevas tablas tenant van en database/migrations/tenant/
+- stock_movements debe tener campo modo para separar sandbox/real
+======================================================
+FIN DEL PLAN
+======================================================

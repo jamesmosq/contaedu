@@ -30,6 +30,14 @@
                             {{ $this->cuentas->isEmpty() ? 'Crear cuenta bancaria' : 'Abrir segunda cuenta' }}
                         </button>
                     @endif
+                    @php $cuentaConSobregiro = $this->cuentas->firstWhere(fn($c) => $c->sobregiro_usado > 0); @endphp
+                    @if($cuentaConSobregiro)
+                        <button wire:click="$set('showPagarSobregiroModal', true)"
+                            class="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-500 transition flex items-center gap-2">
+                            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75"/></svg>
+                            Pagar Cupo Ágil (${{ number_format($cuentaConSobregiro->sobregiro_usado, 0, ',', '.') }})
+                        </button>
+                    @endif
                     <button wire:click="$set('showFinMesConfirm', true)"
                         class="px-4 py-2 bg-gold-500 text-white text-sm font-semibold rounded-xl hover:bg-gold-400 transition flex items-center gap-2">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"/></svg>
@@ -725,6 +733,52 @@
                         Usar Cupo Ágil
                     </button>
                     <button wire:click="$set('showSobregiroModal', false)"
+                        class="flex-1 px-4 py-2 bg-slate-100 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-200 transition">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- ── Modal: Pagar Cupo Ágil ─────────────────────────────────────────── --}}
+    @if($showPagarSobregiroModal)
+        @php $cuentaSob = $this->cuentas->firstWhere(fn($c) => $c->sobregiro_usado > 0); @endphp
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="w-10 h-10 rounded-full bg-red-100 flex items-center justify-center shrink-0">
+                        <svg class="w-5 h-5 text-red-600" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18.75a60.07 60.07 0 0 1 15.797 2.101c.727.198 1.453-.342 1.453-1.096V18.75M3.75 4.5v.75A.75.75 0 0 1 3 6h-.75m0 0v-.375c0-.621.504-1.125 1.125-1.125H20.25M2.25 6v9m18-10.5v.75c0 .414.336.75.75.75h.75m-1.5-1.5h.375c.621 0 1.125.504 1.125 1.125v9.75c0 .621-.504 1.125-1.125 1.125h-.375m1.5-1.5H21a.75.75 0 0 0-.75.75v.75m0 0H3.75m0 0h-.375a1.125 1.125 0 0 1-1.125-1.125V15m1.5 1.5v-.75A.75.75 0 0 0 3 15h-.75"/></svg>
+                    </div>
+                    <h2 class="text-lg font-bold text-slate-800">Pagar Cupo Ágil</h2>
+                </div>
+
+                @if($cuentaSob)
+                    <div class="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-800 mb-5 space-y-1">
+                        <p class="font-semibold">Sobregiro activo en Banco de Bogotá</p>
+                        <p>Monto utilizado: <strong>${{ number_format($cuentaSob->sobregiro_usado, 0, ',', '.') }}</strong></p>
+                        <p>Saldo disponible: <strong>${{ number_format($cuentaSob->saldo, 0, ',', '.') }}</strong></p>
+                        @if($cuentaSob->bloqueada)
+                            <p class="text-red-700 font-semibold mt-1">⚠ Cuenta bloqueada — pagar el sobregiro la desbloqueará.</p>
+                        @endif
+                    </div>
+
+                    <div class="mb-5">
+                        <label class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5 block">Monto a pagar</label>
+                        <input type="number" wire:model="pagarSobregiroMonto"
+                            min="1" max="{{ $cuentaSob->sobregiro_usado }}" step="1000"
+                            placeholder="Ej: {{ number_format($cuentaSob->sobregiro_usado, 0, '.', '') }}"
+                            class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-red-400 focus:border-transparent">
+                        <p class="text-xs text-slate-500 mt-1">Máximo: ${{ number_format($cuentaSob->sobregiro_usado, 0, ',', '.') }}</p>
+                    </div>
+                @endif
+
+                <div class="flex gap-3">
+                    <button wire:click="pagarSobregiro"
+                        class="flex-1 px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-500 transition">
+                        Confirmar pago
+                    </button>
+                    <button wire:click="$set('showPagarSobregiroModal', false)"
                         class="flex-1 px-4 py-2 bg-slate-100 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-200 transition">
                         Cancelar
                     </button>

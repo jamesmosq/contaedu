@@ -19,6 +19,12 @@
     <div class="px-6 py-6 lg:px-10">
         <div class="max-w-5xl mx-auto space-y-6">
 
+            {{-- Nota pedagógica --}}
+            <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4 text-sm text-sky-800">
+                <p class="font-semibold mb-1">¿Qué es el mercado interempresarial?</p>
+                <p>En la realidad empresarial colombiana, las empresas compran y venden entre sí. Este módulo simula ese entorno: puedes publicar productos o servicios en tu <strong>portafolio</strong> para que otras empresas del grupo te compren, y también puedes hacer pedidos a las empresas de tus compañeros. Cada negocio completado genera automáticamente los asientos contables correspondientes en <strong>ambas empresas</strong>: ingresos para el vendedor y costo para el comprador.</p>
+            </div>
+
             {{-- ── Panel financiero ───────────────────────────────────────────── --}}
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4" wire:poll.8s>
                 <div class="bg-white rounded-2xl border border-cream-200 shadow-card px-5 py-4 flex items-center gap-4">
@@ -618,6 +624,9 @@
                                     </span>
                                 </div>
                                 <p class="text-sm font-medium text-slate-800">Vendedor: {{ $inv->seller->company_name }}</p>
+                                @if($inv->seller->student_name)
+                                    <p class="text-xs text-slate-400">{{ $inv->seller->student_name }}</p>
+                                @endif
                                 <p class="text-xs text-slate-500 truncate max-w-xs">{{ $inv->concepto }}</p>
                                 <p class="text-xs text-slate-400">{{ $inv->created_at->format('d/m/Y H:i') }}</p>
                                 @php
@@ -657,6 +666,15 @@
                                         Cancelar pedido
                                     </button>
                                 @endif
+                                @if($inv->pendientePago() && ! session('audit_mode') && ! session('reference_mode'))
+                                    <button wire:click="openPago({{ $inv->id }})"
+                                        class="px-3 py-1 bg-red-600 text-white text-xs font-semibold rounded-lg hover:bg-red-500 transition">
+                                        Registrar pago
+                                    </button>
+                                @endif
+                                @if($inv->paid_at)
+                                    <p class="text-xs text-green-600 font-medium">Pagado {{ $inv->paid_at->format('d/m/Y') }}</p>
+                                @endif
                             </div>
                         </div>
                         @endforeach
@@ -690,6 +708,9 @@
                                         <span class="px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-100 text-amber-800">Pendiente confirmación</span>
                                     </div>
                                     <p class="text-sm font-semibold text-slate-800">Comprador: {{ $inv->buyer->company_name }}</p>
+                                    @if($inv->buyer->student_name)
+                                        <p class="text-xs text-slate-400">{{ $inv->buyer->student_name }}</p>
+                                    @endif
                                     <p class="text-xs text-slate-500 mt-0.5">{{ $inv->concepto }}</p>
                                     <p class="text-xs text-slate-400 mt-0.5">{{ $inv->created_at->format('d/m/Y H:i') }}</p>
                                 </div>
@@ -781,6 +802,9 @@
                                 <p class="text-sm text-slate-700">
                                     {{ $soyVendedor ? 'Comprador' : 'Vendedor' }}: <span class="font-medium">{{ $contraparte->company_name }}</span>
                                 </p>
+                                @if($contraparte->student_name)
+                                    <p class="text-xs text-slate-400">{{ $contraparte->student_name }}</p>
+                                @endif
                                 <p class="text-xs text-slate-500">{{ $inv->concepto }}</p>
                                 @if($inv->isRechazada() && $inv->rechazo_motivo)
                                     <p class="text-xs text-red-500 italic">Motivo: {{ $inv->rechazo_motivo }}</p>
@@ -803,6 +827,18 @@
                                         </p>
                                     @else
                                         <p class="text-xs text-slate-400">A crédito</p>
+                                    @endif
+                                    @if($soyVendedor && $inv->pendienteCobro() && ! session('audit_mode') && ! session('reference_mode'))
+                                        <button wire:click="openCobro({{ $inv->id }})"
+                                            class="mt-1 px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded-lg hover:bg-blue-500 transition">
+                                            Registrar cobro
+                                        </button>
+                                    @endif
+                                    @if($soyVendedor && $inv->collected_at)
+                                        <p class="text-xs text-green-600 font-medium mt-1">Cobrado {{ $inv->collected_at->format('d/m/Y') }}</p>
+                                    @endif
+                                    @if(! $soyVendedor && $inv->paid_at)
+                                        <p class="text-xs text-green-600 font-medium mt-1">Pagado {{ $inv->paid_at->format('d/m/Y') }}</p>
                                     @endif
                                 @endif
                             </div>
@@ -872,6 +908,100 @@
                     class="px-5 py-2 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-500 transition disabled:opacity-50">
                     <span wire:loading.remove wire:target="confirmReject">Rechazar pedido</span>
                     <span wire:loading wire:target="confirmReject">Rechazando…</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- ── Modal: Registrar pago (comprador) ─────────────────────────────── --}}
+    @if($showPagoModal)
+    @php $invPago = $pagoInvoiceId ? \App\Models\Central\IntercompanyInvoice::find($pagoInvoiceId) : null; @endphp
+    <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4" @click.self="$wire.set('showPagoModal', false)">
+        <div class="bg-white rounded-2xl shadow-card-lg w-full max-w-md">
+            <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
+                <h3 class="font-semibold text-slate-800">Registrar pago</h3>
+                <button wire:click="$set('showPagoModal', false)" class="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+            </div>
+            <div class="px-6 py-5 space-y-4">
+                @if($invPago)
+                <div class="p-3 bg-slate-50 rounded-xl text-sm space-y-1">
+                    <p class="font-semibold text-slate-700">{{ $invPago->consecutive }} — {{ $invPago->seller->company_name }}</p>
+                    <p class="text-slate-500 text-xs">{{ $invPago->concepto }}</p>
+                    <p class="text-lg font-bold text-red-700 font-mono">$ {{ number_format($invPago->total, 0, ',', '.') }}</p>
+                </div>
+                <div class="p-3 bg-red-50 rounded-xl text-xs text-red-800 space-y-1">
+                    <p class="font-semibold">Asiento que se generará:</p>
+                    <p>DR 2205 — Proveedores ($ {{ number_format($invPago->total, 0, ',', '.') }})</p>
+                    <p>CR {{ $pago_bank_id ? '1110 — Bancos' : '1105 — Caja' }}</p>
+                </div>
+                @endif
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Pagar desde</label>
+                    <select wire:model="pago_bank_id" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
+                        <option value="">Caja (1105)</option>
+                        @foreach($cuentasBancarias as $cta)
+                            <option value="{{ $cta->id }}">{{ $cta->nombreBanco() }} ***{{ $cta->ultimosDigitos() }} — $ {{ number_format($cta->saldo, 0, ',', '.') }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-cream-100 flex justify-end gap-3">
+                <button wire:click="$set('showPagoModal', false)" class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800">Cancelar</button>
+                <button wire:click="confirmarPago" wire:loading.attr="disabled" class="px-5 py-2 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-500 transition disabled:opacity-60">
+                    <span wire:loading.remove wire:target="confirmarPago">Confirmar pago</span>
+                    <span wire:loading wire:target="confirmarPago">Registrando…</span>
+                </button>
+            </div>
+        </div>
+    </div>
+    @endif
+
+    {{-- ── Modal: Registrar cobro (vendedor) ──────────────────────────────── --}}
+    @if($showCobroModal)
+    @php $invCobro = $cobroInvoiceId ? \App\Models\Central\IntercompanyInvoice::find($cobroInvoiceId) : null; @endphp
+    <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4" @click.self="$wire.set('showCobroModal', false)">
+        <div class="bg-white rounded-2xl shadow-card-lg w-full max-w-md">
+            <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
+                <h3 class="font-semibold text-slate-800">Registrar cobro</h3>
+                <button wire:click="$set('showCobroModal', false)" class="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+            </div>
+            <div class="px-6 py-5 space-y-4">
+                @if($invCobro)
+                @php
+                    $brutoCobro = (float) $invCobro->subtotal + (float) $invCobro->iva;
+                    $retCobro = (float) $invCobro->retencion_fuente + (float) $invCobro->retencion_iva + (float) $invCobro->retencion_ica;
+                    $netoCobro = $brutoCobro - $retCobro;
+                @endphp
+                <div class="p-3 bg-slate-50 rounded-xl text-sm space-y-1">
+                    <p class="font-semibold text-slate-700">{{ $invCobro->consecutive }} — {{ $invCobro->buyer->company_name }}</p>
+                    <p class="text-slate-500 text-xs">{{ $invCobro->concepto }}</p>
+                    <p class="text-lg font-bold text-green-700 font-mono">$ {{ number_format($netoCobro, 0, ',', '.') }}</p>
+                    @if($retCobro > 0)
+                        <p class="text-xs text-slate-400">Neto a cobrar = total − retenciones sufridas</p>
+                    @endif
+                </div>
+                <div class="p-3 bg-blue-50 rounded-xl text-xs text-blue-800 space-y-1">
+                    <p class="font-semibold">Asiento que se generará:</p>
+                    <p>DR {{ $cobro_bank_id ? '1110 — Bancos' : '1105 — Caja' }} ($ {{ number_format($netoCobro, 0, ',', '.') }})</p>
+                    <p>CR 1305 — Clientes</p>
+                </div>
+                @endif
+                <div>
+                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Cobrar en</label>
+                    <select wire:model="cobro_bank_id" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
+                        <option value="">Caja (1105)</option>
+                        @foreach($cuentasBancarias as $cta)
+                            <option value="{{ $cta->id }}">{{ $cta->nombreBanco() }} ***{{ $cta->ultimosDigitos() }} — $ {{ number_format($cta->saldo, 0, ',', '.') }}</option>
+                        @endforeach
+                    </select>
+                </div>
+            </div>
+            <div class="px-6 py-4 border-t border-cream-100 flex justify-end gap-3">
+                <button wire:click="$set('showCobroModal', false)" class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800">Cancelar</button>
+                <button wire:click="confirmarCobro" wire:loading.attr="disabled" class="px-5 py-2 bg-blue-600 text-white text-sm font-semibold rounded-xl hover:bg-blue-500 transition disabled:opacity-60">
+                    <span wire:loading.remove wire:target="confirmarCobro">Confirmar cobro</span>
+                    <span wire:loading wire:target="confirmarCobro">Registrando…</span>
                 </button>
             </div>
         </div>

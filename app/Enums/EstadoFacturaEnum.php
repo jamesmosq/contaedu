@@ -70,7 +70,7 @@ enum EstadoFacturaEnum: string
             self::Borrador => $nuevo === self::Generada,
             self::Generada => in_array($nuevo, [self::Enviada, self::Anulada]),
             self::Enviada => in_array($nuevo, [self::Validada, self::Rechazada]),
-            self::Rechazada => $nuevo === self::Generada,
+            self::Rechazada => in_array($nuevo, [self::Borrador, self::Generada]),
             self::Validada => $nuevo === self::Anulada,
             self::Anulada => false,
         };

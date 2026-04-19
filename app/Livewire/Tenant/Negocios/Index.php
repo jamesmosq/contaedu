@@ -24,34 +24,66 @@ class Index extends Component
     public string $tab = 'comprar';
 
     // ── Formulario: nuevo pedido (buyer-initiated) ────────────────────────────
-    public string $seller_id        = '';   // empresa vendedora seleccionada
-    public string $concepto         = '';
-    public string $gasto_code       = '5195';
-    public bool   $aplica_retencion = false;
-    public bool   $aplica_reteiva   = false;
-    public bool   $aplica_reteica   = false;
-    public array  $items            = [];
-    public ?int   $buyer_bank_account_id = null;  // cuenta desde donde se paga (null = crédito/CxP)
+    public string $seller_id = '';   // empresa vendedora seleccionada
+
+    public string $concepto = '';
+
+    public string $gasto_code = '5195';
+
+    public bool $aplica_retencion = false;
+
+    public bool $aplica_reteiva = false;
+
+    public bool $aplica_reteica = false;
+
+    public array $items = [];
+
+    public ?int $buyer_bank_account_id = null;  // cuenta desde donde se paga (null = crédito/CxP)
 
     // ── Modal: confirmar venta (seller side) ─────────────────────────────────
-    public bool  $showConfirmModal = false;
-    public ?int  $confirmingId     = null;
+    public bool $showConfirmModal = false;
+
+    public ?int $confirmingId = null;
 
     // ── Modal: rechazar ───────────────────────────────────────────────────────
-    public bool   $showRejectModal = false;
-    public ?int   $rejectingId     = null;
-    public string $rechazo_motivo  = '';
+    public bool $showRejectModal = false;
+
+    public ?int $rejectingId = null;
+
+    public string $rechazo_motivo = '';
+
+    // ── Modal: registrar pago (comprador) ─────────────────────────────────────
+    public bool $showPagoModal = false;
+
+    public ?int $pagoInvoiceId = null;
+
+    public ?int $pago_bank_id = null;
+
+    // ── Modal: registrar cobro (vendedor) ─────────────────────────────────────
+    public bool $showCobroModal = false;
+
+    public ?int $cobroInvoiceId = null;
+
+    public ?int $cobro_bank_id = null;
 
     // ── Portafolio propio ─────────────────────────────────────────────────────
-    public bool   $showPortafolioForm  = false;
-    public ?int   $editingPortafolioId = null;
-    public string $p_nombre            = '';
-    public string $p_descripcion       = '';
-    public string $p_tipo              = 'producto';
-    public string $p_precio            = '';
-    public string $p_iva               = '19';
-    public string $p_cuenta_codigo     = '';
-    public string $p_cuenta_nombre     = '';
+    public bool $showPortafolioForm = false;
+
+    public ?int $editingPortafolioId = null;
+
+    public string $p_nombre = '';
+
+    public string $p_descripcion = '';
+
+    public string $p_tipo = 'producto';
+
+    public string $p_precio = '';
+
+    public string $p_iva = '19';
+
+    public string $p_cuenta_codigo = '';
+
+    public string $p_cuenta_nombre = '';
 
     // ── Actualiza portafolio al cambiar vendedor ──────────────────────────────
 
@@ -65,23 +97,26 @@ class Index extends Component
     public function addItemFromPortafolio(int $portafolioItemId): void
     {
         $item = PortafolioItem::find($portafolioItemId);
-        if (! $item || $item->tenant_id !== $this->seller_id) return;
+        if (! $item || $item->tenant_id !== $this->seller_id) {
+            return;
+        }
 
         // Si ya existe el ítem, incrementar cantidad
         foreach ($this->items as $idx => $existing) {
             if (($existing['portafolio_item_id'] ?? null) === $item->id) {
                 $this->items[$idx]['cantidad']++;
+
                 return;
             }
         }
 
         $this->items[] = [
-            'portafolio_item_id'    => $item->id,
-            'descripcion'           => $item->nombre,
-            'cantidad'              => 1,
-            'precio'                => $item->precio,
-            'iva'                   => (int) $item->iva,
-            'cuenta'                => $item->cuenta_ingreso_codigo,
+            'portafolio_item_id' => $item->id,
+            'descripcion' => $item->nombre,
+            'cantidad' => 1,
+            'precio' => $item->precio,
+            'iva' => (int) $item->iva,
+            'cuenta' => $item->cuenta_ingreso_codigo,
         ];
     }
 
@@ -97,18 +132,18 @@ class Index extends Component
         $tenant = tenancy()->tenant;
 
         $this->validate([
-            'seller_id'  => ['required', 'string', 'different:' . $tenant->id],
-            'concepto'   => ['required', 'string', 'max:500'],
+            'seller_id' => ['required', 'string', 'different:'.$tenant->id],
+            'concepto' => ['required', 'string', 'max:500'],
             'gasto_code' => ['required', 'string'],
-            'items'      => ['required', 'array', 'min:1'],
+            'items' => ['required', 'array', 'min:1'],
             'items.*.cantidad' => ['required', 'numeric', 'min:0.01'],
         ], [
-            'seller_id.required'  => 'Selecciona una empresa vendedora.',
+            'seller_id.required' => 'Selecciona una empresa vendedora.',
             'seller_id.different' => 'No puedes comprarte a ti mismo.',
-            'concepto.required'   => 'Escribe un concepto para el pedido.',
+            'concepto.required' => 'Escribe un concepto para el pedido.',
             'gasto_code.required' => 'Selecciona la cuenta de gasto.',
-            'items.required'      => 'Agrega al menos un ítem del portafolio.',
-            'items.min'           => 'Agrega al menos un ítem del portafolio.',
+            'items.required' => 'Agrega al menos un ítem del portafolio.',
+            'items.min' => 'Agrega al menos un ítem del portafolio.',
         ]);
 
         $seller = CentralTenant::on('pgsql')
@@ -123,23 +158,23 @@ class Index extends Component
         $itemsData = [];
 
         foreach ($this->items as $item) {
-            $cant   = (float) $item['cantidad'];
+            $cant = (float) $item['cantidad'];
             $precio = (float) $item['precio'];
-            $pctIva = (int)   $item['iva'];
-            $sub    = round($cant * $precio, 2);
-            $iva    = round($sub * $pctIva / 100, 2);
+            $pctIva = (int) $item['iva'];
+            $sub = round($cant * $precio, 2);
+            $iva = round($sub * $pctIva / 100, 2);
 
             $subtotal += $sub;
             $totalIva += $iva;
 
             $itemsData[] = [
-                'portafolio_item_id'    => $item['portafolio_item_id'] ?? null,
-                'descripcion'           => $item['descripcion'],
-                'cantidad'              => $cant,
-                'precio_unitario'       => $precio,
-                'subtotal'              => $sub,
-                'iva'                   => $iva,
-                'porcentaje_iva'        => $pctIva,
+                'portafolio_item_id' => $item['portafolio_item_id'] ?? null,
+                'descripcion' => $item['descripcion'],
+                'cantidad' => $cant,
+                'precio_unitario' => $precio,
+                'subtotal' => $sub,
+                'iva' => $iva,
+                'porcentaje_iva' => $pctIva,
                 'cuenta_ingreso_codigo' => $item['cuenta'] ?: '4135',
             ];
         }
@@ -171,15 +206,17 @@ class Index extends Component
                     if (($gastoHoy + $total) > 25_000_000) {
                         $this->dispatch('notify', type: 'error',
                             message: 'Este pago supera el límite diario de Banco de Bogotá ($25.000.000). Elige otra cuenta o paga a crédito.');
+
                         return;
                     }
                 }
                 // Saldo suficiente (GMF estimado; ACH se calcula exacto en IntercompanyService)
-                $gmfEstim   = round($total * 0.004);
+                $gmfEstim = round($total * 0.004);
                 $totalCargo = $total + $gmfEstim;
                 if ($cuentaBanco->saldoDisponible() < $totalCargo) {
                     $this->dispatch('notify', type: 'error',
-                        message: 'Saldo insuficiente en ' . $cuentaBanco->nombreBanco() . '. Disponible: $' . number_format($cuentaBanco->saldoDisponible(), 0, ',', '.'));
+                        message: 'Saldo insuficiente en '.$cuentaBanco->nombreBanco().'. Disponible: $'.number_format($cuentaBanco->saldoDisponible(), 0, ',', '.'));
+
                     return;
                 }
             }
@@ -190,24 +227,24 @@ class Index extends Component
             $cuentaBanco = BankAccount::find($this->buyer_bank_account_id);
             $buyerBankData = [
                 'buyer_bank_account_id' => $this->buyer_bank_account_id,
-                'buyer_bank'            => $cuentaBanco?->bank,
+                'buyer_bank' => $cuentaBanco?->bank,
             ];
         }
 
         $invoice = IntercompanyInvoice::create(array_filter(array_merge([
-            'seller_tenant_id'    => $seller->id,
-            'buyer_tenant_id'     => $tenant->id,
-            'group_id'            => $tenant->group_id,
-            'consecutive'         => IntercompanyInvoice::nextConsecutive($seller->id),
-            'status'              => 'pendiente',
-            'subtotal'            => $subtotal,
-            'iva'                 => $totalIva,
-            'retencion_fuente'    => $retefte,
-            'retencion_iva'       => $reteiva,
-            'retencion_ica'       => $reteica,
-            'total'               => $total,
-            'concepto'            => $this->concepto,
-            'gasto_code_comprador'=> $this->gasto_code,
+            'seller_tenant_id' => $seller->id,
+            'buyer_tenant_id' => $tenant->id,
+            'group_id' => $tenant->group_id,
+            'consecutive' => IntercompanyInvoice::nextConsecutive($seller->id),
+            'status' => 'pendiente',
+            'subtotal' => $subtotal,
+            'iva' => $totalIva,
+            'retencion_fuente' => $retefte,
+            'retencion_iva' => $reteiva,
+            'retencion_ica' => $reteica,
+            'total' => $total,
+            'concepto' => $this->concepto,
+            'gasto_code_comprador' => $this->gasto_code,
         ], $buyerBankData ?? []), fn ($v) => $v !== null));
 
         foreach ($itemsData as $item) {
@@ -228,7 +265,7 @@ class Index extends Component
 
     public function openConfirm(int $id): void
     {
-        $this->confirmingId    = $id;
+        $this->confirmingId = $id;
         $this->showConfirmModal = true;
     }
 
@@ -238,6 +275,7 @@ class Index extends Component
 
         if ($invoice->seller_tenant_id !== tenancy()->tenant->id) {
             $this->dispatch('notify', type: 'error', message: 'No tienes permiso para confirmar esta venta.');
+
             return;
         }
 
@@ -247,7 +285,7 @@ class Index extends Component
             $service->accept($invoice); // usa gasto_code_comprador guardado en el invoice
 
             $this->showConfirmModal = false;
-            $this->confirmingId     = null;
+            $this->confirmingId = null;
 
             $bankMsg = $hadBankPayment
                 ? ' Saldo bancario del comprador descontado.'
@@ -257,7 +295,69 @@ class Index extends Component
 
         } catch (\Throwable $e) {
             $this->dispatch('notify', type: 'error',
-                message: 'Error al contabilizar: ' . $e->getMessage());
+                message: 'Error al contabilizar: '.$e->getMessage());
+        }
+    }
+
+    // ── Pago posterior (comprador) ────────────────────────────────────────────
+
+    public function openPago(int $id): void
+    {
+        $this->pagoInvoiceId = $id;
+        $this->pago_bank_id = BankAccount::where('activa', true)->orderByDesc('es_principal')->value('id');
+        $this->showPagoModal = true;
+    }
+
+    public function confirmarPago(IntercompanyService $service): void
+    {
+        $invoice = IntercompanyInvoice::findOrFail($this->pagoInvoiceId);
+
+        if ($invoice->buyer_tenant_id !== tenancy()->tenant->id) {
+            $this->dispatch('notify', type: 'error', message: 'No tienes permiso para pagar este negocio.');
+
+            return;
+        }
+
+        try {
+            $bankAccount = $this->pago_bank_id ? BankAccount::find($this->pago_bank_id) : null;
+            $service->registrarPago($invoice, $bankAccount);
+            $this->showPagoModal = false;
+            $this->pagoInvoiceId = null;
+            $origen = $bankAccount ? $bankAccount->nombreBanco() : 'Caja (1105)';
+            $this->dispatch('notify', type: 'success', message: "Pago registrado desde {$origen}. CxP saldada.");
+        } catch (\Throwable $e) {
+            $this->dispatch('notify', type: 'error', message: 'Error al registrar pago: '.$e->getMessage());
+        }
+    }
+
+    // ── Cobro posterior (vendedor) ────────────────────────────────────────────
+
+    public function openCobro(int $id): void
+    {
+        $this->cobroInvoiceId = $id;
+        $this->cobro_bank_id = BankAccount::where('activa', true)->orderByDesc('es_principal')->value('id');
+        $this->showCobroModal = true;
+    }
+
+    public function confirmarCobro(IntercompanyService $service): void
+    {
+        $invoice = IntercompanyInvoice::findOrFail($this->cobroInvoiceId);
+
+        if ($invoice->seller_tenant_id !== tenancy()->tenant->id) {
+            $this->dispatch('notify', type: 'error', message: 'No tienes permiso para cobrar este negocio.');
+
+            return;
+        }
+
+        try {
+            $bankAccount = $this->cobro_bank_id ? BankAccount::find($this->cobro_bank_id) : null;
+            $service->registrarCobro($invoice, $bankAccount);
+            $this->showCobroModal = false;
+            $this->cobroInvoiceId = null;
+            $destino = $bankAccount ? $bankAccount->nombreBanco() : 'Caja (1105)';
+            $this->dispatch('notify', type: 'success', message: "Cobro registrado en {$destino}. CxC saldada.");
+        } catch (\Throwable $e) {
+            $this->dispatch('notify', type: 'error', message: 'Error al registrar cobro: '.$e->getMessage());
         }
     }
 
@@ -265,7 +365,7 @@ class Index extends Component
 
     public function openReject(int $id): void
     {
-        $this->rejectingId    = $id;
+        $this->rejectingId = $id;
         $this->rechazo_motivo = '';
         $this->showRejectModal = true;
     }
@@ -276,20 +376,21 @@ class Index extends Component
             'rechazo_motivo' => ['required', 'string', 'min:5', 'max:500'],
         ], [
             'rechazo_motivo.required' => 'Escribe el motivo del rechazo.',
-            'rechazo_motivo.min'      => 'El motivo debe tener al menos 5 caracteres.',
+            'rechazo_motivo.min' => 'El motivo debe tener al menos 5 caracteres.',
         ]);
 
         $invoice = IntercompanyInvoice::findOrFail($this->rejectingId);
 
         if ($invoice->seller_tenant_id !== tenancy()->tenant->id) {
             $this->dispatch('notify', type: 'error', message: 'No tienes permiso para rechazar este pedido.');
+
             return;
         }
 
         $service->reject($invoice, $this->rechazo_motivo);
 
         $this->showRejectModal = false;
-        $this->rejectingId     = null;
+        $this->rejectingId = null;
         $this->dispatch('notify', type: 'success', message: "Pedido {$invoice->consecutive} rechazado.");
     }
 
@@ -301,11 +402,13 @@ class Index extends Component
 
         if ($invoice->buyer_tenant_id !== tenancy()->tenant->id) {
             $this->dispatch('notify', type: 'error', message: 'No puedes cancelar este pedido.');
+
             return;
         }
 
         if (! $invoice->isPendiente()) {
             $this->dispatch('notify', type: 'error', message: 'Solo se pueden cancelar pedidos pendientes.');
+
             return;
         }
 
@@ -333,13 +436,13 @@ class Index extends Component
         if ($id) {
             $item = PortafolioItem::where('tenant_id', tenancy()->tenant->id)->findOrFail($id);
             $this->editingPortafolioId = $item->id;
-            $this->p_nombre            = $item->nombre;
-            $this->p_descripcion       = $item->descripcion ?? '';
-            $this->p_tipo              = $item->tipo;
-            $this->p_precio            = (string) $item->precio;
-            $this->p_iva               = $item->iva;
-            $this->p_cuenta_codigo     = $item->cuenta_ingreso_codigo;
-            $this->p_cuenta_nombre     = $item->cuenta_ingreso_nombre;
+            $this->p_nombre = $item->nombre;
+            $this->p_descripcion = $item->descripcion ?? '';
+            $this->p_tipo = $item->tipo;
+            $this->p_precio = (string) $item->precio;
+            $this->p_iva = $item->iva;
+            $this->p_cuenta_codigo = $item->cuenta_ingreso_codigo;
+            $this->p_cuenta_nombre = $item->cuenta_ingreso_nombre;
         }
 
         $this->showPortafolioForm = true;
@@ -348,30 +451,30 @@ class Index extends Component
     public function savePortafolioItem(): void
     {
         $this->validate([
-            'p_nombre'        => ['required', 'string', 'max:200'],
-            'p_tipo'          => ['required', 'in:producto,servicio'],
-            'p_precio'        => ['required', 'numeric', 'min:0.01'],
-            'p_iva'           => ['required', 'in:0,5,19'],
+            'p_nombre' => ['required', 'string', 'max:200'],
+            'p_tipo' => ['required', 'in:producto,servicio'],
+            'p_precio' => ['required', 'numeric', 'min:0.01'],
+            'p_iva' => ['required', 'in:0,5,19'],
             'p_cuenta_codigo' => ['required', 'string'],
             'p_cuenta_nombre' => ['required', 'string'],
         ], [
-            'p_nombre.required'        => 'El nombre es requerido.',
-            'p_precio.required'        => 'El precio es requerido.',
-            'p_precio.min'             => 'El precio debe ser mayor a 0.',
+            'p_nombre.required' => 'El nombre es requerido.',
+            'p_precio.required' => 'El precio es requerido.',
+            'p_precio.min' => 'El precio debe ser mayor a 0.',
             'p_cuenta_codigo.required' => 'Selecciona una cuenta de ingreso.',
         ]);
 
         $tenantId = tenancy()->tenant->id;
 
         $data = [
-            'tenant_id'            => $tenantId,
-            'nombre'               => $this->p_nombre,
-            'descripcion'          => $this->p_descripcion ?: null,
-            'tipo'                 => $this->p_tipo,
-            'precio'               => (float) $this->p_precio,
-            'iva'                  => $this->p_iva,
-            'cuenta_ingreso_codigo'=> $this->p_cuenta_codigo,
-            'cuenta_ingreso_nombre'=> $this->p_cuenta_nombre,
+            'tenant_id' => $tenantId,
+            'nombre' => $this->p_nombre,
+            'descripcion' => $this->p_descripcion ?: null,
+            'tipo' => $this->p_tipo,
+            'precio' => (float) $this->p_precio,
+            'iva' => $this->p_iva,
+            'cuenta_ingreso_codigo' => $this->p_cuenta_codigo,
+            'cuenta_ingreso_nombre' => $this->p_cuenta_nombre,
         ];
 
         if ($this->editingPortafolioId) {
@@ -399,6 +502,7 @@ class Index extends Component
     {
         if (! $value) {
             $this->p_cuenta_nombre = '';
+
             return;
         }
         $account = Account::where('code', $value)->first();
@@ -460,7 +564,7 @@ class Index extends Component
         $historial = IntercompanyInvoice::with(['seller', 'buyer'])
             ->where(function ($q) use ($tenant) {
                 $q->where('seller_tenant_id', $tenant->id)
-                  ->orWhere('buyer_tenant_id', $tenant->id);
+                    ->orWhere('buyer_tenant_id', $tenant->id);
             })
             ->whereIn('status', ['aceptada', 'rechazada', 'anulada'])
             ->orderByDesc('accepted_at')
@@ -528,24 +632,24 @@ class Index extends Component
     private function resetPortafolioForm(): void
     {
         $this->editingPortafolioId = null;
-        $this->p_nombre            = '';
-        $this->p_descripcion       = '';
-        $this->p_tipo              = 'producto';
-        $this->p_precio            = '';
-        $this->p_iva               = '19';
-        $this->p_cuenta_codigo     = '';
-        $this->p_cuenta_nombre     = '';
+        $this->p_nombre = '';
+        $this->p_descripcion = '';
+        $this->p_tipo = 'producto';
+        $this->p_precio = '';
+        $this->p_iva = '19';
+        $this->p_cuenta_codigo = '';
+        $this->p_cuenta_nombre = '';
     }
 
     private function cuentaSugeridaPorSector(string $sector): array
     {
         return match ($sector) {
-            'comercial'  => ['codigo' => '4135', 'nombre' => 'Comercio al por mayor y al por menor'],
-            'servicios'  => ['codigo' => '4160', 'nombre' => 'Servicios'],
+            'comercial' => ['codigo' => '4135', 'nombre' => 'Comercio al por mayor y al por menor'],
+            'servicios' => ['codigo' => '4160', 'nombre' => 'Servicios'],
             'industrial' => ['codigo' => '4120', 'nombre' => 'Industrias manufactureras'],
             'avicola',
-            'ganadera'   => ['codigo' => '4105', 'nombre' => 'Agricultura, ganadería, caza y silvicultura'],
-            default      => ['codigo' => '4195', 'nombre' => 'Otros ingresos operacionales'],
+            'ganadera' => ['codigo' => '4105', 'nombre' => 'Agricultura, ganadería, caza y silvicultura'],
+            default => ['codigo' => '4195', 'nombre' => 'Otros ingresos operacionales'],
         };
     }
 }

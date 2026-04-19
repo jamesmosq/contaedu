@@ -39,8 +39,8 @@ class FacturacionElectronicaController extends Controller
     public function crear(): View
     {
         $resoluciones = FeResolucion::where('activa', true)->where('activa', true)->get();
-        $clientes = Third::clientes()->where('active', true)->orderBy('name')->get();
-        $productos = Product::where('active', true)->orderBy('name')->get();
+        $clientes = Third::modoActual()->clientes()->where('active', true)->orderBy('name')->get();
+        $productos = Product::modoActual()->where('active', true)->orderBy('name')->get();
         $tiposDocumento = TipoDocumentoEnum::cases();
 
         return view('facturacion-electronica.crear', compact('resoluciones', 'clientes', 'productos', 'tiposDocumento'));
@@ -112,8 +112,8 @@ class FacturacionElectronicaController extends Controller
 
         $total = $subtotal + $totalIva;
 
-        // Calcular DV del NIT emisor
-        $nitEmisor = preg_replace('/\D/', '', $config?->nit ?? '0');
+        // Calcular DV del NIT emisor — extraer solo la parte base (antes del guión)
+        $nitEmisor = preg_replace('/\D/', '', explode('-', $config?->nit ?? '0')[0]);
         $dvEmisor = $this->calcularDv($nitEmisor);
 
         $factura = FeFactura::create([
@@ -163,8 +163,8 @@ class FacturacionElectronicaController extends Controller
 
         $factura->load('detalles');
         $resoluciones = FeResolucion::where('activa', true)->get();
-        $clientes = Third::clientes()->where('active', true)->orderBy('name')->get();
-        $productos = Product::where('active', true)->orderBy('name')->get();
+        $clientes = Third::modoActual()->clientes()->where('active', true)->orderBy('name')->get();
+        $productos = Product::modoActual()->where('active', true)->orderBy('name')->get();
         $tiposDocumento = TipoDocumentoEnum::cases();
 
         return view('facturacion-electronica.editar', compact('factura', 'resoluciones', 'clientes', 'productos', 'tiposDocumento'));
@@ -331,6 +331,22 @@ class FacturacionElectronicaController extends Controller
         }
     }
 
+    public function corregir(FeFactura $factura): RedirectResponse
+    {
+        if (session('audit_mode')) {
+            return back()->with('error', 'No se pueden realizar acciones en modo auditoría.');
+        }
+
+        try {
+            $this->facturaService->corregir($factura);
+
+            return redirect()->route(...$this->feEditRoute($factura))
+                ->with('success', 'Factura devuelta a borrador. Corrige los datos y vuelve a emitir.');
+        } catch (\Exception $e) {
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
     public function anular(Request $request, FeFactura $factura): RedirectResponse
     {
         if (session('audit_mode')) {
@@ -378,11 +394,11 @@ class FacturacionElectronicaController extends Controller
             ->setPaper('letter', 'portrait')
             ->setOption(['margin_top' => 18, 'margin_right' => 20, 'margin_bottom' => 18, 'margin_left' => 20]);
 
-        $nombre = 'factura-' . str_replace(['/', ' '], '-', $factura->numero_completo) . '.pdf';
+        $nombre = 'factura-'.str_replace(['/', ' '], '-', $factura->numero_completo).'.pdf';
 
         return response($pdf->output(), 200, [
             'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'attachment; filename="' . $nombre . '"',
+            'Content-Disposition' => 'attachment; filename="'.$nombre.'"',
         ]);
     }
 
@@ -424,6 +440,15 @@ class FacturacionElectronicaController extends Controller
         }
 
         return ['student.fe.show', [$factura]];
+    }
+
+    private function feEditRoute(FeFactura $factura): array
+    {
+        if (auth('web')->check() && ($demoId = request()->route('demoId'))) {
+            return ['teacher.demo.fe.edit', ['demoId' => $demoId, 'factura' => $factura]];
+        }
+
+        return ['student.fe.edit', [$factura]];
     }
 
     private function calcularDv(string $nit): int

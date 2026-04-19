@@ -23,6 +23,12 @@
     <div class="px-6 py-8 lg:px-10">
         <div class="max-w-7xl mx-auto">
 
+            {{-- Nota pedagógica --}}
+            <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4 text-sm text-sky-800 mb-6">
+                <p class="font-semibold mb-1">¿Qué es el Plan Único de Cuentas (PUC) colombiano?</p>
+                <p>El PUC es el catálogo oficial de cuentas contables definido por la Superintendencia de Sociedades para Colombia. Está organizado en <strong>9 clases</strong>: Activos (1), Pasivos (2), Patrimonio (3), Ingresos (4), Gastos (5), Costos (6), Costos de producción (7), Cuentas de orden (8 y 9). Cada cuenta tiene un código único de hasta 8 dígitos. Puedes agregar subcuentas personalizadas para adaptar el PUC a tu empresa, pero sin modificar los códigos oficiales.</p>
+            </div>
+
             {{-- Buscador + filtro --}}
             <div class="mb-6 flex flex-col sm:flex-row sm:items-center gap-3">
                 <div class="relative w-full sm:w-80">

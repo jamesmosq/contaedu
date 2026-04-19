@@ -30,8 +30,8 @@ class DashboardController extends Controller
         // Aquí solo guardamos la clave de módulo.
         $progress = [
             ['label' => 'Configuración de empresa', 'done' => $hasConfig, 'key' => 'config'],
-            ['label' => 'Terceros registrados', 'done' => Third::exists(), 'key' => 'terceros'],
-            ['label' => 'Productos registrados', 'done' => Product::exists(), 'key' => 'productos'],
+            ['label' => 'Terceros registrados', 'done' => Third::modoActual()->exists(), 'key' => 'terceros'],
+            ['label' => 'Productos registrados', 'done' => Product::modoActual()->exists(), 'key' => 'productos'],
             ['label' => 'Facturas de venta emitidas', 'done' => ($summary?->total_facturas_venta ?? 0) > 0, 'key' => 'facturas'],
             ['label' => 'Compras registradas', 'done' => ($summary?->total_facturas_compra ?? 0) > 0, 'key' => 'compras'],
             ['label' => 'Balance cuadrado', 'done' => $summary?->balance_cuadrado ?? false, 'key' => 'reportes'],

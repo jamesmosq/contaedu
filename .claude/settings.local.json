@@ -57,7 +57,10 @@
       "Bash(composer show:*)",
       "Bash(python -c ':*)",
       "Bash(mkdir -p \"C:/Users/jmosquerarei/Herd/contaedu/.claude/skills/contaedu-testing\")",
-      "Bash(mkdir -p \"C:/Users/jmosquerarei/Herd/contaedu/.claude/skills/contaedu-deploy\")"
+      "Bash(mkdir -p \"C:/Users/jmosquerarei/Herd/contaedu/.claude/skills/contaedu-deploy\")",
+      "Bash(vendor/bin/pint *)",
+      "Bash(dir \"C:\\\\Users\\\\jmosquerarei\\\\Herd\\\\contaedu\\\\database\\\\migrations\\\\tenant\" /b)",
+      "Bash(findstr stock *)"
     ]
   },
   "enableAllProjectMcpServers": true,

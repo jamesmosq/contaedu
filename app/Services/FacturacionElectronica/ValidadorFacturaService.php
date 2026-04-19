@@ -59,11 +59,20 @@ class ValidadorFacturaService
             );
         }
 
-        // REGLA 7 — IVA coherente por línea
+        // REGLA 7 — IVA coherente, cantidad > 0 y descuento en rango por línea
         foreach ($detalles as $detalle) {
             $ivaEsperado = round((float) $detalle->subtotal_linea * (float) $detalle->porcentaje_iva / 100, 2);
             if (abs((float) $detalle->valor_iva - $ivaEsperado) > 0.02) {
                 $errores[] = "Error de IVA en la línea {$detalle->orden}: {$detalle->descripcion}.";
+            }
+
+            if ((float) $detalle->cantidad <= 0) {
+                $errores[] = "La cantidad en la línea {$detalle->orden} ({$detalle->descripcion}) debe ser mayor a 0.";
+            }
+
+            $descuento = (float) $detalle->porcentaje_descuento;
+            if ($descuento < 0 || $descuento > 100) {
+                $errores[] = "El descuento en la línea {$detalle->orden} ({$detalle->descripcion}) debe estar entre 0 y 100%.";
             }
         }
 

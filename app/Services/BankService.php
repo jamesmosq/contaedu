@@ -19,12 +19,12 @@ class BankService
     public static function cuotaManejo(string $bank, string $accountType): float
     {
         return match (true) {
-            $bank === 'bancolombia'  && $accountType === 'corriente' => 15_900,
-            $bank === 'bancolombia'  && $accountType === 'ahorros'   => 8_900,
-            $bank === 'davivienda'   && $accountType === 'corriente' => 12_800,
-            $bank === 'davivienda'   && $accountType === 'ahorros'   => 6_400,
+            $bank === 'bancolombia' && $accountType === 'corriente' => 15_900,
+            $bank === 'bancolombia' && $accountType === 'ahorros' => 8_900,
+            $bank === 'davivienda' && $accountType === 'corriente' => 12_800,
+            $bank === 'davivienda' && $accountType === 'ahorros' => 6_400,
             $bank === 'banco_bogota' && $accountType === 'corriente' => 14_500,
-            $bank === 'banco_bogota' && $accountType === 'ahorros'   => 7_200,
+            $bank === 'banco_bogota' && $accountType === 'ahorros' => 7_200,
             default => 0,
         };
     }
@@ -47,10 +47,10 @@ class BankService
         }
 
         return match ($bankOrigen) {
-            'bancolombia'  => 4_200,
-            'davivienda'   => 3_800,
+            'bancolombia' => 4_200,
+            'davivienda' => 3_800,
             'banco_bogota' => 4_500,
-            default        => 4_200,
+            default => 4_200,
         };
     }
 
@@ -60,10 +60,10 @@ class BankService
     public static function tasaInteresAhorros(string $bank): float
     {
         return match ($bank) {
-            'bancolombia'  => 0.003,  // 0.3%
-            'davivienda'   => 0.0025, // 0.25%
+            'bancolombia' => 0.003,  // 0.3%
+            'davivienda' => 0.0025, // 0.25%
             'banco_bogota' => 0.0035, // 0.35%
-            default        => 0.003,
+            default => 0.003,
         };
     }
 
@@ -94,26 +94,24 @@ class BankService
     /**
      * Asigna un banco aleatorio y crea la cuenta principal para un tenant nuevo.
      * Se llama desde AutoMigrateTenant después de seedCapitalInicial().
-     *
-     * @return BankAccount
      */
     public static function crearCuentaPrincipal(float $saldoInicial = 100_000_000): BankAccount
     {
         $bank = collect(['bancolombia', 'davivienda', 'banco_bogota'])->random();
 
         return BankAccount::create([
-            'bank'                 => $bank,
-            'account_number'       => static::generarNumeroCuenta($bank),
-            'account_type'         => 'corriente',
-            'saldo'                => $saldoInicial,
+            'bank' => $bank,
+            'account_number' => static::generarNumeroCuenta($bank),
+            'account_type' => 'corriente',
+            'saldo' => $saldoInicial,
             'sobregiro_disponible' => $bank === 'banco_bogota' ? 5_000_000 : 0,
-            'sobregiro_usado'      => 0,
-            'es_principal'         => true,
-            'activa'               => true,
-            'bloqueada'            => false,
-            'cheques_disponibles'  => 30,
-            'cheques_emitidos'     => 0,
-            'fecha_apertura'       => now()->toDateString(),
+            'sobregiro_usado' => 0,
+            'es_principal' => true,
+            'activa' => true,
+            'bloqueada' => false,
+            'cheques_disponibles' => 30,
+            'cheques_emitidos' => 0,
+            'fecha_apertura' => now()->toDateString(),
         ]);
     }
 
@@ -126,13 +124,13 @@ class BankService
     public static function generarNumeroCuenta(string $bank): string
     {
         return match ($bank) {
-            'bancolombia'  => sprintf(
+            'bancolombia' => sprintf(
                 '%03d-%06d-%02d',
                 random_int(100, 999),
                 random_int(100000, 999999),
                 random_int(10, 99)
             ),
-            'davivienda'   => sprintf(
+            'davivienda' => sprintf(
                 '%04d-%04d-%04d',
                 random_int(1000, 9999),
                 random_int(1000, 9999),
@@ -154,12 +152,8 @@ class BankService
      * Registra una transacción en la cuenta y genera el asiento contable.
      * Actualiza el saldo de la cuenta automáticamente.
      *
-     * @param  BankAccount  $cuenta
-     * @param  string  $tipo
      * @param  float  $valor  Valor base de la transacción (sin GMF ni comisión)
-     * @param  string  $descripcion
      * @param  array  $extra  Campos adicionales opcionales
-     * @return BankTransaction
      */
     public static function registrarTransaccion(
         BankAccount $cuenta,
@@ -168,7 +162,7 @@ class BankService
         string $descripcion,
         array $extra = []
     ): BankTransaction {
-        $gmf      = static::calcularGmf($tipo, $valor);
+        $gmf = static::calcularGmf($tipo, $valor);
         $comision = $extra['comision'] ?? 0;
         $totalCargo = $valor + $gmf + $comision;
 
@@ -182,13 +176,13 @@ class BankService
         $cuenta->update(['saldo' => $nuevoSaldo]);
 
         return BankTransaction::create(array_merge([
-            'bank_account_id'  => $cuenta->id,
-            'tipo'             => $tipo,
-            'valor'            => $valor,
-            'gmf'              => $gmf,
-            'comision'         => $comision,
-            'saldo_despues'    => $nuevoSaldo,
-            'descripcion'      => $descripcion,
+            'bank_account_id' => $cuenta->id,
+            'tipo' => $tipo,
+            'valor' => $valor,
+            'gmf' => $gmf,
+            'comision' => $comision,
+            'saldo_despues' => $nuevoSaldo,
+            'descripcion' => $descripcion,
             'fecha_transaccion' => $extra['fecha'] ?? now()->toDateString(),
         ], $extra));
     }
@@ -261,7 +255,124 @@ class BankService
         });
     }
 
+    // ─── Pago de sobregiro ────────────────────────────────────────────────────
+
+    /**
+     * Paga parcial o totalmente el Cupo Ágil utilizado.
+     * Valida monto, actualiza saldo/sobregiro en una transacción atómica
+     * y registra el movimiento. Si el sobregiro queda en 0 desbloquea la cuenta.
+     *
+     * @throws \RuntimeException con mensaje pedagógico en caso de error de negocio
+     */
+    public static function pagarSobregiro(BankAccount $cuenta, float $monto): BankTransaction
+    {
+        if ($monto <= 0) {
+            throw new \RuntimeException('El monto a pagar debe ser mayor a $0.');
+        }
+
+        if ($monto > $cuenta->sobregiro_usado) {
+            throw new \RuntimeException(
+                'El monto ($'.number_format($monto, 0, ',', '.').') supera el sobregiro utilizado ($'.number_format($cuenta->sobregiro_usado, 0, ',', '.').').'
+            );
+        }
+
+        if ($cuenta->saldo < $monto) {
+            throw new \RuntimeException(
+                'Saldo insuficiente. Necesitas $'.number_format($monto, 0, ',', '.').' y tienes $'.number_format($cuenta->saldo, 0, ',', '.').'.'
+            );
+        }
+
+        return DB::transaction(function () use ($cuenta, $monto) {
+            $cuenta->decrement('saldo', $monto);
+            $cuenta->decrement('sobregiro_usado', $monto);
+            $cuenta->increment('sobregiro_disponible', $monto);
+
+            $sobreroGiroUsadoNuevo = $cuenta->fresh()->sobregiro_usado;
+
+            if ($sobreroGiroUsadoNuevo <= 0) {
+                $cuenta->update([
+                    'sobregiro_periodos' => 0,
+                    'bloqueada' => false,
+                ]);
+            }
+
+            return BankTransaction::create([
+                'bank_account_id' => $cuenta->id,
+                'tipo' => 'pago_sobregiro',
+                'valor' => $monto,
+                'gmf' => 0,
+                'comision' => 0,
+                'saldo_despues' => $cuenta->fresh()->saldo,
+                'descripcion' => 'Pago Cupo Ágil — abono a sobregiro utilizado',
+                'fecha_transaccion' => now()->toDateString(),
+            ]);
+        });
+    }
+
     // ─── Asientos contables bancarios ─────────────────────────────────────────
+
+    /**
+     * Genera el asiento contable para una transacción bancaria operativa.
+     * Aplica solo a: retiro, consignacion, transferencia_salida.
+     * Idempotente: si journal_entry_id ya está asignado no hace nada.
+     *
+     * retiro          → DR 1105 Caja       / CR 1110 Bancos  (efectivo sale del banco)
+     * consignacion    → DR 1110 Bancos     / CR 1105 Caja    (efectivo entra al banco)
+     * transferencia_salida → DR 1110 Bancos (desc) / CR 1110 Bancos (orig), neto $0
+     */
+    public static function generarAsientoBancario(
+        BankTransaction $tx,
+        BankAccount $cuenta,
+        ?BankAccount $cuentaDestino = null
+    ): ?JournalEntry {
+        if (! empty($tx->journal_entry_id)) {
+            return null;
+        }
+
+        $bancos = Account::where('code', 'like', '1110%')->where('level', '>=', 3)->first();
+        $caja = Account::where('code', 'like', '1105%')->where('level', '>=', 3)->first();
+
+        if (! $bancos || ! $caja) {
+            return null;
+        }
+
+        $lines = match ($tx->tipo) {
+            'retiro' => [
+                ['account_id' => $caja->id,   'debit' => $tx->valor, 'credit' => 0,          'description' => 'Retiro efectivo — '.$cuenta->nombreBanco()],
+                ['account_id' => $bancos->id,  'debit' => 0,          'credit' => $tx->valor, 'description' => 'Retiro banco '.$cuenta->nombreBanco()],
+            ],
+            'consignacion' => [
+                ['account_id' => $bancos->id, 'debit' => $tx->valor, 'credit' => 0,          'description' => 'Consignación '.$cuenta->nombreBanco()],
+                ['account_id' => $caja->id,   'debit' => 0,          'credit' => $tx->valor, 'description' => 'Salida de caja — consignación'],
+            ],
+            'transferencia_salida' => [
+                ['account_id' => $bancos->id, 'debit' => $tx->valor, 'credit' => 0,          'description' => 'Transferencia a '.($cuentaDestino?->nombreBanco() ?? 'cuenta destino')],
+                ['account_id' => $bancos->id, 'debit' => 0,          'credit' => $tx->valor, 'description' => 'Transferencia desde '.$cuenta->nombreBanco()],
+            ],
+            default => null,
+        };
+
+        if ($lines === null) {
+            return null;
+        }
+
+        $entry = JournalEntry::create([
+            'date' => $tx->fecha_transaccion,
+            'reference' => 'BNK-'.strtoupper(substr($tx->tipo, 0, 3)).'-'.str_pad($tx->id, 5, '0', STR_PAD_LEFT),
+            'description' => $tx->descripcion,
+            'document_type' => 'banco_'.$tx->tipo,
+            'document_id' => $tx->id,
+            'auto_generated' => true,
+        ]);
+
+        foreach ($lines as $line) {
+            JournalLine::create(array_merge($line, ['journal_entry_id' => $entry->id]));
+        }
+
+        $tx->update(['journal_entry_id' => $entry->id]);
+
+        return $entry;
+    }
 
     /**
      * Genera asiento contable para cuota de manejo bancaria.
@@ -270,34 +381,34 @@ class BankService
     private static function aplicarCuotaManejo(BankAccount $cuenta, float $monto, string $periodo): void
     {
         $comisiones = Account::where('code', 'like', '5305%')->where('level', '>=', 3)->first();
-        $bancos     = Account::where('code', 'like', '1110%')->where('level', '>=', 3)->first();
+        $bancos = Account::where('code', 'like', '1110%')->where('level', '>=', 3)->first();
 
         if (! $comisiones || ! $bancos) {
             return;
         }
 
         $entry = JournalEntry::create([
-            'date'           => now()->toDateString(),
-            'reference'      => 'BNK-CM-'.$periodo,
-            'description'    => 'Cuota de manejo '.$cuenta->nombreBanco().' '.$periodo,
-            'document_type'  => 'cuota_manejo_banco',
+            'date' => now()->toDateString(),
+            'reference' => 'BNK-CM-'.$periodo,
+            'description' => 'Cuota de manejo '.$cuenta->nombreBanco().' '.$periodo,
+            'document_type' => 'cuota_manejo_banco',
             'auto_generated' => true,
         ]);
 
-        JournalLine::create(['journal_entry_id' => $entry->id, 'account_id' => $comisiones->id, 'debit'  => $monto, 'credit' => 0,     'description' => 'Cuota manejo '.$cuenta->nombreBanco()]);
-        JournalLine::create(['journal_entry_id' => $entry->id, 'account_id' => $bancos->id,     'debit'  => 0,      'credit' => $monto, 'description' => 'Cuota manejo '.$cuenta->nombreBanco()]);
+        JournalLine::create(['journal_entry_id' => $entry->id, 'account_id' => $comisiones->id, 'debit' => $monto, 'credit' => 0,     'description' => 'Cuota manejo '.$cuenta->nombreBanco()]);
+        JournalLine::create(['journal_entry_id' => $entry->id, 'account_id' => $bancos->id,     'debit' => 0,      'credit' => $monto, 'description' => 'Cuota manejo '.$cuenta->nombreBanco()]);
 
         $cuenta->decrement('saldo', $monto);
 
         BankTransaction::create([
-            'bank_account_id'   => $cuenta->id,
-            'tipo'              => 'cuota_manejo',
-            'valor'             => $monto,
-            'gmf'               => 0,
-            'comision'          => 0,
-            'saldo_despues'     => $cuenta->fresh()->saldo,
-            'descripcion'       => 'Cuota de manejo '.$periodo,
-            'journal_entry_id'  => $entry->id,
+            'bank_account_id' => $cuenta->id,
+            'tipo' => 'cuota_manejo',
+            'valor' => $monto,
+            'gmf' => 0,
+            'comision' => 0,
+            'saldo_despues' => $cuenta->fresh()->saldo,
+            'descripcion' => 'Cuota de manejo '.$periodo,
+            'journal_entry_id' => $entry->id,
             'fecha_transaccion' => now()->toDateString(),
         ]);
     }
@@ -308,7 +419,7 @@ class BankService
      */
     private static function aplicarInteresesAhorros(BankAccount $cuenta, float $monto, string $periodo): void
     {
-        $bancos    = Account::where('code', 'like', '1110%')->where('level', '>=', 3)->first();
+        $bancos = Account::where('code', 'like', '1110%')->where('level', '>=', 3)->first();
         $intereses = Account::where('code', 'like', '4210%')->where('level', '>=', 3)->first();
 
         if (! $bancos || ! $intereses) {
@@ -316,10 +427,10 @@ class BankService
         }
 
         $entry = JournalEntry::create([
-            'date'           => now()->toDateString(),
-            'reference'      => 'BNK-INT-'.$periodo,
-            'description'    => 'Intereses ahorros '.$cuenta->nombreBanco().' '.$periodo,
-            'document_type'  => 'intereses_banco',
+            'date' => now()->toDateString(),
+            'reference' => 'BNK-INT-'.$periodo,
+            'description' => 'Intereses ahorros '.$cuenta->nombreBanco().' '.$periodo,
+            'document_type' => 'intereses_banco',
             'auto_generated' => true,
         ]);
 
@@ -329,14 +440,14 @@ class BankService
         $cuenta->increment('saldo', $monto);
 
         BankTransaction::create([
-            'bank_account_id'   => $cuenta->id,
-            'tipo'              => 'intereses_ahorros',
-            'valor'             => $monto,
-            'gmf'               => 0,
-            'comision'          => 0,
-            'saldo_despues'     => $cuenta->fresh()->saldo,
-            'descripcion'       => 'Intereses ahorros '.$periodo,
-            'journal_entry_id'  => $entry->id,
+            'bank_account_id' => $cuenta->id,
+            'tipo' => 'intereses_ahorros',
+            'valor' => $monto,
+            'gmf' => 0,
+            'comision' => 0,
+            'saldo_despues' => $cuenta->fresh()->saldo,
+            'descripcion' => 'Intereses ahorros '.$periodo,
+            'journal_entry_id' => $entry->id,
             'fecha_transaccion' => now()->toDateString(),
         ]);
     }
@@ -348,17 +459,17 @@ class BankService
     private static function aplicarInteresSobregiro(BankAccount $cuenta, float $monto, string $periodo): void
     {
         $interesesGasto = Account::where('code', 'like', '5305%')->where('level', '>=', 3)->first();
-        $bancos         = Account::where('code', 'like', '1110%')->where('level', '>=', 3)->first();
+        $bancos = Account::where('code', 'like', '1110%')->where('level', '>=', 3)->first();
 
         if (! $interesesGasto || ! $bancos) {
             return;
         }
 
         $entry = JournalEntry::create([
-            'date'           => now()->toDateString(),
-            'reference'      => 'BNK-SOB-'.$periodo,
-            'description'    => 'Intereses sobregiro '.$cuenta->nombreBanco().' '.$periodo,
-            'document_type'  => 'intereses_sobregiro',
+            'date' => now()->toDateString(),
+            'reference' => 'BNK-SOB-'.$periodo,
+            'description' => 'Intereses sobregiro '.$cuenta->nombreBanco().' '.$periodo,
+            'document_type' => 'intereses_sobregiro',
             'auto_generated' => true,
         ]);
 
@@ -368,14 +479,14 @@ class BankService
         $cuenta->decrement('saldo', $monto);
 
         BankTransaction::create([
-            'bank_account_id'   => $cuenta->id,
-            'tipo'              => 'intereses_sobregiro',
-            'valor'             => $monto,
-            'gmf'               => 0,
-            'comision'          => 0,
-            'saldo_despues'     => $cuenta->fresh()->saldo,
-            'descripcion'       => 'Intereses sobregiro '.$periodo,
-            'journal_entry_id'  => $entry->id,
+            'bank_account_id' => $cuenta->id,
+            'tipo' => 'intereses_sobregiro',
+            'valor' => $monto,
+            'gmf' => 0,
+            'comision' => 0,
+            'saldo_despues' => $cuenta->fresh()->saldo,
+            'descripcion' => 'Intereses sobregiro '.$periodo,
+            'journal_entry_id' => $entry->id,
             'fecha_transaccion' => now()->toDateString(),
         ]);
     }

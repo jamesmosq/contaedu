@@ -1,0 +1,87 @@
+PLAN DE TRABAJO — Separación por modo de thirds y products
+Fecha: 2026-04-18
+Estado: COMPLETADO
+
+════════════════════════════════════════════════════════════
+ARCHIVOS CREADOS
+════════════════════════════════════════════════════════════
+[x] database/migrations/tenant/2026_04_18_000003_add_modo_to_thirds_and_products.php
+    - Agrega modo VARCHAR(10) DEFAULT 'real' a thirds
+    - Agrega modo VARCHAR(10) DEFAULT 'real' a products
+    - Índice en modo para ambas tablas
+    - Guards: hasColumn antes de modificar
+
+════════════════════════════════════════════════════════════
+MODELOS
+════════════════════════════════════════════════════════════
+[x] app/Models/Tenant/Third.php
+    - Agregado 'modo' a $fillable
+    - Agregado scopeModoActual()
+
+[x] app/Models/Tenant/Product.php
+    - Agregado 'modo' a $fillable
+    - Agregado scopeModoActual()
+
+════════════════════════════════════════════════════════════
+LIVEWIRE COMPONENTS
+════════════════════════════════════════════════════════════
+[x] app/Livewire/Tenant/Terceros/Index.php
+    - Lista (paginate): Third::modoActual()->...
+    - save(): incluye 'modo' => modoContable()
+
+[x] app/Livewire/Tenant/Productos/Index.php
+    - Lista (paginate): Product::modoActual()->...
+    - save(): incluye 'modo' => modoContable()
+
+[x] app/Livewire/Tenant/Compras/Index.php
+    - Third::modoActual()->where('type','proveedor')...
+    - Product::modoActual()->where('active')...
+
+[x] app/Livewire/Tenant/Invoices/Index.php
+    - Third::modoActual()->whereIn('type', [...])... (clientes y proveedores)
+    - Product::modoActual()->where('active')...
+
+[x] app/Livewire/Tenant/Negocios/Index.php
+    - Sin queries directas a Third/Product. Solo zona real. OK.
+
+════════════════════════════════════════════════════════════
+CONTROLLERS
+════════════════════════════════════════════════════════════
+[x] app/Http/Controllers/Tenant/DashboardController.php
+    - Third::modoActual()->exists()
+    - Product::modoActual()->exists()
+
+[x] app/Http/Controllers/Tenant/FacturacionElectronica/FacturacionElectronicaController.php
+    - Third::modoActual()->clientes()->... (crear y editar)
+    - Product::modoActual()->where('active')... (crear y editar)
+
+════════════════════════════════════════════════════════════
+SANDBOX RESET
+════════════════════════════════════════════════════════════
+[x] app/Http/Controllers/SandboxController.php
+    - Agregado: StockMovement::where('modo', 'sandbox')->delete()
+    - Agregado: Third::where('modo', 'sandbox')->forceDelete()
+    - Agregado: Product::where('modo', 'sandbox')->forceDelete()
+
+════════════════════════════════════════════════════════════
+REDIS CACHE (futuro, próximo sprint)
+════════════════════════════════════════════════════════════
+[ ] Cachear listas por modo: "thirds:{modo}:{tenant_id}", "products:{modo}:{tenant_id}"
+[ ] Invalidar solo cache del modo afectado en save/delete
+[ ] Invalidar "sandbox:*" en SandboxController::reset()
+
+════════════════════════════════════════════════════════════
+COMANDO PARA APLICAR
+════════════════════════════════════════════════════════════
+php artisan app:tenants-migrate-all
+
+════════════════════════════════════════════════════════════
+VALIDACIÓN POST-IMPLEMENTACIÓN
+════════════════════════════════════════════════════════════
+- Crear tercero en /aprendizaje/terceros → NO aparece en /empresa/terceros ✓
+- Crear producto en /aprendizaje/productos → NO aparece en /empresa/productos ✓
+- Reiniciar aprendizaje → thirds/products sandbox se borran, reales intactos ✓
+- Factura en aprendizaje → solo ve clientes sandbox ✓
+- Factura en empresa → solo ve clientes reales ✓
+- Stock movements ya estaban separados por modo ✓
+- SandboxController ahora limpia Third, Product y StockMovement sandbox ✓

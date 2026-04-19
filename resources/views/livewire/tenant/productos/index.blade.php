@@ -23,6 +23,12 @@
     <div class="px-6 py-8 lg:px-10">
         <div class="max-w-7xl mx-auto">
 
+            {{-- Nota pedagógica --}}
+            <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4 text-sm text-sky-800 mb-6">
+                <p class="font-semibold mb-1">¿Por qué cada producto tiene cuentas contables vinculadas?</p>
+                <p>En contabilidad colombiana, cada producto de inventario está asociado a tres cuentas del PUC: <strong>Inventario (1435)</strong> que registra el valor almacenado, <strong>Ingresos por ventas (4135)</strong> que se abona al facturar, y <strong>Costo de ventas (6135)</strong> que se debita cuando sale del inventario. Sin estas cuentas configuradas, el sistema no puede generar los asientos contables correctamente al vender o comprar.</p>
+            </div>
+
             {{-- Buscador --}}
             <div class="mb-6">
                 <div class="relative w-full sm:w-80">
@@ -44,6 +50,7 @@
                             <th class="text-left px-6 py-3.5 text-xs font-semibold text-forest-300 uppercase tracking-wide hidden sm:table-cell">Unidad</th>
                             <th class="text-right px-6 py-3.5 text-xs font-semibold text-forest-300 uppercase tracking-wide">Precio venta</th>
                             <th class="text-right px-6 py-3.5 text-xs font-semibold text-forest-300 uppercase tracking-wide hidden md:table-cell">Costo</th>
+                            <th class="text-right px-6 py-3.5 text-xs font-semibold text-forest-300 uppercase tracking-wide hidden lg:table-cell">Stock</th>
                             <th class="text-left px-6 py-3.5 text-xs font-semibold text-forest-300 uppercase tracking-wide hidden sm:table-cell">IVA</th>
                             <th class="px-6 py-3.5"></th>
                         </tr>
@@ -56,14 +63,30 @@
                                 <td class="px-6 py-3 text-xs text-slate-500 hidden sm:table-cell">{{ $product->unit->label() }}</td>
                                 <td class="px-6 py-3 text-right font-mono text-sm text-slate-700">$ {{ number_format($product->sale_price, 0, ',', '.') }}</td>
                                 <td class="px-6 py-3 text-right font-mono text-sm text-slate-500 hidden md:table-cell">$ {{ number_format($product->cost_price, 0, ',', '.') }}</td>
+                                @php $stock = $product->stockActual(); @endphp
+                                <td class="px-6 py-3 text-right hidden lg:table-cell">
+                                    @if($product->inventory_account_id)
+                                        <span class="font-mono text-sm {{ $stock < 0 ? 'text-red-600 font-semibold' : ($stock == 0 ? 'text-slate-400' : 'text-slate-700') }}">
+                                            {{ number_format($stock, 2, ',', '.') }}
+                                        </span>
+                                    @else
+                                        <span class="text-xs text-slate-300">—</span>
+                                    @endif
+                                </td>
                                 <td class="px-6 py-3 hidden sm:table-cell">
                                     <span class="px-2 py-0.5 rounded-lg text-xs font-medium {{ $product->tax_rate->value == 0 ? 'bg-slate-100 text-slate-500 border border-slate-200' : 'bg-green-50 text-green-700 border border-green-100' }}">
                                         {{ $product->tax_rate->value }}%
                                     </span>
                                 </td>
                                 <td class="px-6 py-3 text-right">
-                                    @if(! session('audit_mode') && ! session('reference_mode'))
-                                        <div class="flex items-center justify-end gap-2">
+                                    <div class="flex items-center justify-end gap-2">
+                                        @if($product->inventory_account_id)
+                                            <button wire:click="openKardex({{ $product->id }})"
+                                                class="text-xs text-indigo-600 hover:text-indigo-800 font-semibold px-2 py-1 rounded-lg hover:bg-indigo-50 transition">
+                                                Kardex
+                                            </button>
+                                        @endif
+                                        @if(! session('audit_mode') && ! session('reference_mode'))
                                             <button wire:click="openEdit({{ $product->id }})"
                                                 class="text-xs text-forest-600 hover:text-forest-800 font-semibold px-2 py-1 rounded-lg hover:bg-forest-50 transition">
                                                 Editar
@@ -72,13 +95,13 @@
                                                 class="text-xs text-red-500 hover:text-red-700 font-semibold px-2 py-1 rounded-lg hover:bg-red-50 transition">
                                                 Eliminar
                                             </button>
-                                        </div>
-                                    @endif
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-12 text-center">
+                                <td colspan="8" class="px-6 py-12 text-center">
                                     <p class="text-slate-400 text-sm mb-2">No hay productos registrados.</p>
                                     @if(! session('audit_mode') && ! session('reference_mode'))
                                         <button wire:click="openCreate" class="text-sm text-forest-600 hover:text-forest-800 font-semibold hover:underline">
@@ -97,6 +120,83 @@
 
         </div>
     </div>
+
+    {{-- ═══ Panel: Kardex de inventario ═══ --}}
+    @if($showKardex)
+        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto" wire:click.self="closeKardex">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl my-8">
+                <div class="px-6 py-5 border-b border-cream-100 flex items-center justify-between sticky top-0 bg-white rounded-t-2xl z-10">
+                    <div>
+                        <h3 class="text-base font-semibold text-slate-800">Kardex — {{ $kardexProductName }}</h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Últimos 20 movimientos · modo {{ modoContable() }}</p>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <div class="text-right">
+                            <p class="text-xs text-slate-400">Stock actual</p>
+                            <p class="text-lg font-bold {{ $kardexStock < 0 ? 'text-red-600' : 'text-forest-800' }}">
+                                {{ number_format($kardexStock, 2, ',', '.') }}
+                            </p>
+                        </div>
+                        <button wire:click="closeKardex" class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition text-sm">✕</button>
+                    </div>
+                </div>
+                <div class="overflow-x-auto">
+                    @if($kardexMovements->isEmpty())
+                        <div class="px-6 py-12 text-center text-slate-400 text-sm">
+                            No hay movimientos registrados para este producto en el modo actual.
+                        </div>
+                    @else
+                        <table class="w-full text-sm">
+                            <thead>
+                                <tr class="bg-slate-50 border-b border-cream-100">
+                                    <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Fecha</th>
+                                    <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Tipo</th>
+                                    <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden sm:table-cell">Descripción</th>
+                                    <th class="text-left px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden lg:table-cell">Proveedor / Cliente</th>
+                                    <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Qty</th>
+                                    <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Costo unit.</th>
+                                    <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Saldo qty</th>
+                                    <th class="text-right px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide hidden md:table-cell">Saldo valor</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-cream-100">
+                                @foreach($kardexMovements as $mov)
+                                    <tr class="hover:bg-cream-50 transition">
+                                        <td class="px-4 py-2.5 text-xs text-slate-500 whitespace-nowrap">{{ $mov->fecha->format('d/m/Y') }}</td>
+                                        <td class="px-4 py-2.5">
+                                            <span class="px-2 py-0.5 rounded-lg text-xs font-medium {{ $mov->tipo === 'entrada' ? 'bg-green-50 text-green-700 border border-green-100' : 'bg-red-50 text-red-700 border border-red-100' }}">
+                                                {{ ucfirst($mov->tipo) }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-2.5 text-xs text-slate-500 hidden sm:table-cell max-w-xs truncate">{{ $mov->descripcion }}</td>
+                                        <td class="px-4 py-2.5 text-xs hidden lg:table-cell">
+                                            @if($mov->third)
+                                                <span class="font-medium text-slate-700">{{ $mov->third->name }}</span>
+                                                <span class="block text-slate-400 text-xs">{{ $mov->third->document_number }}</span>
+                                            @else
+                                                <span class="text-slate-300">—</span>
+                                            @endif
+                                        </td>
+                                        <td class="px-4 py-2.5 text-right font-mono text-sm {{ $mov->tipo === 'entrada' ? 'text-green-700' : 'text-red-600' }}">
+                                            {{ $mov->tipo === 'entrada' ? '+' : '-' }}{{ number_format($mov->qty, 2, ',', '.') }}
+                                        </td>
+                                        <td class="px-4 py-2.5 text-right font-mono text-xs text-slate-500 hidden md:table-cell">$ {{ number_format($mov->costo_unitario, 2, ',', '.') }}</td>
+                                        <td class="px-4 py-2.5 text-right font-mono text-sm font-semibold {{ (float)$mov->saldo_qty < 0 ? 'text-red-600' : 'text-slate-700' }}">
+                                            {{ number_format($mov->saldo_qty, 2, ',', '.') }}
+                                        </td>
+                                        <td class="px-4 py-2.5 text-right font-mono text-xs text-slate-500 hidden md:table-cell">$ {{ number_format($mov->saldo_valor, 0, ',', '.') }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @endif
+                </div>
+                <div class="px-6 py-4 border-t border-cream-100 flex justify-end">
+                    <button wire:click="closeKardex" class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-50 transition">Cerrar</button>
+                </div>
+            </div>
+        </div>
+    @endif
 
     {{-- ═══ Modal: Nuevo / Editar producto ═══ --}}
     @if(! session('audit_mode') && ! session('reference_mode'))
@@ -155,6 +255,35 @@
                             </select>
                         </div>
                     </div>
+                    {{-- Stock inicial (solo en creación) --}}
+                    @if(! $editingId)
+                    <div class="border-t border-cream-100 pt-4">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Stock inicial</p>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1.5">Cantidad en existencia</label>
+                                <input wire:model.live="initial_stock" type="number" step="0.01" min="0" placeholder="0"
+                                    class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                <p class="text-xs text-slate-400 mt-1">Deja en 0 si el producto aún no tiene existencias</p>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1.5">Costo unitario inicial</label>
+                                <input wire:model="initial_cost" type="number" step="0.01" min="0" placeholder="0"
+                                    class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                <p class="text-xs text-slate-400 mt-1">Deja en 0 para usar el precio de costo</p>
+                            </div>
+                        </div>
+                        @if((float)$initial_stock > 0)
+                            @php $costoUnit = (float)$initial_cost ?: (float)$cost_price; @endphp
+                            <p class="text-xs text-forest-700 bg-forest-50 border border-forest-100 rounded-lg px-3 py-2 mt-2">
+                                Asiento generado: <strong>DR 1435 ${{ number_format((float)$initial_stock * $costoUnit, 0, ',', '.') }}</strong>
+                                / <strong>CR 3115 ${{ number_format((float)$initial_stock * $costoUnit, 0, ',', '.') }}</strong>
+                                — {{ number_format((float)$initial_stock, 2, ',', '.') }} uds. × ${{ number_format($costoUnit, 0, ',', '.') }}
+                            </p>
+                        @endif
+                    </div>
+                    @endif
+
                     <div class="border-t border-cream-100 pt-4">
                         <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Cuentas contables</p>
                         <div class="space-y-3">

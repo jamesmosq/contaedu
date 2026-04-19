@@ -23,6 +23,12 @@
     <div class="px-6 py-8 lg:px-10">
         <div class="max-w-7xl mx-auto">
 
+            {{-- Nota pedagógica --}}
+            <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4 text-sm text-sky-800 mb-6">
+                <p class="font-semibold mb-1">¿Para qué sirven los terceros en contabilidad?</p>
+                <p>Los terceros son las personas naturales o jurídicas con quienes la empresa tiene relaciones comerciales. Un <strong>cliente</strong> genera cuentas por cobrar (cuenta 1305) cuando compra a crédito. Un <strong>proveedor</strong> genera cuentas por pagar (cuenta 2205) cuando vende a crédito. La DIAN exige identificar el tercero en cada transacción para el reporte de información exógena (medios magnéticos).</p>
+            </div>
+
             {{-- Barra de filtros --}}
             <div class="flex flex-wrap items-center gap-3 mb-6">
                 <div class="relative">

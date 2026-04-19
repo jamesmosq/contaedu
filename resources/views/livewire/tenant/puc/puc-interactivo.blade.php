@@ -10,6 +10,13 @@
 
     <div class="px-6 py-8 lg:px-10">
         <div class="max-w-7xl mx-auto">
+
+            {{-- Nota pedagógica --}}
+            <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4 text-sm text-sky-800 mb-6">
+                <p class="font-semibold mb-1">¿Cómo usar el PUC Interactivo?</p>
+                <p>Selecciona cualquier cuenta para ver su <strong>descripción técnica</strong>, <strong>dinámica de débito y crédito</strong> (cuándo se aumenta y cuándo se disminuye), y un <strong>ejemplo práctico</strong> de su uso. Entender la dinámica de cada cuenta es fundamental para registrar asientos contables correctamente. Las cuentas de activo y gasto aumentan con débito; las de pasivo, patrimonio e ingreso aumentan con crédito.</p>
+            </div>
+
             <div class="grid grid-cols-1 lg:grid-cols-[300px_1fr] gap-6 items-start">
 
                 {{-- ── Panel izquierdo: filtros y lista ───────────────────── --}}

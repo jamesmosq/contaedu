@@ -39,6 +39,12 @@
                 </button>
             </div>
 
+            {{-- Nota pedagógica --}}
+            <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4 text-sm text-sky-800">
+                <p class="font-semibold mb-1">¿Por qué es importante el calendario de obligaciones fiscales?</p>
+                <p>En Colombia las empresas tienen obligaciones periódicas con la DIAN y los municipios. Incumplir los plazos genera sanciones e intereses de mora. Las más comunes son: <strong>IVA</strong> (cuatrimestral para régimen común), <strong>Retenciones en la fuente</strong> (mensual), <strong>Impuesto de Renta</strong> (anual) e <strong>ICA</strong> (bimestral o anual según el municipio). Este calendario se actualiza automáticamente según el régimen tributario configurado en tu empresa.</p>
+            </div>
+
             {{-- Nota educativa sobre régimen --}}
             @if($regimen === 'simplificado')
                 <div class="bg-blue-50 border border-blue-200 rounded-2xl px-5 py-4 text-sm text-blue-800">

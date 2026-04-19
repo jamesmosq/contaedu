@@ -29,6 +29,44 @@
                 <button wire:click="$set('view','payments')" class="px-4 py-2 text-sm font-medium transition {{ $view === 'payments' ? 'border-b-2 border-forest-700 text-forest-800' : 'text-slate-500 hover:text-slate-700' }}">Pagos a proveedores</button>
             </div>
 
+            {{-- ── Panel financiero ──────────────────────────────────────────── --}}
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" wire:poll.10s>
+                <div class="bg-white rounded-2xl border border-cream-200 shadow-card px-5 py-4">
+                    <p class="text-xs text-slate-400 uppercase tracking-wide font-medium">Por pagar</p>
+                    <p class="text-xl font-bold font-mono {{ $porPagar > 0 ? 'text-red-600' : 'text-slate-400' }} truncate mt-1">
+                        $ {{ number_format($porPagar, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-slate-400 mt-0.5">cuenta 2205</p>
+                </div>
+                <div class="bg-white rounded-2xl border border-cream-200 shadow-card px-5 py-4">
+                    <p class="text-xs text-slate-400 uppercase tracking-wide font-medium">Por cobrar</p>
+                    <p class="text-xl font-bold font-mono {{ $porCobrar > 0 ? 'text-blue-700' : 'text-slate-400' }} truncate mt-1">
+                        $ {{ number_format($porCobrar, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-slate-400 mt-0.5">cuenta 1305</p>
+                </div>
+                <div class="bg-white rounded-2xl border border-cream-200 shadow-card px-5 py-4">
+                    <p class="text-xs text-slate-400 uppercase tracking-wide font-medium">Comprado este mes</p>
+                    <p class="text-xl font-bold font-mono text-slate-800 truncate mt-1">
+                        $ {{ number_format($compradoMes, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-slate-400 mt-0.5">facturas confirmadas</p>
+                </div>
+                <div class="bg-white rounded-2xl border border-cream-200 shadow-card px-5 py-4">
+                    <p class="text-xs text-slate-400 uppercase tracking-wide font-medium">Pagado este mes</p>
+                    <p class="text-xl font-bold font-mono {{ $pagadoMes > 0 ? 'text-green-700' : 'text-slate-400' }} truncate mt-1">
+                        $ {{ number_format($pagadoMes, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-slate-400 mt-0.5">pagos a proveedores</p>
+                </div>
+            </div>
+
+            {{-- Nota pedagógica --}}
+            <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4 text-sm text-sky-800 mb-6">
+                <p class="font-semibold mb-1">¿Cómo funciona el ciclo de compras en contabilidad colombiana?</p>
+                <p>El ciclo completo es: <strong>Orden de compra → Factura de compra → Pago al proveedor</strong>. Al confirmar la factura, el asiento queda: <strong>Débito 1435 Inventario</strong> (o cuenta de gasto) y <strong>Crédito 2205 Proveedores nacionales</strong>. Si aplican retenciones (RteFte, Reteiva, Reteica), el sistema las registra automáticamente reduciendo el neto a pagar. Las retenciones son anticipos de impuestos que tu empresa retiene al proveedor y debe declarar ante la DIAN.</p>
+            </div>
+
             {{-- ══════════════════════════════════ MODAL ORDEN DE COMPRA ══════════════════════════════════ --}}
             @if($showOrderForm && !session('audit_mode'))
                 <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-start justify-center p-4 overflow-y-auto">

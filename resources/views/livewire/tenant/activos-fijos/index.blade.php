@@ -32,6 +32,12 @@
     <div class="px-6 py-8 lg:px-10">
         <div class="max-w-7xl mx-auto space-y-6">
 
+            {{-- Nota pedagógica --}}
+            <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4 text-sm text-sky-800">
+                <p class="font-semibold mb-1">¿Qué son los activos fijos y cómo funciona su depreciación?</p>
+                <p>Los activos fijos (cuentas <strong>15XX</strong> del PUC) son bienes duraderos usados en la operación: maquinaria, vehículos, muebles y computadores. Por la <strong>depreciación</strong>, su costo se distribuye como gasto a lo largo de su vida útil. El método de <strong>línea recta</strong> divide el valor en partes iguales: el asiento mensual es Débito 5160 Gasto depreciación / Crédito 1592 Depreciación acumulada. En el balance, el activo se muestra por su valor neto (costo − depreciación acumulada).</p>
+            </div>
+
             {{-- Panel de depreciación mensual --}}
             @if(!session('audit_mode') && !session('reference_mode'))
             <div class="bg-white rounded-2xl border border-cream-200 shadow-card p-5">
@@ -113,7 +119,10 @@
                                         <p class="text-xs text-slate-400 mt-0.5">{{ Str::limit($asset->description, 60) }}</p>
                                     @endif
                                 </td>
-                                <td class="px-5 py-3 text-xs text-slate-600">{{ $asset->category->label() }}</td>
+                                <td class="px-5 py-3 text-xs text-slate-600">
+                                    <p>{{ $asset->category->label() }}</p>
+                                    <p class="font-mono text-slate-400">Cta. {{ $asset->category->cuentaActivoCodigo() }}</p>
+                                </td>
                                 <td class="px-5 py-3 text-slate-600">{{ $asset->acquisition_date->format('d/m/Y') }}</td>
                                 <td class="px-5 py-3 text-right font-mono text-sm text-slate-800">$ {{ number_format($asset->cost, 0, ',', '.') }}</td>
                                 <td class="px-5 py-3 text-right font-mono text-sm text-red-600">$ {{ number_format($asset->accumulated_depreciation, 0, ',', '.') }}</td>
@@ -198,7 +207,7 @@
                             <label class="block text-sm font-medium text-slate-700 mb-1">Categoría</label>
                             <select wire:model.live="fa_category" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
                                 @foreach($categories as $cat)
-                                    <option value="{{ $cat->value }}">{{ $cat->label() }}</option>
+                                    <option value="{{ $cat->value }}">{{ $cat->label() }} — Cta. {{ $cat->cuentaActivoCodigo() }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -244,6 +253,22 @@
                                 class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                             <p class="text-xs text-slate-400 mt-0.5">Valor estimado al final de la vida útil</p>
                         </div>
+                    </div>
+
+                    {{-- Forma de adquisición --}}
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Forma de adquisición</label>
+                        <select wire:model.live="fa_forma_pago" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
+                            <option value="contado">Contado — se paga de caja (CR 1110)</option>
+                            <option value="credito">Crédito — queda como CxP proveedor (CR 2205)</option>
+                        </select>
+                        @if($fa_cost > 0)
+                            @php $catEnum = \App\Enums\FixedAssetCategory::from($fa_category); @endphp
+                            <p class="text-xs text-forest-700 bg-forest-50 border border-forest-100 rounded-lg px-3 py-2 mt-2">
+                                Asiento generado: <strong>DR {{ $catEnum->cuentaActivoCodigo() }} ${{ number_format($fa_cost, 0, ',', '.') }}</strong>
+                                / <strong>CR {{ $fa_forma_pago === 'credito' ? '2205' : '1110' }} ${{ number_format($fa_cost, 0, ',', '.') }}</strong>
+                            </p>
+                        @endif
                     </div>
 
                     {{-- Preview depreciación --}}

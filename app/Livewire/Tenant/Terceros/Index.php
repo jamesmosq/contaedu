@@ -70,26 +70,26 @@ class Index extends Component
     public function rules(): array
     {
         $rules = [
-            'document_type'  => ['required', 'in:cc,nit,ce,pasaporte'],
-            'document'       => $this->document_type === 'nit'
+            'document_type' => ['required', 'in:cc,nit,ce,pasaporte'],
+            'document' => $this->document_type === 'nit'
                 ? ['required', 'string', 'regex:/^\d{6,10}-\d{1}$/', 'max:20']
                 : ['required', 'string', 'max:20'],
-            'name'           => ['required', 'string', 'max:150'],
-            'type'           => ['required', 'in:cliente,proveedor,empleado'],
-            'regimen'        => ['required', 'in:simplificado,comun'],
-            'address'        => ['nullable', 'string', 'max:200'],
-            'phone'          => ['nullable', 'string', 'max:20'],
-            'email'          => ['nullable', 'email', 'max:100'],
+            'name' => ['required', 'string', 'max:150'],
+            'type' => ['required', 'in:cliente,proveedor,empleado'],
+            'regimen' => ['required', 'in:simplificado,comun'],
+            'address' => ['nullable', 'string', 'max:200'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'email' => ['nullable', 'email', 'max:100'],
             'municipio_codigo' => ['nullable', 'string', 'size:5'],
         ];
 
         if ($this->type === 'empleado') {
-            $rules['cargo']                   = ['required', 'string', 'max:100'];
-            $rules['salario_basico']           = ['required', 'numeric', 'min:0'];
-            $rules['tipo_contrato']            = ['required', 'in:indefinido,fijo,obra_labor,prestacion_servicios'];
-            $rules['procedimiento_retencion']  = ['required', 'in:1,2'];
-            $rules['fecha_ingreso']            = ['required', 'date'];
-            $rules['fecha_retiro']             = ['nullable', 'date', 'after:fecha_ingreso'];
+            $rules['cargo'] = ['required', 'string', 'max:100'];
+            $rules['salario_basico'] = ['required', 'numeric', 'min:0'];
+            $rules['tipo_contrato'] = ['required', 'in:indefinido,fijo,obra_labor,prestacion_servicios'];
+            $rules['procedimiento_retencion'] = ['required', 'in:1,2'];
+            $rules['fecha_ingreso'] = ['required', 'date'];
+            $rules['fecha_retiro'] = ['nullable', 'date', 'after:fecha_ingreso'];
         }
 
         return $rules;
@@ -138,38 +138,38 @@ class Index extends Component
     public function openEdit(int $id): void
     {
         $third = Third::findOrFail($id);
-        $this->editingId        = $id;
-        $this->document_type    = $third->document_type;
-        $this->document         = $third->document;
-        $this->name             = $third->name;
-        $this->type             = in_array($third->type->value, ['cliente', 'proveedor', 'empleado'])
+        $this->editingId = $id;
+        $this->document_type = $third->document_type;
+        $this->document = $third->document;
+        $this->name = $third->name;
+        $this->type = in_array($third->type->value, ['cliente', 'proveedor', 'empleado'])
                                     ? $third->type->value
                                     : 'cliente';
-        $this->regimen          = $third->regimen;
-        $this->address          = $third->address ?? '';
-        $this->phone            = $third->phone ?? '';
-        $this->email            = $third->email ?? '';
+        $this->regimen = $third->regimen;
+        $this->address = $third->address ?? '';
+        $this->phone = $third->phone ?? '';
+        $this->email = $third->email ?? '';
         $this->municipio_codigo = $third->municipio_codigo ?? '';
-        $this->municipioSearch  = '';
+        $this->municipioSearch = '';
 
         if ($this->municipio_codigo) {
             $municipio = Municipio::find($this->municipio_codigo);
-            $this->municipioLabel  = $municipio ? $municipio->label : '';
+            $this->municipioLabel = $municipio ? $municipio->label : '';
             $this->municipioSearch = $this->municipioLabel;
         } else {
             $this->municipioLabel = '';
         }
 
         // Campos de empleado
-        $this->cargo                  = $third->cargo ?? '';
-        $this->salario_basico         = (float) ($third->salario_basico ?? 0);
-        $this->tipo_contrato          = $third->tipo_contrato ?? 'indefinido';
+        $this->cargo = $third->cargo ?? '';
+        $this->salario_basico = (float) ($third->salario_basico ?? 0);
+        $this->tipo_contrato = $third->tipo_contrato ?? 'indefinido';
         $this->procedimiento_retencion = $third->procedimiento_retencion ?? '1';
-        $this->afp                    = $third->afp ?? '';
-        $this->eps                    = $third->eps ?? '';
-        $this->arl                    = $third->arl ?? '';
-        $this->fecha_ingreso          = $third->fecha_ingreso?->toDateString() ?? '';
-        $this->fecha_retiro           = $third->fecha_retiro?->toDateString() ?? '';
+        $this->afp = $third->afp ?? '';
+        $this->eps = $third->eps ?? '';
+        $this->arl = $third->arl ?? '';
+        $this->fecha_ingreso = $third->fecha_ingreso?->toDateString() ?? '';
+        $this->fecha_retiro = $third->fecha_retiro?->toDateString() ?? '';
 
         $this->showForm = true;
     }
@@ -177,23 +177,23 @@ class Index extends Component
     public function selectMunicipio(string $codigo, string $label): void
     {
         $this->municipio_codigo = $codigo;
-        $this->municipioLabel   = $label;
-        $this->municipioSearch  = $label;
+        $this->municipioLabel = $label;
+        $this->municipioSearch = $label;
     }
 
     public function updatedMunicipioSearch(): void
     {
         if ($this->municipioSearch !== $this->municipioLabel) {
             $this->municipio_codigo = '';
-            $this->municipioLabel   = '';
+            $this->municipioLabel = '';
         }
     }
 
     public function clearMunicipio(): void
     {
         $this->municipio_codigo = '';
-        $this->municipioLabel   = '';
-        $this->municipioSearch  = '';
+        $this->municipioLabel = '';
+        $this->municipioSearch = '';
     }
 
     public function save(): void
@@ -201,40 +201,41 @@ class Index extends Component
         $this->validate();
 
         $data = [
-            'document_type'    => $this->document_type,
-            'document'         => $this->document,
-            'name'             => $this->name,
-            'type'             => $this->type,
-            'regimen'          => $this->regimen,
-            'address'          => $this->address ?: null,
-            'phone'            => $this->phone ?: null,
-            'email'            => $this->email ?: null,
+            'modo' => modoContable(),
+            'document_type' => $this->document_type,
+            'document' => $this->document,
+            'name' => $this->name,
+            'type' => $this->type,
+            'regimen' => $this->regimen,
+            'address' => $this->address ?: null,
+            'phone' => $this->phone ?: null,
+            'email' => $this->email ?: null,
             'municipio_codigo' => $this->municipio_codigo ?: null,
-            'active'           => true,
+            'active' => true,
         ];
 
         if ($this->type === 'empleado') {
-            $data['cargo']                   = $this->cargo;
-            $data['salario_basico']           = $this->salario_basico;
-            $data['tipo_contrato']            = $this->tipo_contrato;
-            $data['procedimiento_retencion']  = $this->procedimiento_retencion;
-            $data['afp']                      = $this->afp ?: null;
-            $data['eps']                      = $this->eps ?: null;
-            $data['arl']                      = $this->arl ?: null;
-            $data['fecha_ingreso']            = $this->fecha_ingreso ?: null;
-            $data['fecha_retiro']             = $this->fecha_retiro ?: null;
-            $data['activo_laboralmente']      = true;
+            $data['cargo'] = $this->cargo;
+            $data['salario_basico'] = $this->salario_basico;
+            $data['tipo_contrato'] = $this->tipo_contrato;
+            $data['procedimiento_retencion'] = $this->procedimiento_retencion;
+            $data['afp'] = $this->afp ?: null;
+            $data['eps'] = $this->eps ?: null;
+            $data['arl'] = $this->arl ?: null;
+            $data['fecha_ingreso'] = $this->fecha_ingreso ?: null;
+            $data['fecha_retiro'] = $this->fecha_retiro ?: null;
+            $data['activo_laboralmente'] = true;
         } else {
             // Limpiar campos laborales si se cambia el tipo
-            $data['cargo']                   = null;
-            $data['salario_basico']           = null;
-            $data['tipo_contrato']            = null;
-            $data['procedimiento_retencion']  = null;
-            $data['afp']                      = null;
-            $data['eps']                      = null;
-            $data['arl']                      = null;
-            $data['fecha_ingreso']            = null;
-            $data['fecha_retiro']             = null;
+            $data['cargo'] = null;
+            $data['salario_basico'] = null;
+            $data['tipo_contrato'] = null;
+            $data['procedimiento_retencion'] = null;
+            $data['afp'] = null;
+            $data['eps'] = null;
+            $data['arl'] = null;
+            $data['fecha_ingreso'] = null;
+            $data['fecha_retiro'] = null;
         }
 
         Third::updateOrCreate(['id' => $this->editingId], $data);
@@ -262,24 +263,24 @@ class Index extends Component
 
     private function resetAll(): void
     {
-        $this->showForm  = false;
+        $this->showForm = false;
         $this->activeTab = 'basico';
         $this->reset([
             'editingId', 'document', 'name', 'address', 'phone', 'email',
             'municipio_codigo', 'municipioSearch', 'municipioLabel',
             'cargo', 'afp', 'eps', 'arl', 'fecha_ingreso', 'fecha_retiro',
         ]);
-        $this->document_type           = 'nit';
-        $this->type                    = 'cliente';
-        $this->regimen                 = 'simplificado';
-        $this->salario_basico          = 0;
-        $this->tipo_contrato           = 'indefinido';
+        $this->document_type = 'nit';
+        $this->type = 'cliente';
+        $this->regimen = 'simplificado';
+        $this->salario_basico = 0;
+        $this->tipo_contrato = 'indefinido';
         $this->procedimiento_retencion = '1';
     }
 
     public function render(): mixed
     {
-        $thirds = Third::query()
+        $thirds = Third::modoActual()
             ->when($this->search, fn ($q) => $q
                 ->where('name', 'ilike', "%{$this->search}%")
                 ->orWhere('document', 'ilike', "%{$this->search}%")

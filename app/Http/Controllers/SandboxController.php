@@ -10,8 +10,11 @@ use App\Models\Tenant\Invoice;
 use App\Models\Tenant\JournalEntry;
 use App\Models\Tenant\JournalLine;
 use App\Models\Tenant\Payment;
+use App\Models\Tenant\Product;
 use App\Models\Tenant\PurchaseInvoice;
 use App\Models\Tenant\PurchaseOrder;
+use App\Models\Tenant\StockMovement;
+use App\Models\Tenant\Third;
 use Illuminate\Support\Facades\DB;
 
 class SandboxController extends Controller
@@ -35,6 +38,9 @@ class SandboxController extends Controller
             CreditNote::where('modo', 'sandbox')->delete();
             DebitNote::where('modo', 'sandbox')->delete();
             FixedAsset::where('modo', 'sandbox')->delete();
+            StockMovement::where('modo', 'sandbox')->delete();
+            Third::where('modo', 'sandbox')->forceDelete();
+            Product::where('modo', 'sandbox')->forceDelete();
         });
 
         return redirect()

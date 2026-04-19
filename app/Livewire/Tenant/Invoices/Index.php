@@ -12,9 +12,9 @@ use App\Models\Tenant\CashReceiptItem;
 use App\Models\Tenant\CreditNote;
 use App\Models\Tenant\DebitNote;
 use App\Models\Tenant\Invoice;
+use App\Models\Tenant\JournalEntry;
 use App\Models\Tenant\Product;
 use App\Models\Tenant\PurchaseInvoice;
-use App\Models\Tenant\PurchaseInvoiceLine;
 use App\Models\Tenant\Third;
 use App\Services\AccountingService;
 use App\Services\DebitNoteService;
@@ -97,26 +97,39 @@ class Index extends Component
     public string $dn_invoice_ref = '';  // solo lectura, para mostrar en modal
 
     // ─── Facturas de compra directas ─────────────────────────────────────────
-    public bool   $showPiForm      = false;
-    public ?int   $piEditingId     = null;
-    public int    $pi_third_id     = 0;
-    public string $pi_numero       = '';
-    public string $pi_date         = '';
-    public string $pi_due_date     = '';
-    public string $pi_notes        = '';
-    public string $pi_search       = '';
+    public bool $showPiForm = false;
+
+    public ?int $piEditingId = null;
+
+    public int $pi_third_id = 0;
+
+    public string $pi_numero = '';
+
+    public string $pi_date = '';
+
+    public string $pi_due_date = '';
+
+    public string $pi_notes = '';
+
+    public string $pi_search = '';
+
     public string $pi_filterStatus = '';
-    public bool   $pi_aplica_retefte = false;
-    public float  $pi_retefte_pct    = 3.5;
-    public bool   $pi_aplica_reteiva = false;
-    public bool   $pi_aplica_reteica = false;
-    public array  $pi_lines          = [];
+
+    public bool $pi_aplica_retefte = false;
+
+    public float $pi_retefte_pct = 3.5;
+
+    public bool $pi_aplica_reteiva = false;
+
+    public bool $pi_aplica_reteica = false;
+
+    public array $pi_lines = [];
 
     public function mount(): void
     {
-        $this->date     = now()->toDateString();
+        $this->date = now()->toDateString();
         $this->due_date = now()->addDays(30)->toDateString();
-        $this->pi_date     = now()->toDateString();
+        $this->pi_date = now()->toDateString();
         $this->pi_due_date = now()->addDays(30)->toDateString();
     }
 
@@ -521,18 +534,18 @@ class Index extends Component
             return;
         }
 
-        $this->piEditingId  = $id;
-        $this->pi_third_id  = $invoice->third_id;
-        $this->pi_numero    = $invoice->supplier_invoice_number ?? '';
-        $this->pi_date      = $invoice->date->toDateString();
-        $this->pi_due_date  = $invoice->due_date?->toDateString() ?? '';
-        $this->pi_notes     = $invoice->notes ?? '';
+        $this->piEditingId = $id;
+        $this->pi_third_id = $invoice->third_id;
+        $this->pi_numero = $invoice->supplier_invoice_number ?? '';
+        $this->pi_date = $invoice->date->toDateString();
+        $this->pi_due_date = $invoice->due_date?->toDateString() ?? '';
+        $this->pi_notes = $invoice->notes ?? '';
 
         $this->pi_lines = $invoice->lines->map(fn ($l) => [
-            'description'       => $l->description,
-            'qty'               => $l->qty,
-            'unit_cost'         => $l->unit_cost,
-            'tax_rate'          => $l->tax_rate,
+            'description' => $l->description,
+            'qty' => $l->qty,
+            'unit_cost' => $l->unit_cost,
+            'tax_rate' => $l->tax_rate,
             'cuenta_gasto_codigo' => $l->cuenta_gasto_codigo ?? '',
             'cuenta_gasto_nombre' => $l->cuenta_gasto_nombre ?? '',
         ])->toArray();
@@ -543,12 +556,12 @@ class Index extends Component
     public function addPiLine(): void
     {
         $this->pi_lines[] = [
-            'description'        => '',
-            'qty'                => 1,
-            'unit_cost'          => 0,
-            'tax_rate'           => 19,
-            'cuenta_gasto_codigo'=> '',
-            'cuenta_gasto_nombre'=> '',
+            'description' => '',
+            'qty' => 1,
+            'unit_cost' => 0,
+            'tax_rate' => 19,
+            'cuenta_gasto_codigo' => '',
+            'cuenta_gasto_nombre' => '',
         ];
     }
 
@@ -561,7 +574,7 @@ class Index extends Component
     public function updatedPiLines(mixed $value, string $key): void
     {
         if (str_ends_with($key, '.cuenta_gasto_codigo') && $value) {
-            $idx     = (int) explode('.', $key)[0];
+            $idx = (int) explode('.', $key)[0];
             $account = Account::where('code', $value)->first();
             if ($account) {
                 $this->pi_lines[$idx]['cuenta_gasto_nombre'] = $account->name;
@@ -572,63 +585,63 @@ class Index extends Component
     public function savePurchaseInvoice(): void
     {
         $this->validate([
-            'pi_third_id'            => ['required', 'integer', 'min:1'],
-            'pi_numero'              => ['required', 'string', 'max:50'],
-            'pi_date'                => ['required', 'date'],
-            'pi_due_date'            => ['nullable', 'date'],
-            'pi_lines'               => ['required', 'array', 'min:1'],
+            'pi_third_id' => ['required', 'integer', 'min:1'],
+            'pi_numero' => ['required', 'string', 'max:50'],
+            'pi_date' => ['required', 'date'],
+            'pi_due_date' => ['nullable', 'date'],
+            'pi_lines' => ['required', 'array', 'min:1'],
             'pi_lines.*.description' => ['required', 'string'],
-            'pi_lines.*.qty'         => ['required', 'numeric', 'min:0.01'],
-            'pi_lines.*.unit_cost'   => ['required', 'numeric', 'min:0'],
+            'pi_lines.*.qty' => ['required', 'numeric', 'min:0.01'],
+            'pi_lines.*.unit_cost' => ['required', 'numeric', 'min:0'],
             'pi_lines.*.cuenta_gasto_codigo' => ['required', 'string'],
         ], [
-            'pi_third_id.min'                    => 'Selecciona un proveedor.',
-            'pi_numero.required'                  => 'Ingresa el número de factura del proveedor.',
-            'pi_lines.min'                        => 'Agrega al menos una línea.',
-            'pi_lines.*.description.required'     => 'La descripción es requerida.',
-            'pi_lines.*.qty.min'                  => 'La cantidad debe ser mayor a 0.',
+            'pi_third_id.min' => 'Selecciona un proveedor.',
+            'pi_numero.required' => 'Ingresa el número de factura del proveedor.',
+            'pi_lines.min' => 'Agrega al menos una línea.',
+            'pi_lines.*.description.required' => 'La descripción es requerida.',
+            'pi_lines.*.qty.min' => 'La cantidad debe ser mayor a 0.',
             'pi_lines.*.cuenta_gasto_codigo.required' => 'Selecciona la cuenta de gasto.',
         ]);
 
-        $subtotal   = 0.0;
-        $taxAmount  = 0.0;
-        $lineData   = [];
+        $subtotal = 0.0;
+        $taxAmount = 0.0;
+        $lineData = [];
 
         foreach ($this->pi_lines as $l) {
-            $lineSub  = round((float) $l['qty'] * (float) $l['unit_cost'], 2);
-            $lineTax  = round($lineSub * ((int) $l['tax_rate'] / 100), 2);
+            $lineSub = round((float) $l['qty'] * (float) $l['unit_cost'], 2);
+            $lineTax = round($lineSub * ((int) $l['tax_rate'] / 100), 2);
 
-            $subtotal  += $lineSub;
+            $subtotal += $lineSub;
             $taxAmount += $lineTax;
 
             $lineData[] = [
-                'description'        => $l['description'],
-                'qty'                => (float) $l['qty'],
-                'unit_cost'          => (float) $l['unit_cost'],
-                'tax_rate'           => (int) $l['tax_rate'],
-                'line_subtotal'      => $lineSub,
-                'line_tax'           => $lineTax,
-                'line_total'         => $lineSub + $lineTax,
-                'cuenta_gasto_codigo'=> $l['cuenta_gasto_codigo'],
-                'cuenta_gasto_nombre'=> $l['cuenta_gasto_nombre'] ?: $l['cuenta_gasto_codigo'],
+                'description' => $l['description'],
+                'qty' => (float) $l['qty'],
+                'unit_cost' => (float) $l['unit_cost'],
+                'tax_rate' => (int) $l['tax_rate'],
+                'line_subtotal' => $lineSub,
+                'line_tax' => $lineTax,
+                'line_total' => $lineSub + $lineTax,
+                'cuenta_gasto_codigo' => $l['cuenta_gasto_codigo'],
+                'cuenta_gasto_nombre' => $l['cuenta_gasto_nombre'] ?: $l['cuenta_gasto_codigo'],
             ];
         }
 
-        $subtotal  = round($subtotal, 2);
+        $subtotal = round($subtotal, 2);
         $taxAmount = round($taxAmount, 2);
-        $total     = $subtotal + $taxAmount;
+        $total = $subtotal + $taxAmount;
 
         DB::transaction(function () use ($subtotal, $taxAmount, $total, $lineData) {
             $data = [
-                'third_id'                => $this->pi_third_id,
+                'third_id' => $this->pi_third_id,
                 'supplier_invoice_number' => $this->pi_numero,
-                'date'                    => $this->pi_date,
-                'due_date'                => $this->pi_due_date ?: null,
-                'notes'                   => $this->pi_notes ?: null,
-                'subtotal'                => $subtotal,
-                'tax_amount'              => $taxAmount,
-                'total'                   => $total,
-                'status'                  => PurchaseInvoiceStatus::Borrador->value,
+                'date' => $this->pi_date,
+                'due_date' => $this->pi_due_date ?: null,
+                'notes' => $this->pi_notes ?: null,
+                'subtotal' => $subtotal,
+                'tax_amount' => $taxAmount,
+                'total' => $total,
+                'status' => PurchaseInvoiceStatus::Borrador->value,
             ];
 
             if ($this->piEditingId) {
@@ -675,13 +688,13 @@ class Index extends Component
 
                 if ($totalRet > 0) {
                     $invoice->update([
-                        'retefte_valor'     => $retefte,
-                        'retefte_base'      => $invoice->subtotal,
-                        'retefte_porcentaje'=> $this->pi_retefte_pct,
-                        'reteiva_valor'     => $reteiva,
-                        'reteica_valor'     => $reteica,
+                        'retefte_valor' => $retefte,
+                        'retefte_base' => $invoice->subtotal,
+                        'retefte_porcentaje' => $this->pi_retefte_pct,
+                        'reteiva_valor' => $reteiva,
+                        'reteica_valor' => $reteica,
                         'total_retenciones' => $totalRet,
-                        'total'             => round($invoice->subtotal + $invoice->tax_amount - $totalRet, 2),
+                        'total' => round($invoice->subtotal + $invoice->tax_amount - $totalRet, 2),
                     ]);
                     $invoice->refresh();
                 }
@@ -709,7 +722,7 @@ class Index extends Component
                 }
 
                 // Reversar asiento si existe
-                $entry = \App\Models\Tenant\JournalEntry::where('document_type', 'purchase_invoice')
+                $entry = JournalEntry::where('document_type', 'purchase_invoice')
                     ->where('document_id', $invoice->id)
                     ->latest()
                     ->first();
@@ -739,11 +752,11 @@ class Index extends Component
     public function resetPiForm(): void
     {
         $this->reset(['piEditingId', 'pi_third_id', 'pi_numero', 'pi_notes', 'pi_lines',
-                      'pi_aplica_retefte', 'pi_aplica_reteiva', 'pi_aplica_reteica']);
-        $this->showPiForm       = false;
-        $this->pi_retefte_pct   = 3.5;
-        $this->pi_date          = now()->toDateString();
-        $this->pi_due_date      = now()->addDays(30)->toDateString();
+            'pi_aplica_retefte', 'pi_aplica_reteiva', 'pi_aplica_reteica']);
+        $this->showPiForm = false;
+        $this->pi_retefte_pct = 3.5;
+        $this->pi_date = now()->toDateString();
+        $this->pi_due_date = now()->addDays(30)->toDateString();
     }
 
     public function updatingSearch(): void
@@ -794,17 +807,79 @@ class Index extends Component
             ->orderByDesc('id')
             ->paginate(15, ['*'], 'pi_page');
 
-        $thirds = Third::whereIn('type', ['cliente', 'ambos'])->where('active', true)->orderBy('name')->get();
-        $products = Product::where('active', true)->orderBy('name')->get();
+        $thirds = Third::modoActual()->whereIn('type', ['cliente', 'ambos'])->where('active', true)->orderBy('name')->get();
+        $products = Product::modoActual()->where('active', true)->orderBy('name')->get();
         $statuses = InvoiceStatus::cases();
         $piStatuses = PurchaseInvoiceStatus::cases();
-        $proveedores = Third::whereIn('type', ['proveedor', 'ambos'])->where('active', true)->orderBy('name')->get();
+        $proveedores = Third::modoActual()->whereIn('type', ['proveedor', 'ambos'])->where('active', true)->orderBy('name')->get();
         $cuentasGasto = Account::whereIn('type', ['gasto', 'costo'])->where('level', '>=', 3)->where('active', true)->orderBy('code')->get(['id', 'code', 'name']);
+
+        // Cartera vencida — solo se carga al activar el tab para no afectar rendimiento
+        $carteraCxC = collect();
+        $carteraCxP = collect();
+        if ($this->activeTab === 'cartera') {
+            $carteraCxC = Invoice::with(['third', 'cashReceiptItems', 'creditNotes', 'debitNotes'])
+                ->where('status', InvoiceStatus::Emitida)
+                ->orderBy('due_date')
+                ->get()
+                ->filter(fn ($inv) => $inv->balance() > 0)
+                ->map(function ($inv) {
+                    $inv->dias_mora = $inv->due_date && $inv->due_date->isPast()
+                        ? (int) $inv->due_date->diffInDays(now())
+                        : 0;
+
+                    return $inv;
+                });
+
+            $carteraCxP = PurchaseInvoice::with('third')
+                ->whereNull('purchase_order_id')
+                ->where('status', PurchaseInvoiceStatus::Pendiente)
+                ->orderBy('due_date')
+                ->get()
+                ->filter(fn ($pi) => $pi->balance() > 0)
+                ->map(function ($pi) {
+                    $pi->dias_mora = $pi->due_date && $pi->due_date->isPast()
+                        ? (int) $pi->due_date->diffInDays(now())
+                        : 0;
+
+                    return $pi;
+                });
+        }
+
+        $modo = modoContable();
+
+        $porCobrar = (float) DB::table('journal_lines')
+            ->join('accounts', 'accounts.id', '=', 'journal_lines.account_id')
+            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.journal_entry_id')
+            ->where('accounts.code', 'like', '1305%')
+            ->where('journal_entries.modo', $modo)
+            ->selectRaw('COALESCE(SUM(debit) - SUM(credit), 0) as saldo')
+            ->value('saldo');
+
+        $porPagar = (float) DB::table('journal_lines')
+            ->join('accounts', 'accounts.id', '=', 'journal_lines.account_id')
+            ->join('journal_entries', 'journal_entries.id', '=', 'journal_lines.journal_entry_id')
+            ->where('accounts.code', 'like', '2205%')
+            ->where('journal_entries.modo', $modo)
+            ->selectRaw('COALESCE(SUM(credit) - SUM(debit), 0) as saldo')
+            ->value('saldo');
+
+        $facturadoMes = (float) Invoice::modoActual()
+            ->where('status', InvoiceStatus::Emitida)
+            ->whereMonth('date', now()->month)
+            ->whereYear('date', now()->year)
+            ->sum('total');
+
+        $cobradoMes = (float) CashReceipt::whereMonth('date', now()->month)
+            ->whereYear('date', now()->year)
+            ->sum('total');
 
         return view('livewire.tenant.invoices.index', compact(
             'invoices', 'receipts', 'creditNotes', 'debitNotes',
             'purchaseInvoices', 'thirds', 'products', 'statuses',
-            'piStatuses', 'proveedores', 'cuentasGasto'
+            'piStatuses', 'proveedores', 'cuentasGasto',
+            'carteraCxC', 'carteraCxP',
+            'porCobrar', 'porPagar', 'facturadoMes', 'cobradoMes'
         ))->title('Facturación');
     }
 }

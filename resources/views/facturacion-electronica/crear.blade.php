@@ -59,7 +59,7 @@
                             <option value="">— Seleccionar cliente existente —</option>
                             @foreach($clientes as $cliente)
                                 <option value="{{ $cliente->id }}"
-                                    data-tipo="{{ $cliente->document_type }}"
+                                    data-tipo="{{ match($cliente->document_type) { 'nit' => '31', 'cc' => '13', 'ce' => '22', 'pasaporte' => '91', default => '31' } }}"
                                     data-doc="{{ $cliente->document }}"
                                     data-nombre="{{ $cliente->name }}"
                                     data-email="{{ $cliente->email }}"
@@ -86,8 +86,8 @@
                             <label class="block text-sm font-medium text-slate-700 mb-1">Número de documento <span class="text-red-500">*</span></label>
                             <input type="text" name="num_doc_adquirente" x-model="numDoc" required
                                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm" placeholder="Ej: 900123456">
-                            <p x-show="tipoDoc === '31'" class="mt-1 text-xs text-amber-600">
-                                ⚠️ Para NIT debes incluir el dígito de verificación al final. Ej: si el NIT es <strong>900123456</strong> y su DV es <strong>7</strong>, ingresa <strong>9001234567</strong>.
+                            <p x-show="tipoDoc === '31'" class="mt-1 text-xs text-slate-500">
+                                Para NIT puedes ingresar con guión (ej: <strong>900123456-7</strong>) o sin guión con el DV al final (ej: <strong>9001234567</strong>).
                             </p>
                         </div>
                         <div class="md:col-span-2">

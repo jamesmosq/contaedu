@@ -1,0 +1,106 @@
+PLAN DE TRABAJO — CORRECCIÓN SIMULADORES DIAN Y BANCO
+ContaEdu · 2026-04-18 (revisado tras leer código real)
+======================================================
+
+CORRECCIONES AL ANÁLISIS INICIAL
+----------------------------------
+Tras leer el código real, los siguientes problemas reportados NO existen:
+✗ Fórmula de conciliación invertida → CORRECTA (statement + depósitos - cheques + ajustes)
+✗ GMF en depósitos/entradas → YA correcto (calcularGmf() solo aplica a retiros/salidas/cheques)
+✗ Race condition en consecutivo DIAN → RESUELTO por DB::transaction() + lockForUpdate()
+
+Los problemas REALES confirmados:
+✓ abrirSegundaCuenta() Caso 2 sin DB::transaction()
+✓ confirmarSobregiro() sin DB::transaction()
+✓ No existe pagarSobregiro()
+✓ Estado "Enviada" en enum nunca se alcanza (inconsistencia)
+✓ registrarEventoReceptor() lanza QueryException en lugar de mensaje pedagógico si hay race condition
+
+======================================================
+FASE 1 — BANCO (INTEGRIDAD DE DATOS)
+======================================================
+
+TAREA 1.1 — DB::transaction() en abrirSegundaCuenta() Caso 2
+-------------------------------------------------------------
+Archivo: app/Livewire/Tenant/Banco/Index.php
+Problema: El flujo de abrir segunda cuenta (Caso 2) hace:
+  BankAccount::create()       ← crea cuenta con saldo inicial
+  $cuentaOrigen->decrement()  ← descuenta de cuenta origen
+  BankTransaction::create()   × 2 ← registra movimientos
+  Todo sin DB::transaction(). Si falla entre pasos, datos quedan inconsistentes.
+Acción: Envolver BankAccount::create() + decrement + 2x BankTransaction::create()
+        en DB::transaction().
+Estado: PENDIENTE
+
+TAREA 1.2 — DB::transaction() en confirmarSobregiro()
+------------------------------------------------------
+Archivo: app/Livewire/Tenant/Banco/Index.php · método confirmarSobregiro()
+Problema: increment(sobregiro_usado) + decrement(saldo) + BankTransaction::create()
+          sin DB::transaction(). Si falla entre pasos, saldo y sobregiro_usado quedan
+          desincronizados.
+Acción: Envolver los tres pasos en DB::transaction().
+Estado: PENDIENTE
+
+TAREA 1.3 — Implementar pagarSobregiro()
+-----------------------------------------
+Archivos: app/Livewire/Tenant/Banco/Index.php · app/Services/BankService.php
+Estado: COMPLETADA
+
+TAREA 1.4 — Reset sobregiro_periodos cuando sobregiro_usado llega a 0
+----------------------------------------------------------------------
+Estado: COMPLETADA (incluida en TAREA 1.3)
+
+======================================================
+FASE 2 — DIAN (CONSISTENCIA DE ESTADOS)
+======================================================
+
+TAREA 2.1 — Usar estado "Enviada" o eliminarlo del enum
+--------------------------------------------------------
+Estado: COMPLETADA (Opción A — estado intermedio pedagógico Generada → Enviada → Validada/Rechazada)
+
+TAREA 2.2 — Manejar race condition en registrarEventoReceptor()
+---------------------------------------------------------------
+Estado: COMPLETADA
+
+======================================================
+FASE 3 — VALIDACIONES MENORES
+======================================================
+
+TAREA 3.1 — Validar cantidad > 0 en líneas de factura FE
+---------------------------------------------------------
+Estado: COMPLETADA (ValidadorFacturaService — REGLA 7)
+
+TAREA 3.2 — Validar descuentos en rango 0-100 en FE
+----------------------------------------------------
+Estado: COMPLETADA (ValidadorFacturaService — REGLA 7)
+
+TAREA 3.3 — Validar period_start <= period_end en conciliación
+--------------------------------------------------------------
+Estado: COMPLETADA (BankReconciliationService::create())
+
+======================================================
+ORDEN DE EJECUCIÓN
+======================================================
+
+1. TAREA 1.1 — DB::transaction() abrirSegundaCuenta        ← AHORA
+2. TAREA 1.2 — DB::transaction() confirmarSobregiro        ← AHORA
+3. TAREA 1.3 — pagarSobregiro() (incluye TAREA 1.4)        ← AHORA
+4. TAREA 2.1 — Estado "Enviada" en DIAN                    ← SIGUIENTE
+5. TAREA 2.2 — Race condition eventos receptor DIAN        ← SIGUIENTE
+6. TAREA 3.x — Validaciones menores                        ← FUTURO
+
+======================================================
+NOTAS
+======================================================
+
+- El AccountingService y su integración con bancos NO se toca en este plan.
+- La fórmula de conciliación BankReconciliation::adjustedStatementBalance()
+  es CORRECTA y NO debe modificarse.
+- calcularGmf() es CORRECTO: ya solo aplica a retiros/salidas/cheques.
+- El DB::transaction() + lockForUpdate() en FacturaService::emitir() es CORRECTO.
+- Cada tarea debe probarse en local antes de commit.
+- NO hacer deploy hasta tener las 3 primeras tareas implementadas y probadas.
+
+======================================================
+FIN DEL PLAN (REVISADO)
+======================================================

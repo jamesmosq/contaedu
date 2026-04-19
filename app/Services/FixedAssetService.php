@@ -19,19 +19,25 @@ class FixedAssetService
      */
     public function create(array $data): FixedAsset
     {
-        return FixedAsset::create([
-            'code' => $data['code'] ?? FixedAsset::nextCode(),
-            'name' => $data['name'],
-            'description' => $data['description'] ?? null,
-            'category' => $data['category'],
-            'acquisition_date' => $data['acquisition_date'],
-            'cost' => round((float) $data['cost'], 2),
-            'salvage_value' => round((float) ($data['salvage_value'] ?? 0), 2),
-            'useful_life_months' => (int) $data['useful_life_months'],
-            'status' => FixedAssetStatus::Activo,
-            'notes' => $data['notes'] ?? null,
-            'accumulated_depreciation' => 0,
-        ]);
+        return DB::transaction(function () use ($data) {
+            $asset = FixedAsset::create([
+                'code' => $data['code'] ?? FixedAsset::nextCode(),
+                'name' => $data['name'],
+                'description' => $data['description'] ?? null,
+                'category' => $data['category'],
+                'acquisition_date' => $data['acquisition_date'],
+                'cost' => round((float) $data['cost'], 2),
+                'salvage_value' => round((float) ($data['salvage_value'] ?? 0), 2),
+                'useful_life_months' => (int) $data['useful_life_months'],
+                'status' => FixedAssetStatus::Activo,
+                'notes' => $data['notes'] ?? null,
+                'accumulated_depreciation' => 0,
+            ]);
+
+            $this->accounting->generateAcquisitionEntry($asset, $data['forma_pago'] ?? 'contado');
+
+            return $asset;
+        });
     }
 
     /**

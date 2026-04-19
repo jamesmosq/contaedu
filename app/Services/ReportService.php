@@ -17,6 +17,7 @@ class ReportService
     public function libroDiario(string $from, string $to): Collection
     {
         return JournalEntry::with(['lines.account'])
+            ->where('modo', modoContable())
             ->whereBetween('date', [$from, $to])
             ->whereNull('deleted_at')
             ->orderBy('date')
@@ -33,7 +34,10 @@ class ReportService
 
         $lines = JournalLine::with('journalEntry')
             ->where('account_id', $accountId)
-            ->whereHas('journalEntry', fn ($q) => $q->whereBetween('date', [$from, $to])->whereNull('deleted_at'))
+            ->whereHas('journalEntry', fn ($q) => $q
+                ->where('modo', modoContable())
+                ->whereBetween('date', [$from, $to])
+                ->whereNull('deleted_at'))
             ->get()
             ->sortBy(fn ($l) => $l->journalEntry->date->format('Y-m-d').str_pad($l->journalEntry->id, 10, '0', STR_PAD_LEFT));
 
@@ -65,7 +69,10 @@ class ReportService
     public function balanceComprobacion(string $from, string $to): Collection
     {
         $lines = JournalLine::with('account')
-            ->whereHas('journalEntry', fn ($q) => $q->whereBetween('date', [$from, $to])->whereNull('deleted_at'))
+            ->whereHas('journalEntry', fn ($q) => $q
+                ->where('modo', modoContable())
+                ->whereBetween('date', [$from, $to])
+                ->whereNull('deleted_at'))
             ->get()
             ->groupBy('account_id');
 
@@ -97,7 +104,10 @@ class ReportService
     public function estadoResultados(string $from, string $to): array
     {
         $lines = JournalLine::with('account')
-            ->whereHas('journalEntry', fn ($q) => $q->whereBetween('date', [$from, $to])->whereNull('deleted_at'))
+            ->whereHas('journalEntry', fn ($q) => $q
+                ->where('modo', modoContable())
+                ->whereBetween('date', [$from, $to])
+                ->whereNull('deleted_at'))
             ->get();
 
         $ingresos = $this->sumByType($lines, 'ingreso');
@@ -118,7 +128,10 @@ class ReportService
     public function balanceGeneral(string $to): array
     {
         $lines = JournalLine::with('account')
-            ->whereHas('journalEntry', fn ($q) => $q->where('date', '<=', $to)->whereNull('deleted_at'))
+            ->whereHas('journalEntry', fn ($q) => $q
+                ->where('modo', modoContable())
+                ->where('date', '<=', $to)
+                ->whereNull('deleted_at'))
             ->get();
 
         $activos = $this->sumByType($lines, 'activo');
@@ -140,6 +153,7 @@ class ReportService
     {
         return Invoice::with('third')
             ->where('status', 'emitida')
+            ->where('modo', modoContable())
             ->orderBy('due_date')
             ->get()
             ->map(function ($inv) {
@@ -164,6 +178,7 @@ class ReportService
     {
         return PurchaseInvoice::with('third')
             ->where('status', 'pendiente')
+            ->where('modo', modoContable())
             ->orderBy('due_date')
             ->get()
             ->map(function ($inv) {
@@ -192,7 +207,10 @@ class ReportService
 
         $lines = JournalLine::with(['account', 'journalEntry'])
             ->whereHas('account', fn ($q) => $q->whereIn('code', $codigosIva))
-            ->whereHas('journalEntry', fn ($q) => $q->whereBetween('date', [$from, $to])->whereNull('deleted_at'))
+            ->whereHas('journalEntry', fn ($q) => $q
+                ->where('modo', modoContable())
+                ->whereBetween('date', [$from, $to])
+                ->whereNull('deleted_at'))
             ->get()
             ->sortBy(fn ($l) => $l->journalEntry->date->format('Y-m-d').str_pad($l->journalEntry->id, 10, '0', STR_PAD_LEFT));
 

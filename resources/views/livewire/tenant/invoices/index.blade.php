@@ -42,6 +42,47 @@
                 <button wire:click="$set('activeTab','notas_debito')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'notas_debito' ? 'border-b-2 border-forest-700 text-forest-800' : 'text-slate-500 hover:text-slate-700' }}">
                     Notas débito
                 </button>
+                <button wire:click="$set('activeTab','cartera')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'cartera' ? 'border-b-2 border-red-600 text-red-700' : 'text-slate-500 hover:text-slate-700' }}">
+                    Cartera vencida
+                </button>
+            </div>
+
+            {{-- ── Panel financiero ──────────────────────────────────────────── --}}
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6" wire:poll.10s>
+                <div class="bg-white rounded-2xl border border-cream-200 shadow-card px-5 py-4">
+                    <p class="text-xs text-slate-400 uppercase tracking-wide font-medium">Por cobrar</p>
+                    <p class="text-xl font-bold font-mono {{ $porCobrar > 0 ? 'text-blue-700' : 'text-slate-400' }} truncate mt-1">
+                        $ {{ number_format($porCobrar, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-slate-400 mt-0.5">cuenta 1305</p>
+                </div>
+                <div class="bg-white rounded-2xl border border-cream-200 shadow-card px-5 py-4">
+                    <p class="text-xs text-slate-400 uppercase tracking-wide font-medium">Por pagar</p>
+                    <p class="text-xl font-bold font-mono {{ $porPagar > 0 ? 'text-red-600' : 'text-slate-400' }} truncate mt-1">
+                        $ {{ number_format($porPagar, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-slate-400 mt-0.5">cuenta 2205</p>
+                </div>
+                <div class="bg-white rounded-2xl border border-cream-200 shadow-card px-5 py-4">
+                    <p class="text-xs text-slate-400 uppercase tracking-wide font-medium">Facturado este mes</p>
+                    <p class="text-xl font-bold font-mono text-slate-800 truncate mt-1">
+                        $ {{ number_format($facturadoMes, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-slate-400 mt-0.5">facturas emitidas</p>
+                </div>
+                <div class="bg-white rounded-2xl border border-cream-200 shadow-card px-5 py-4">
+                    <p class="text-xs text-slate-400 uppercase tracking-wide font-medium">Cobrado este mes</p>
+                    <p class="text-xl font-bold font-mono {{ $cobradoMes > 0 ? 'text-green-700' : 'text-slate-400' }} truncate mt-1">
+                        $ {{ number_format($cobradoMes, 0, ',', '.') }}
+                    </p>
+                    <p class="text-xs text-slate-400 mt-0.5">recibos de caja</p>
+                </div>
+            </div>
+
+            {{-- Nota pedagógica --}}
+            <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4 text-sm text-sky-800 mb-6">
+                <p class="font-semibold mb-1">¿Qué es una factura de venta y cómo impacta la contabilidad?</p>
+                <p>Al confirmar una factura, el sistema genera el asiento automáticamente: <strong>Débito 1305 Cuentas por cobrar</strong> (aumenta la cartera del cliente) y <strong>Crédito 4135 Ingresos por ventas</strong>. Si el producto tiene inventario, también registra el costo: Débito 6135 / Crédito 1435. Los <strong>recibos de caja</strong> saldan esa cartera cuando el cliente paga. En Colombia las facturas deben cumplir los requisitos del Estatuto Tributario y la resolución DIAN.</p>
             </div>
 
             {{-- ══════════════════════════════════ MODAL FACTURA DE COMPRA ══════════════════════════════════ --}}
@@ -495,6 +536,7 @@
                             <tr class="bg-forest-950 border-b border-forest-800">
                                 <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Nro.</th>
                                 <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Fecha</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide hidden md:table-cell">Vence</th>
                                 <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Cliente</th>
                                 <th class="text-right px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Total</th>
                                 <th class="text-right px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Saldo</th>
@@ -507,6 +549,19 @@
                                 <tr wire:key="inv-{{ $invoice->id }}" class="hover:bg-slate-50 transition">
                                     <td class="px-6 py-3 font-mono text-xs font-bold text-slate-700">{{ $invoice->fullReference() }}</td>
                                     <td class="px-6 py-3 text-slate-600">{{ $invoice->date->format('d/m/Y') }}</td>
+                                    <td class="px-6 py-3 hidden md:table-cell">
+                                        @if($invoice->due_date)
+                                            @php $vencida = $invoice->isEmitida() && $invoice->balance() > 0 && $invoice->due_date->isPast(); @endphp
+                                            <span class="{{ $vencida ? 'text-red-600 font-semibold' : 'text-slate-500' }}">
+                                                {{ $invoice->due_date->format('d/m/Y') }}
+                                            </span>
+                                            @if($vencida)
+                                                <span class="ml-1 px-1.5 py-0.5 bg-red-100 text-red-700 text-xs rounded font-medium">Vencida</span>
+                                            @endif
+                                        @else
+                                            <span class="text-slate-300">—</span>
+                                        @endif
+                                    </td>
                                     <td class="px-6 py-3 text-slate-700">{{ $invoice->third?->name ?? '—' }}</td>
                                     <td class="px-6 py-3 text-right font-mono text-sm font-semibold text-slate-800">$ {{ number_format($invoice->total, 0, ',', '.') }}</td>
                                     <td class="px-6 py-3 text-right font-mono text-sm {{ $invoice->isEmitida() && $invoice->balance() > 0 ? 'text-red-600 font-semibold' : 'text-slate-400' }}">
@@ -571,6 +626,7 @@
                             <tr class="bg-forest-950 border-b border-forest-800">
                                 <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Nro. proveedor</th>
                                 <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Fecha</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide hidden md:table-cell">Vence</th>
                                 <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Proveedor</th>
                                 <th class="text-right px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Subtotal</th>
                                 <th class="text-right px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">IVA</th>
@@ -584,6 +640,19 @@
                                 <tr wire:key="pi-{{ $pi->id }}" class="hover:bg-slate-50 transition">
                                     <td class="px-6 py-3 font-mono text-xs font-bold text-slate-700">{{ $pi->supplier_invoice_number }}</td>
                                     <td class="px-6 py-3 text-slate-600">{{ $pi->date->format('d/m/Y') }}</td>
+                                    <td class="px-6 py-3 hidden md:table-cell">
+                                        @if($pi->due_date)
+                                            @php $piVencida = $pi->status->value === 'pendiente' && $pi->balance() > 0 && $pi->due_date->isPast(); @endphp
+                                            <span class="{{ $piVencida ? 'text-red-600 font-semibold' : 'text-slate-500' }}">
+                                                {{ $pi->due_date->format('d/m/Y') }}
+                                            </span>
+                                            @if($piVencida)
+                                                <span class="ml-1 px-1.5 py-0.5 bg-red-100 text-red-700 text-xs rounded font-medium">Vencida</span>
+                                            @endif
+                                        @else
+                                            <span class="text-slate-300">—</span>
+                                        @endif
+                                    </td>
                                     <td class="px-6 py-3 text-slate-700">{{ $pi->third?->name ?? '—' }}</td>
                                     <td class="px-6 py-3 text-right font-mono text-sm text-slate-700">$ {{ number_format($pi->subtotal, 0, ',', '.') }}</td>
                                     <td class="px-6 py-3 text-right font-mono text-sm text-slate-600">$ {{ number_format($pi->tax_amount, 0, ',', '.') }}</td>
@@ -816,6 +885,120 @@
                         </tbody>
                     </table>
                 </div>
+            @endif
+
+            {{-- ══════════ CARTERA VENCIDA ══════════ --}}
+            @if($activeTab === 'cartera')
+                @php
+                    $buckets = [
+                        'al_dia'   => ['label' => 'Al día',        'color' => 'green',  'items' => $carteraCxC->where('dias_mora', 0)],
+                        '1_30'     => ['label' => '1–30 días',     'color' => 'yellow', 'items' => $carteraCxC->whereBetween('dias_mora', [1, 30])],
+                        '31_60'    => ['label' => '31–60 días',    'color' => 'orange', 'items' => $carteraCxC->whereBetween('dias_mora', [31, 60])],
+                        '61_90'    => ['label' => '61–90 días',    'color' => 'red',    'items' => $carteraCxC->whereBetween('dias_mora', [61, 90])],
+                        'mas_90'   => ['label' => '+90 días',      'color' => 'rose',   'items' => $carteraCxC->where('dias_mora', '>', 90)],
+                    ];
+                    $bucketsCxP = [
+                        'al_dia'   => ['label' => 'Al día',        'color' => 'green',  'items' => $carteraCxP->where('dias_mora', 0)],
+                        '1_30'     => ['label' => '1–30 días',     'color' => 'yellow', 'items' => $carteraCxP->whereBetween('dias_mora', [1, 30])],
+                        '31_60'    => ['label' => '31–60 días',    'color' => 'orange', 'items' => $carteraCxP->whereBetween('dias_mora', [31, 60])],
+                        '61_90'    => ['label' => '61–90 días',    'color' => 'red',    'items' => $carteraCxP->whereBetween('dias_mora', [61, 90])],
+                        'mas_90'   => ['label' => '+90 días',      'color' => 'rose',   'items' => $carteraCxP->where('dias_mora', '>', 90)],
+                    ];
+                    $colorMap = ['green'=>'bg-green-100 text-green-800','yellow'=>'bg-yellow-100 text-yellow-800','orange'=>'bg-orange-100 text-orange-800','red'=>'bg-red-100 text-red-800','rose'=>'bg-rose-100 text-rose-800'];
+                @endphp
+
+                <div class="bg-sky-50 border border-sky-200 rounded-2xl p-4 text-sm text-sky-800 mb-6">
+                    <p class="font-semibold mb-1">¿Qué es la cartera vencida?</p>
+                    <p>La cartera vencida son las facturas que ya pasaron su fecha de vencimiento y el cliente aún no ha pagado. En contabilidad colombiana, el contador debe provisionar la cartera de difícil cobro (cuenta 1399) cuando supera 90 días. Vigilar este indicador es clave para el flujo de caja.</p>
+                </div>
+
+                {{-- Resumen CxC --}}
+                <h3 class="text-sm font-semibold text-slate-700 mb-3">Cuentas por cobrar — Cartera de clientes</h3>
+                @if($carteraCxC->isEmpty())
+                    <div class="bg-white rounded-2xl border border-cream-200 shadow-card px-6 py-10 text-center text-slate-400 mb-6">No hay facturas pendientes de cobro.</div>
+                @else
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
+                        @foreach($buckets as $bucket)
+                            <div class="bg-white rounded-xl border border-cream-200 shadow-sm p-3 text-center">
+                                <span class="inline-block px-2 py-0.5 rounded text-xs font-medium {{ $colorMap[$bucket['color']] }} mb-1">{{ $bucket['label'] }}</span>
+                                <p class="text-sm font-bold font-mono text-slate-800">$ {{ number_format($bucket['items']->sum(fn($i) => $i->balance()), 0, ',', '.') }}</p>
+                                <p class="text-xs text-slate-400">{{ $bucket['items']->count() }} factura(s)</p>
+                            </div>
+                        @endforeach
+                    </div>
+                    <div class="bg-white rounded-2xl border border-cream-200 shadow-card overflow-hidden mb-8">
+                        <table class="w-full text-sm">
+                            <thead><tr class="bg-forest-950 border-b border-forest-800">
+                                <th class="text-left px-5 py-3 text-xs font-semibold text-forest-300 uppercase">Nro.</th>
+                                <th class="text-left px-5 py-3 text-xs font-semibold text-forest-300 uppercase">Cliente</th>
+                                <th class="text-left px-5 py-3 text-xs font-semibold text-forest-300 uppercase hidden sm:table-cell">Vence</th>
+                                <th class="text-right px-5 py-3 text-xs font-semibold text-forest-300 uppercase">Saldo</th>
+                                <th class="text-left px-5 py-3 text-xs font-semibold text-forest-300 uppercase">Mora</th>
+                            </tr></thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @foreach($carteraCxC->sortByDesc('dias_mora') as $inv)
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="px-5 py-2.5 font-mono text-xs font-bold text-slate-700">{{ $inv->fullReference() }}</td>
+                                        <td class="px-5 py-2.5 text-slate-700">{{ $inv->third?->name ?? '—' }}</td>
+                                        <td class="px-5 py-2.5 hidden sm:table-cell text-slate-500 text-xs">{{ $inv->due_date ? $inv->due_date->format('d/m/Y') : '—' }}</td>
+                                        <td class="px-5 py-2.5 text-right font-mono text-sm font-semibold {{ $inv->dias_mora > 0 ? 'text-red-600' : 'text-slate-800' }}">$ {{ number_format($inv->balance(), 0, ',', '.') }}</td>
+                                        <td class="px-5 py-2.5">
+                                            @if($inv->dias_mora === 0)
+                                                <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">Al día</span>
+                                            @else
+                                                <span class="px-2 py-0.5 {{ $inv->dias_mora > 90 ? 'bg-rose-100 text-rose-700' : ($inv->dias_mora > 60 ? 'bg-red-100 text-red-700' : ($inv->dias_mora > 30 ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700')) }} text-xs rounded">{{ $inv->dias_mora }} día(s)</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
+
+                {{-- Resumen CxP --}}
+                <h3 class="text-sm font-semibold text-slate-700 mb-3">Cuentas por pagar — Obligaciones con proveedores</h3>
+                @if($carteraCxP->isEmpty())
+                    <div class="bg-white rounded-2xl border border-cream-200 shadow-card px-6 py-10 text-center text-slate-400">No hay facturas de compra pendientes de pago.</div>
+                @else
+                    <div class="grid grid-cols-2 sm:grid-cols-5 gap-3 mb-4">
+                        @foreach($bucketsCxP as $bucket)
+                            <div class="bg-white rounded-xl border border-cream-200 shadow-sm p-3 text-center">
+                                <span class="inline-block px-2 py-0.5 rounded text-xs font-medium {{ $colorMap[$bucket['color']] }} mb-1">{{ $bucket['label'] }}</span>
+                                <p class="text-sm font-bold font-mono text-slate-800">$ {{ number_format($bucket['items']->sum(fn($i) => $i->balance()), 0, ',', '.') }}</p>
+                                <p class="text-xs text-slate-400">{{ $bucket['items']->count() }} factura(s)</p>
+                            </div>
+                        @endforeach
+                    </div>
+                    <div class="bg-white rounded-2xl border border-cream-200 shadow-card overflow-hidden">
+                        <table class="w-full text-sm">
+                            <thead><tr class="bg-forest-950 border-b border-forest-800">
+                                <th class="text-left px-5 py-3 text-xs font-semibold text-forest-300 uppercase">Nro. proveedor</th>
+                                <th class="text-left px-5 py-3 text-xs font-semibold text-forest-300 uppercase">Proveedor</th>
+                                <th class="text-left px-5 py-3 text-xs font-semibold text-forest-300 uppercase hidden sm:table-cell">Vence</th>
+                                <th class="text-right px-5 py-3 text-xs font-semibold text-forest-300 uppercase">Saldo</th>
+                                <th class="text-left px-5 py-3 text-xs font-semibold text-forest-300 uppercase">Mora</th>
+                            </tr></thead>
+                            <tbody class="divide-y divide-slate-100">
+                                @foreach($carteraCxP->sortByDesc('dias_mora') as $pi)
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="px-5 py-2.5 font-mono text-xs font-bold text-slate-700">{{ $pi->supplier_invoice_number }}</td>
+                                        <td class="px-5 py-2.5 text-slate-700">{{ $pi->third?->name ?? '—' }}</td>
+                                        <td class="px-5 py-2.5 hidden sm:table-cell text-slate-500 text-xs">{{ $pi->due_date ? $pi->due_date->format('d/m/Y') : '—' }}</td>
+                                        <td class="px-5 py-2.5 text-right font-mono text-sm font-semibold {{ $pi->dias_mora > 0 ? 'text-red-600' : 'text-slate-800' }}">$ {{ number_format($pi->balance(), 0, ',', '.') }}</td>
+                                        <td class="px-5 py-2.5">
+                                            @if($pi->dias_mora === 0)
+                                                <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded">Al día</span>
+                                            @else
+                                                <span class="px-2 py-0.5 {{ $pi->dias_mora > 90 ? 'bg-rose-100 text-rose-700' : ($pi->dias_mora > 60 ? 'bg-red-100 text-red-700' : ($pi->dias_mora > 30 ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700')) }} text-xs rounded">{{ $pi->dias_mora }} día(s)</span>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @endif
             @endif
 
         </div>
