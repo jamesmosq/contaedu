@@ -9,6 +9,7 @@ use App\Http\Controllers\Teacher\BulkTemplateController;
 use App\Http\Controllers\Teacher\DemoController;
 use App\Http\Controllers\Tenant\ActivosFijosPdfController;
 use App\Http\Controllers\Tenant\BancoPdfController;
+use App\Http\Controllers\Tenant\CashReceiptPdfController;
 use App\Http\Controllers\Tenant\ConciliacionPdfController;
 use App\Http\Controllers\Tenant\DashboardController as TenantDashboard;
 use App\Http\Controllers\Tenant\FacturacionElectronica\FacturacionElectronicaController;
@@ -133,6 +134,7 @@ Route::middleware(['auth', 'role:teacher'])->prefix('docente')->name('teacher.')
         Route::get('/conciliacion-bancaria/pdf', ConciliacionPdfController::class)->name('conciliacion.pdf');
         Route::get('/banco', BancoIndex::class)->name('banco');
         Route::get('/banco/documento/pdf', BancoPdfController::class)->name('banco.documento.pdf');
+        Route::get('/facturas/recibo/pdf', CashReceiptPdfController::class)->name('recibo.pdf');
     });
 
     // ─── Empresas de demostración del docente ──────────────────────────────
@@ -158,6 +160,7 @@ Route::middleware(['auth', 'role:teacher'])->prefix('docente')->name('teacher.')
         Route::get('/conciliacion-bancaria/pdf', ConciliacionPdfController::class)->name('conciliacion.pdf');
         Route::get('/banco', BancoIndex::class)->name('banco');
         Route::get('/banco/documento/pdf', BancoPdfController::class)->name('banco.documento.pdf');
+        Route::get('/facturas/recibo/pdf', CashReceiptPdfController::class)->name('recibo.pdf');
 
         // Facturación Electrónica Simulada
         // Usamos closures para absorber {demoId} del prefijo y evitar que Laravel lo inyecte
@@ -273,6 +276,7 @@ Route::middleware(['auth:student', 'tenant.initialize'])
         Route::get('/conciliacion-bancaria/pdf', ConciliacionPdfController::class)->name('conciliacion.pdf');
         Route::get('/banco', BancoIndex::class)->name('banco');
         Route::get('/banco/documento/pdf', BancoPdfController::class)->name('banco.documento.pdf');
+        Route::get('/facturas/recibo/pdf', CashReceiptPdfController::class)->name('recibo.pdf');
 
         // PUC Interactivo (referencia rápida desde la zona real)
         Route::get('/puc', PucInteractivo::class)->name('puc');
@@ -346,6 +350,7 @@ Route::middleware(['auth:student', 'tenant.initialize'])
         Route::get('/activos-fijos/pdf', ActivosFijosPdfController::class)->name('activos-fijos.pdf');
         Route::get('/conciliacion-bancaria', ConciliacionIndex::class)->name('conciliacion');
         Route::get('/conciliacion-bancaria/pdf', ConciliacionPdfController::class)->name('conciliacion.pdf');
+        Route::get('/facturas/recibo/pdf', CashReceiptPdfController::class)->name('recibo.pdf');
 
         // Facturación electrónica simulada
         Route::prefix('facturacion-electronica')->name('fe.')->group(function () {

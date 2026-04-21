@@ -264,9 +264,20 @@ class PucSeeder extends Seeder
             // ─── 31 Capital social ────────────────────────────────────────
             ['code' => '31',     'name' => 'CAPITAL SOCIAL',                                  'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 2],
             ['code' => '3105',   'name' => 'Capital suscrito y pagado',                       'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 3],
+            ['code' => '310505', 'name' => 'Capital autorizado',                              'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 4],
+            ['code' => '310510', 'name' => 'Capital por suscribir (DB)',                      'type' => 'patrimonio', 'nature' => 'debito',  'parent_id' => null, 'level' => 4],
+            ['code' => '310515', 'name' => 'Capital suscrito por cobrar (DB)',                'type' => 'patrimonio', 'nature' => 'debito',  'parent_id' => null, 'level' => 4],
             ['code' => '3110',   'name' => 'Aportes sociales',                                'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 3],
+            ['code' => '311005', 'name' => 'Cuotas o partes de interés social',              'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 4],
+            ['code' => '311010', 'name' => 'Aportes de socios',                              'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 4],
             ['code' => '3115',   'name' => 'Capital de personas naturales',                   'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 3],
+            ['code' => '311505', 'name' => 'Cuotas o partes de interés social',              'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 4],
+            ['code' => '311510', 'name' => 'Aportes de socios — fondo mutuo de inversión',   'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 4],
+            ['code' => '311515', 'name' => 'Contribución de la empresa — fondo mutuo',       'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 4],
+            ['code' => '311520', 'name' => 'Suscripciones del público',                      'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 4],
             ['code' => '3120',   'name' => 'Capital asignado',                                'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 3],
+            ['code' => '312005', 'name' => 'Principal',                                      'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 4],
+            ['code' => '312010', 'name' => 'Sucursales y agencias',                          'type' => 'patrimonio', 'nature' => 'credito', 'parent_id' => null, 'level' => 4],
             ['code' => '3125',   'name' => 'Capital por suscribir (Db)',                      'type' => 'patrimonio', 'nature' => 'debito',  'parent_id' => null, 'level' => 3],
 
             // ─── 32 Superávit de capital ──────────────────────────────────

@@ -111,6 +111,25 @@ class FeFactura extends Model
         return $this->hasMany(FeNotaCredito::class, 'factura_origen_id');
     }
 
+    public function cashReceiptItems(): HasMany
+    {
+        return $this->hasMany(CashReceiptItem::class, 'fe_factura_id');
+    }
+
+    public function balance(): float
+    {
+        $paid = (float) $this->cashReceiptItems()->sum('amount_applied');
+
+        return max(0, (float) $this->total - $paid);
+    }
+
+    public function esCobrable(): bool
+    {
+        return ! in_array($this->estado, [EstadoFacturaEnum::Borrador, EstadoFacturaEnum::Anulada, EstadoFacturaEnum::Rechazada])
+            && $this->cliente_id !== null
+            && $this->balance() > 0;
+    }
+
     public function tieneAceptacionExpresa(): bool
     {
         return $this->eventosReceptor()

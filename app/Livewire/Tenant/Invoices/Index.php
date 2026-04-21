@@ -11,6 +11,7 @@ use App\Models\Tenant\CashReceipt;
 use App\Models\Tenant\CashReceiptItem;
 use App\Models\Tenant\CreditNote;
 use App\Models\Tenant\DebitNote;
+use App\Models\Tenant\FeFactura;
 use App\Models\Tenant\Invoice;
 use App\Models\Tenant\JournalEntry;
 use App\Models\Tenant\Product;
@@ -60,6 +61,8 @@ class Index extends Component
 
     public ?int $receipt_invoice_id = null;
 
+    public ?int $receipt_fe_factura_id = null;
+
     public string $receipt_date = '';
 
     public float $receipt_amount = 0;
@@ -67,6 +70,8 @@ class Index extends Component
     public string $receipt_notes = '';
 
     public string $receipt_ref = '';   // solo lectura, para mostrar en modal
+
+    public string $fe_search = '';
 
     // ─── Nota de crédito ─────────────────────────────────────────────────────
     public bool $showCreditNoteForm = false;
@@ -297,6 +302,7 @@ class Index extends Component
         $invoice = Invoice::findOrFail($invoiceId);
 
         $this->receipt_invoice_id = $invoiceId;
+        $this->receipt_fe_factura_id = null;
         $this->receipt_date = now()->toDateString();
         $this->receipt_amount = round($invoice->balance(), 2);
         $this->receipt_notes = '';
@@ -304,47 +310,89 @@ class Index extends Component
         $this->showReceiptForm = true;
     }
 
+    public function openReceiptFe(int $feId): void
+    {
+        $fe = FeFactura::with('cliente')->findOrFail($feId);
+
+        $this->receipt_fe_factura_id = $feId;
+        $this->receipt_invoice_id = null;
+        $this->receipt_date = now()->toDateString();
+        $this->receipt_amount = round($fe->balance(), 2);
+        $this->receipt_notes = '';
+        $this->receipt_ref = $fe->numero_completo.' — '.($fe->nombre_adquirente ?? $fe->cliente?->name ?? '—');
+        $this->showReceiptForm = true;
+    }
+
     public function saveReceipt(AccountingService $accounting): void
     {
         $this->validate([
-            'receipt_invoice_id' => ['required', 'integer'],
             'receipt_date' => ['required', 'date'],
             'receipt_amount' => ['required', 'numeric', 'min:0.01'],
         ], [
             'receipt_amount.min' => 'El monto debe ser mayor a cero.',
         ]);
 
-        $invoice = Invoice::with('third')->findOrFail($this->receipt_invoice_id);
-
-        if ($this->receipt_amount > $invoice->balance() + 0.01) {
-            $this->addError('receipt_amount', 'El monto supera el saldo pendiente de la factura.');
-
-            return;
-        }
-
         try {
-            DB::transaction(function () use ($invoice, $accounting) {
-                $receipt = CashReceipt::create([
-                    'third_id' => $invoice->third_id,
-                    'date' => $this->receipt_date,
-                    'total' => $this->receipt_amount,
-                    'notes' => $this->receipt_notes ?: null,
-                    'status' => ReceiptStatus::Borrador->value,
-                ]);
+            if ($this->receipt_fe_factura_id) {
+                $fe = FeFactura::with('cliente')->findOrFail($this->receipt_fe_factura_id);
 
-                CashReceiptItem::create([
-                    'cash_receipt_id' => $receipt->id,
-                    'invoice_id' => $invoice->id,
-                    'amount_applied' => $this->receipt_amount,
-                ]);
+                if ($this->receipt_amount > $fe->balance() + 0.01) {
+                    $this->addError('receipt_amount', 'El monto supera el saldo pendiente de la factura electrónica.');
 
-                $receipt->load('third');
-                $accounting->generateReceiptEntry($receipt);
-                $receipt->update(['status' => ReceiptStatus::Aplicado->value]);
-            });
+                    return;
+                }
+
+                DB::transaction(function () use ($fe, $accounting) {
+                    $receipt = CashReceipt::create([
+                        'third_id' => $fe->cliente_id,
+                        'date' => $this->receipt_date,
+                        'total' => $this->receipt_amount,
+                        'notes' => $this->receipt_notes ?: null,
+                        'status' => ReceiptStatus::Borrador->value,
+                    ]);
+
+                    CashReceiptItem::create([
+                        'cash_receipt_id' => $receipt->id,
+                        'fe_factura_id' => $fe->id,
+                        'amount_applied' => $this->receipt_amount,
+                    ]);
+
+                    $receipt->load('third');
+                    $accounting->generateReceiptEntry($receipt);
+                    $receipt->update(['status' => ReceiptStatus::Aplicado->value]);
+                });
+            } else {
+                $invoice = Invoice::with('third')->findOrFail($this->receipt_invoice_id);
+
+                if ($this->receipt_amount > $invoice->balance() + 0.01) {
+                    $this->addError('receipt_amount', 'El monto supera el saldo pendiente de la factura.');
+
+                    return;
+                }
+
+                DB::transaction(function () use ($invoice, $accounting) {
+                    $receipt = CashReceipt::create([
+                        'third_id' => $invoice->third_id,
+                        'date' => $this->receipt_date,
+                        'total' => $this->receipt_amount,
+                        'notes' => $this->receipt_notes ?: null,
+                        'status' => ReceiptStatus::Borrador->value,
+                    ]);
+
+                    CashReceiptItem::create([
+                        'cash_receipt_id' => $receipt->id,
+                        'invoice_id' => $invoice->id,
+                        'amount_applied' => $this->receipt_amount,
+                    ]);
+
+                    $receipt->load('third');
+                    $accounting->generateReceiptEntry($receipt);
+                    $receipt->update(['status' => ReceiptStatus::Aplicado->value]);
+                });
+            }
 
             $this->showReceiptForm = false;
-            $this->reset(['receipt_invoice_id', 'receipt_date', 'receipt_amount', 'receipt_notes', 'receipt_ref']);
+            $this->reset(['receipt_invoice_id', 'receipt_fe_factura_id', 'receipt_date', 'receipt_amount', 'receipt_notes', 'receipt_ref']);
             $this->dispatch('notify', type: 'success', message: 'Recibo de caja registrado y asiento generado.');
         } catch (\Exception $e) {
             $this->dispatch('notify', type: 'error', message: $e->getMessage());
@@ -785,6 +833,16 @@ class Index extends Component
             ->limit(50)
             ->get();
 
+        $feFacturas = FeFactura::with('cliente')
+            ->whereNotIn('estado', ['borrador'])
+            ->when($this->fe_search, fn ($q) => $q
+                ->where('numero_completo', 'ilike', "%{$this->fe_search}%")
+                ->orWhere('nombre_adquirente', 'ilike', "%{$this->fe_search}%"))
+            ->orderByDesc('fecha_emision')
+            ->orderByDesc('id')
+            ->limit(100)
+            ->get();
+
         $creditNotes = CreditNote::with('invoice.third')
             ->orderByDesc('date')
             ->orderByDesc('id')
@@ -875,7 +933,7 @@ class Index extends Component
             ->sum('total');
 
         return view('livewire.tenant.invoices.index', compact(
-            'invoices', 'receipts', 'creditNotes', 'debitNotes',
+            'invoices', 'receipts', 'feFacturas', 'creditNotes', 'debitNotes',
             'purchaseInvoices', 'thirds', 'products', 'statuses',
             'piStatuses', 'proveedores', 'cuentasGasto',
             'carteraCxC', 'carteraCxP',

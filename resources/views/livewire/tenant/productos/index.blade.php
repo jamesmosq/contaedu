@@ -284,36 +284,134 @@
                     </div>
                     @endif
 
-                    <div class="border-t border-cream-100 pt-4">
+                    <div class="border-t border-cream-100 pt-4"
+                         x-data="{
+                             accounts: @js($accounts->map(fn($a) => ['id' => $a->id, 'code' => $a->code, 'display' => ucwords(strtolower($a->name)).' ('.$a->type.')', 'lname' => strtolower($a->name)])->values()),
+                             inv:  { query: '', open: false, results: [] },
+                             rev:  { query: '', open: false, results: [] },
+                             cost: { query: '', open: false, results: [] },
+                             init() {
+                                 const find = id => id ? this.accounts.find(a => a.id == id) : null;
+                                 const lb   = a  => a  ? a.code + ' — ' + a.display : '';
+                                 this.$watch('$wire.showForm', val => {
+                                     if (val) {
+                                         this.inv.query  = lb(find(this.$wire.inventory_account_id));
+                                         this.rev.query  = lb(find(this.$wire.revenue_account_id));
+                                         this.cost.query = lb(find(this.$wire.cogs_account_id));
+                                     } else {
+                                         this.inv.query = this.rev.query = this.cost.query = '';
+                                         this.inv.open  = this.rev.open  = this.cost.open  = false;
+                                     }
+                                 });
+                             },
+                             filter(f, q) {
+                                 const lo = q.toLowerCase().trim();
+                                 this[f].results = lo.length ? this.accounts.filter(a => a.code.includes(lo) || a.lname.includes(lo)).slice(0, 14) : [];
+                                 this[f].open = this[f].results.length > 0;
+                             },
+                             pick(f, wf, acc) {
+                                 this[f].query = acc.code + ' — ' + acc.display;
+                                 this[f].open = false; this[f].results = [];
+                                 $wire.set(wf, acc.id);
+                             },
+                             clear(f, wf) {
+                                 this[f].query = ''; this[f].open = false; this[f].results = [];
+                                 $wire.set(wf, null);
+                             }
+                         }">
                         <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">Cuentas contables</p>
                         <div class="space-y-3">
+
+                            {{-- Inventario --}}
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Inventario (Activo)</label>
-                                <select wire:model="inventory_account_id" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
-                                    <option value="">— Sin cuenta —</option>
-                                    @foreach($accounts->where('type', 'activo') as $acc)
-                                        <option value="{{ $acc->id }}">{{ $acc->code }} — {{ $acc->name }}</option>
-                                    @endforeach
-                                </select>
+                                <div class="relative">
+                                    <input type="text" x-model="inv.query"
+                                        @input="filter('inv', inv.query)"
+                                        @focus="filter('inv', inv.query)"
+                                        @click.outside="inv.open = false"
+                                        @keydown.escape="inv.open = false"
+                                        placeholder="Escribe código o nombre del PUC…"
+                                        class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 pr-8" />
+                                    <button type="button" x-show="inv.query" @click="clear('inv', 'inventory_account_id')"
+                                        class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                                    </button>
+                                    <div x-show="inv.open"
+                                        class="absolute z-50 left-0 right-0 mt-1 bg-white border border-cream-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                                        <template x-for="acc in inv.results" :key="acc.id">
+                                            <button type="button" @mousedown.prevent="pick('inv', 'inventory_account_id', acc)"
+                                                class="w-full text-left px-3 py-2 hover:bg-forest-50 border-b border-cream-100 last:border-0 flex items-baseline gap-2">
+                                                <span class="font-mono text-xs font-bold text-forest-800 shrink-0" x-text="acc.code"></span>
+                                                <span class="text-xs text-slate-600 truncate" x-text="acc.display"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                                @error('inventory_account_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                <p class="text-slate-400 text-xs mt-1">Sugerida: 1435 — Mercancías no fabricadas por la empresa</p>
                             </div>
+
+                            {{-- Ingresos --}}
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Ingresos (Venta)</label>
-                                <select wire:model="revenue_account_id" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
-                                    <option value="">— Sin cuenta —</option>
-                                    @foreach($accounts->where('type', 'ingreso') as $acc)
-                                        <option value="{{ $acc->id }}">{{ $acc->code }} — {{ $acc->name }}</option>
-                                    @endforeach
-                                </select>
+                                <div class="relative">
+                                    <input type="text" x-model="rev.query"
+                                        @input="filter('rev', rev.query)"
+                                        @focus="filter('rev', rev.query)"
+                                        @click.outside="rev.open = false"
+                                        @keydown.escape="rev.open = false"
+                                        placeholder="Escribe código o nombre del PUC…"
+                                        class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 pr-8" />
+                                    <button type="button" x-show="rev.query" @click="clear('rev', 'revenue_account_id')"
+                                        class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                                    </button>
+                                    <div x-show="rev.open"
+                                        class="absolute z-50 left-0 right-0 mt-1 bg-white border border-cream-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                                        <template x-for="acc in rev.results" :key="acc.id">
+                                            <button type="button" @mousedown.prevent="pick('rev', 'revenue_account_id', acc)"
+                                                class="w-full text-left px-3 py-2 hover:bg-forest-50 border-b border-cream-100 last:border-0 flex items-baseline gap-2">
+                                                <span class="font-mono text-xs font-bold text-forest-800 shrink-0" x-text="acc.code"></span>
+                                                <span class="text-xs text-slate-600 truncate" x-text="acc.display"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                                @error('revenue_account_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                <p class="text-slate-400 text-xs mt-1">Sugerida: 4135 — Comercio al por mayor y al por menor</p>
                             </div>
+
+                            {{-- Costo de ventas --}}
                             <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1.5">Costo de ventas</label>
-                                <select wire:model="cogs_account_id" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
-                                    <option value="">— Sin cuenta —</option>
-                                    @foreach($accounts->where('type', 'costo') as $acc)
-                                        <option value="{{ $acc->id }}">{{ $acc->code }} — {{ $acc->name }}</option>
-                                    @endforeach
-                                </select>
+                                <div class="relative">
+                                    <input type="text" x-model="cost.query"
+                                        @input="filter('cost', cost.query)"
+                                        @focus="filter('cost', cost.query)"
+                                        @click.outside="cost.open = false"
+                                        @keydown.escape="cost.open = false"
+                                        placeholder="Escribe código o nombre del PUC…"
+                                        class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 pr-8" />
+                                    <button type="button" x-show="cost.query" @click="clear('cost', 'cogs_account_id')"
+                                        class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-300 hover:text-slate-500">
+                                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12" /></svg>
+                                    </button>
+                                    <div x-show="cost.open"
+                                        class="absolute z-50 left-0 right-0 mt-1 bg-white border border-cream-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                                        <template x-for="acc in cost.results" :key="acc.id">
+                                            <button type="button" @mousedown.prevent="pick('cost', 'cogs_account_id', acc)"
+                                                class="w-full text-left px-3 py-2 hover:bg-forest-50 border-b border-cream-100 last:border-0 flex items-baseline gap-2">
+                                                <span class="font-mono text-xs font-bold text-forest-800 shrink-0" x-text="acc.code"></span>
+                                                <span class="text-xs text-slate-600 truncate" x-text="acc.display"></span>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                                @error('cogs_account_id') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                <p class="text-slate-400 text-xs mt-1">Sugerida: 6135 — Comercio al por mayor y al por menor</p>
                             </div>
+
                         </div>
                     </div>
                 </div>

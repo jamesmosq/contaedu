@@ -184,15 +184,48 @@
     @endif
 
     {{-- Navegación --}}
-    <nav class="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
+    @php
+        $enSandbox = request()->is('aprendizaje/*')
+                  || request()->routeIs('sandbox.*')
+                  || request()->routeIs('student.referencia.*')
+                  || request()->routeIs('student.referencias');
+        $enEmpresa = request()->is('empresa/*')
+                  || (request()->routeIs('student.*') && ! $enSandbox);
+        $aprendizajeDefault = $enSandbox || (! $enSandbox && ! $enEmpresa);
+        $empresaDefault     = $enEmpresa || (! $enSandbox && ! $enEmpresa);
+    @endphp
+    <nav class="flex-1 overflow-y-auto px-3 py-3 space-y-0.5"
+         x-data="{ aprendizajeOpen: {{ $aprendizajeDefault ? 'true' : 'false' }}, empresaOpen: {{ $empresaDefault ? 'true' : 'false' }} }">
+        @php $currentSectionVar = null; @endphp
         @foreach($nav as $item)
 
             {{-- ── Separador de zona + etiqueta ──────────────────────────── --}}
             @if(($item['type'] ?? '') === 'section_label')
+                @if($currentSectionVar !== null)</div>@endif
+                @php
+                    $currentSectionVar = str_contains(strtolower($item['label']), 'aprend') ? 'aprendizajeOpen' : 'empresaOpen';
+                    $sectionStartsOpen = $currentSectionVar === 'aprendizajeOpen' ? $aprendizajeDefault : $empresaDefault;
+                @endphp
                 @if(!empty($item['divider_above']))
                     <div class="border-t border-white/10 my-3 mx-1"></div>
                 @endif
-                <p class="px-3 pt-1 pb-0.5 text-[0.65rem] font-semibold tracking-[0.08em] uppercase text-white select-none">{{ $item['label'] }}</p>
+                <button type="button" @click="{{ $currentSectionVar }} = !{{ $currentSectionVar }}"
+                    class="w-full flex items-center justify-between px-3 pt-1 pb-0.5 group">
+                    <p class="text-[0.65rem] font-semibold tracking-[0.08em] uppercase text-white select-none">{{ $item['label'] }}</p>
+                    <svg :class="{{ $currentSectionVar }} ? 'rotate-0' : '-rotate-90'"
+                        class="w-3 h-3 text-forest-500 group-hover:text-forest-300 transition-transform duration-200"
+                        fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5"/>
+                    </svg>
+                </button>
+                <div x-show="{{ $currentSectionVar }}" class="space-y-0.5"
+                    x-transition:enter="transition-opacity duration-150 ease-out"
+                    x-transition:enter-start="opacity-0"
+                    x-transition:enter-end="opacity-100"
+                    x-transition:leave="transition-opacity duration-100 ease-in"
+                    x-transition:leave-start="opacity-100"
+                    x-transition:leave-end="opacity-0"
+                    @if(! $sectionStartsOpen) style="display:none" @endif>
                 @continue
             @endif
 
@@ -295,6 +328,7 @@
                 </a>
             @endif
         @endforeach
+        @if($currentSectionVar !== null)</div>@endif
     </nav>
 
     {{-- Pie del sidebar --}}

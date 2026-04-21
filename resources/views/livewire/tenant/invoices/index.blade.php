@@ -42,6 +42,9 @@
                 <button wire:click="$set('activeTab','notas_debito')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'notas_debito' ? 'border-b-2 border-forest-700 text-forest-800' : 'text-slate-500 hover:text-slate-700' }}">
                     Notas débito
                 </button>
+                <button wire:click="$set('activeTab','fe')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'fe' ? 'border-b-2 border-forest-700 text-forest-800' : 'text-slate-500 hover:text-slate-700' }}">
+                    F. Electrónicas
+                </button>
                 <button wire:click="$set('activeTab','cartera')" class="px-4 py-2 text-sm font-medium transition {{ $activeTab === 'cartera' ? 'border-b-2 border-red-600 text-red-700' : 'text-slate-500 hover:text-slate-700' }}">
                     Cartera vencida
                 </button>
@@ -760,6 +763,7 @@
                                 <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Cliente</th>
                                 <th class="text-right px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Monto</th>
                                 <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Estado</th>
+                                <th class="px-6 py-3"></th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-slate-100">
@@ -772,11 +776,76 @@
                                     <td class="px-6 py-3">
                                         <span class="px-2 py-0.5 rounded text-xs font-medium bg-gold-50 text-gold-700">{{ $rc->status->label() }}</span>
                                     </td>
+                                    <td class="px-6 py-3 text-right">
+                                        <a href="{{ route(request()->is('aprendizaje/*') ? 'sandbox.recibo.pdf' : (session('audit_mode') ? 'teacher.auditoria.recibo.pdf' : (session('demo_mode') ? 'teacher.demo.recibo.pdf' : 'student.recibo.pdf')), ['id' => $rc->id]) }}"
+                                           target="_blank"
+                                           class="text-xs text-forest-600 hover:text-forest-800 font-semibold px-2 py-1 rounded-lg hover:bg-forest-50 transition">
+                                            PDF
+                                        </a>
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="px-6 py-10 text-center text-slate-400">
-                                        No hay recibos de caja. Ve a <button wire:click="$set('activeTab','facturas')" class="text-forest-600 hover:underline">Facturas</button> y usa "Cobrar" en una factura emitida.
+                                    <td colspan="6" class="px-6 py-10 text-center text-slate-400">
+                                        No hay recibos de caja. Usa "Cobrar" en una factura emitida o en F. Electrónicas.
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+
+            {{-- ══════════════════════════════════ TAB: F. ELECTRÓNICAS ══════════════════════════════════ --}}
+            @if($activeTab === 'fe')
+                <div class="mb-4">
+                    <input wire:model.live.debounce.300ms="fe_search" type="text" placeholder="Buscar por número o adquirente…"
+                        class="w-full sm:w-80 pl-3 rounded-xl border-cream-200 text-sm shadow-sm focus:ring-forest-500 focus:border-forest-500" />
+                </div>
+                <div class="bg-white rounded-2xl border border-cream-200 shadow-card overflow-hidden">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="bg-forest-950 border-b border-forest-800">
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">N° Factura</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Fecha</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Adquirente</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Total</th>
+                                <th class="text-right px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Saldo</th>
+                                <th class="text-left px-6 py-3 text-xs font-semibold text-forest-300 uppercase tracking-wide">Estado</th>
+                                <th class="px-6 py-3"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-cream-100">
+                            @forelse($feFacturas as $fe)
+                                @php $saldo = $fe->balance(); @endphp
+                                <tr wire:key="fe-{{ $fe->id }}" class="hover:bg-cream-50">
+                                    <td class="px-6 py-3 font-mono text-xs font-bold text-slate-700">{{ $fe->numero_completo ?? '—' }}</td>
+                                    <td class="px-6 py-3 text-slate-600">{{ $fe->fecha_emision?->format('d/m/Y') ?? '—' }}</td>
+                                    <td class="px-6 py-3 text-slate-700">{{ $fe->nombre_adquirente ?? $fe->cliente?->name ?? '—' }}</td>
+                                    <td class="px-6 py-3 text-right font-mono text-sm font-semibold text-slate-800">$ {{ number_format($fe->total, 0, ',', '.') }}</td>
+                                    <td class="px-6 py-3 text-right font-mono text-sm font-semibold {{ $saldo > 0 ? 'text-blue-700' : 'text-slate-400' }}">
+                                        $ {{ number_format($saldo, 0, ',', '.') }}
+                                    </td>
+                                    <td class="px-6 py-3">
+                                        <span class="px-2 py-0.5 rounded-lg text-xs font-medium {{ $fe->estado->badgeClasses() }}">
+                                            {{ $fe->estado->label() }}
+                                        </span>
+                                    </td>
+                                    <td class="px-6 py-3 text-right">
+                                        @if($fe->esCobrable() && !session('audit_mode') && !session('reference_mode'))
+                                            <button wire:click="openReceiptFe({{ $fe->id }})"
+                                                class="text-xs text-forest-600 hover:text-forest-800 font-semibold px-2 py-1 rounded-lg hover:bg-forest-50 transition">
+                                                Cobrar
+                                            </button>
+                                        @elseif($saldo <= 0)
+                                            <span class="text-xs text-slate-400">Pagada</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="px-6 py-10 text-center text-slate-400">
+                                        No hay facturas electrónicas emitidas. Créalas en el módulo <strong>F. Electrónica</strong>.
                                     </td>
                                 </tr>
                             @endforelse

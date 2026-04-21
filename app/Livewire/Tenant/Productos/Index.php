@@ -207,7 +207,7 @@ class Index extends Component
             ->orderBy('name')
             ->paginate(15);
 
-        $accounts = Account::where('level', '>=', 3)->orderBy('code')->get();
+        $accounts = Account::orderBy('code')->get();
         $units = ProductUnit::cases();
         $taxRates = TaxRate::cases();
 
