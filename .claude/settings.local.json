@@ -64,7 +64,9 @@
       "Bash(redis-server --version)",
       "Bash(redis-cli ping *)",
       "Bash(where redis-server *)",
-      "Bash(powershell -Command \"Get-Command redis-server -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source\")"
+      "Bash(powershell -Command \"Get-Command redis-server -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python -c ' *)"
     ]
   },
   "enableAllProjectMcpServers": true,
