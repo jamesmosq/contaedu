@@ -54,6 +54,8 @@ class Index extends Component
 
     public ?int $cogs_account_id = null;
 
+    public string $stock_minimo = '0';
+
     public string $initial_stock = '0';
 
     public string $initial_cost = '0';
@@ -71,6 +73,7 @@ class Index extends Component
             'inventory_account_id' => ['nullable', 'exists:accounts,id'],
             'revenue_account_id' => ['nullable', 'exists:accounts,id'],
             'cogs_account_id' => ['nullable', 'exists:accounts,id'],
+            'stock_minimo' => ['nullable', 'numeric', 'min:0'],
             'initial_stock' => ['nullable', 'numeric', 'min:0'],
             'initial_cost' => ['nullable', 'numeric', 'min:0'],
         ];
@@ -78,11 +81,12 @@ class Index extends Component
 
     public function openCreate(): void
     {
-        $this->reset(['editingId', 'code', 'name', 'description', 'sale_price', 'cost_price', 'inventory_account_id', 'revenue_account_id', 'cogs_account_id', 'initial_stock', 'initial_cost']);
+        $this->reset(['editingId', 'code', 'name', 'description', 'sale_price', 'cost_price', 'stock_minimo', 'inventory_account_id', 'revenue_account_id', 'cogs_account_id', 'initial_stock', 'initial_cost']);
         $this->unit = 'und';
         $this->tax_rate = '19';
         $this->sale_price = '0';
         $this->cost_price = '0';
+        $this->stock_minimo = '0';
         $this->initial_stock = '0';
         $this->initial_cost = '0';
 
@@ -104,6 +108,7 @@ class Index extends Component
         $this->unit = $product->unit->value;
         $this->sale_price = $product->sale_price;
         $this->cost_price = $product->cost_price;
+        $this->stock_minimo = $product->stock_minimo ?? '0';
         $this->tax_rate = (string) $product->tax_rate->value;
         $this->inventory_account_id = $product->inventory_account_id;
         $this->revenue_account_id = $product->revenue_account_id;
@@ -127,6 +132,7 @@ class Index extends Component
                 'unit' => $this->unit,
                 'sale_price' => $this->sale_price,
                 'cost_price' => $this->cost_price,
+                'stock_minimo' => (float) $this->stock_minimo,
                 'tax_rate' => (int) $this->tax_rate,
                 'inventory_account_id' => $this->inventory_account_id,
                 'revenue_account_id' => $this->revenue_account_id,
@@ -155,7 +161,7 @@ class Index extends Component
 
         $this->reset([
             'showForm', 'editingId', 'code', 'name', 'description',
-            'unit', 'sale_price', 'cost_price', 'tax_rate',
+            'unit', 'sale_price', 'cost_price', 'stock_minimo', 'tax_rate',
             'inventory_account_id', 'revenue_account_id', 'cogs_account_id',
             'initial_stock', 'initial_cost',
         ]);
@@ -170,11 +176,17 @@ class Index extends Component
         $this->dispatch('notify', type: 'success', message: 'Producto eliminado.');
     }
 
+    public function abastecer(int $id): void
+    {
+        $route = request()->is('aprendizaje/*') ? 'sandbox.compras' : 'student.compras';
+        $this->redirect(route($route, ['product_id' => $id]), navigate: true);
+    }
+
     public function cancelForm(): void
     {
         $this->reset([
             'showForm', 'editingId', 'code', 'name', 'description',
-            'unit', 'sale_price', 'cost_price', 'tax_rate',
+            'unit', 'sale_price', 'cost_price', 'stock_minimo', 'tax_rate',
             'inventory_account_id', 'revenue_account_id', 'cogs_account_id',
         ]);
     }

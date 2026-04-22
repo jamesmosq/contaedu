@@ -63,12 +63,28 @@
                                 <td class="px-6 py-3 text-xs text-slate-500 hidden sm:table-cell">{{ $product->unit->label() }}</td>
                                 <td class="px-6 py-3 text-right font-mono text-sm text-slate-700">$ {{ number_format($product->sale_price, 0, ',', '.') }}</td>
                                 <td class="px-6 py-3 text-right font-mono text-sm text-slate-500 hidden md:table-cell">$ {{ number_format($product->cost_price, 0, ',', '.') }}</td>
-                                @php $stock = $product->stockActual(); @endphp
+                                @php
+                                    $stock   = $product->stockActual();
+                                    $dec     = $product->stockDecimals();
+                                    $bajo    = $product->stockBajo();
+                                @endphp
                                 <td class="px-6 py-3 text-right hidden lg:table-cell">
                                     @if($product->inventory_account_id)
-                                        <span class="font-mono text-sm {{ $stock < 0 ? 'text-red-600 font-semibold' : ($stock == 0 ? 'text-slate-400' : 'text-slate-700') }}">
-                                            {{ number_format($stock, 2, ',', '.') }}
-                                        </span>
+                                        @if($stock < 0)
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-red-50 border border-red-200 text-red-700 text-xs font-semibold" title="Stock negativo: vendiste más de lo disponible">
+                                                <svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>
+                                                {{ number_format($stock, $dec, ',', '.') }}
+                                            </span>
+                                        @elseif($bajo)
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-amber-50 border border-amber-200 text-amber-700 text-xs font-semibold" title="Stock bajo: mínimo configurado {{ number_format($product->stock_minimo, $dec, ',', '.') }}">
+                                                <svg class="w-3 h-3 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/></svg>
+                                                {{ number_format($stock, $dec, ',', '.') }}
+                                            </span>
+                                        @elseif($stock == 0)
+                                            <span class="font-mono text-sm text-slate-400">0</span>
+                                        @else
+                                            <span class="font-mono text-sm text-slate-700">{{ number_format($stock, $dec, ',', '.') }}</span>
+                                        @endif
                                     @else
                                         <span class="text-xs text-slate-300">—</span>
                                     @endif
@@ -87,6 +103,10 @@
                                             </button>
                                         @endif
                                         @if(! session('audit_mode') && ! session('reference_mode'))
+                                            <button wire:click="abastecer({{ $product->id }})"
+                                                class="text-xs text-emerald-600 hover:text-emerald-800 font-semibold px-2 py-1 rounded-lg hover:bg-emerald-50 transition">
+                                                Abastecer
+                                            </button>
                                             <button wire:click="openEdit({{ $product->id }})"
                                                 class="text-xs text-forest-600 hover:text-forest-800 font-semibold px-2 py-1 rounded-lg hover:bg-forest-50 transition">
                                                 Editar
@@ -234,7 +254,7 @@
                         <textarea wire:model="description" rows="2"
                             class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500"></textarea>
                     </div>
-                    <div class="grid grid-cols-3 gap-4">
+                    <div class="grid grid-cols-4 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">Precio venta</label>
                             <input wire:model="sale_price" type="number" step="0.01" min="0"
@@ -253,6 +273,12 @@
                                     <option value="{{ $t->value }}">{{ $t->label() }}</option>
                                 @endforeach
                             </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Stock mínimo</label>
+                            <input wire:model="stock_minimo" type="number" step="1" min="0" placeholder="0"
+                                class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                            <p class="text-slate-400 text-xs mt-1">Alerta cuando baje de este nivel</p>
                         </div>
                     </div>
                     {{-- Stock inicial (solo en creación) --}}

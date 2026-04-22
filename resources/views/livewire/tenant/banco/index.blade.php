@@ -485,37 +485,58 @@
                         @else
                             <div class="overflow-x-auto">
                                 <table class="w-full text-sm">
-                                    <thead class="bg-slate-50 text-xs text-slate-500 uppercase tracking-wide">
+                                    <thead class="bg-forest-950 text-xs text-forest-300 uppercase tracking-wide">
                                         <tr>
                                             <th class="px-4 py-3 text-left">N° Cheque</th>
                                             <th class="px-4 py-3 text-left">Fecha emisión</th>
                                             <th class="px-4 py-3 text-left">Beneficiario</th>
                                             <th class="px-4 py-3 text-right">Valor</th>
                                             <th class="px-4 py-3 text-center">Estado</th>
+                                            @if(!session('audit_mode') && !session('reference_mode'))
+                                                <th class="px-4 py-3"></th>
+                                            @endif
                                         </tr>
                                     </thead>
-                                    <tbody class="divide-y divide-slate-100">
+                                    <tbody class="divide-y divide-cream-100">
                                         @foreach($this->cheques as $cheque)
-                                            <tr class="hover:bg-slate-50">
-                                                <td class="px-4 py-3 font-mono text-slate-700">{{ $cheque->numero_cheque }}</td>
+                                            <tr wire:key="chq-{{ $cheque->id }}" class="hover:bg-cream-50 transition">
+                                                <td class="px-4 py-3 font-mono text-slate-700 text-xs">{{ $cheque->numero_cheque }}</td>
                                                 <td class="px-4 py-3 text-slate-500">{{ $cheque->fecha_emision->format('d/m/Y') }}</td>
                                                 <td class="px-4 py-3 text-slate-700">{{ $cheque->beneficiario }}</td>
                                                 <td class="px-4 py-3 text-right font-mono text-slate-700">${{ number_format($cheque->valor, 0, ',', '.') }}</td>
                                                 <td class="px-4 py-3 text-center">
-                                                    <span class="text-xs rounded-full px-2 py-0.5 font-medium
+                                                    <span class="px-2 py-0.5 rounded-lg text-xs font-medium
                                                         {{ match($cheque->estado) {
-                                                            'cobrado'  => 'bg-green-50 text-green-700',
-                                                            'emitido'  => 'bg-blue-50 text-blue-700',
-                                                            'devuelto' => 'bg-red-50 text-red-700',
-                                                            'anulado'  => 'bg-slate-100 text-slate-500',
-                                                            default    => 'bg-slate-100 text-slate-500',
+                                                            'cobrado'  => 'bg-emerald-50 text-emerald-700 border border-emerald-100',
+                                                            'emitido'  => 'bg-blue-50 text-blue-700 border border-blue-100',
+                                                            'devuelto' => 'bg-red-50 text-red-700 border border-red-100',
+                                                            'anulado'  => 'bg-slate-100 text-slate-500 border border-slate-200',
+                                                            default    => 'bg-slate-100 text-slate-500 border border-slate-200',
                                                         } }}">
                                                         {{ ucfirst($cheque->estado) }}
                                                         @if($cheque->estado === 'emitido' && $cheque->diasPendiente() > 30)
                                                             <span class="text-amber-600 ml-1">({{ $cheque->diasPendiente() }}d)</span>
                                                         @endif
                                                     </span>
+                                                    @if($cheque->estado === 'cobrado' && $cheque->fecha_cobro)
+                                                        <p class="text-xs text-slate-400 mt-0.5">{{ $cheque->fecha_cobro->format('d/m/Y') }}</p>
+                                                    @endif
                                                 </td>
+                                                @if(!session('audit_mode') && !session('reference_mode'))
+                                                    <td class="px-4 py-3 text-right">
+                                                        @if($cheque->estado === 'emitido')
+                                                            <button wire:click="marcarCobrado({{ $cheque->id }})"
+                                                                class="text-xs text-emerald-600 hover:text-emerald-800 font-semibold px-2 py-1 rounded-lg hover:bg-emerald-50 transition">
+                                                                Cobrado
+                                                            </button>
+                                                            <button wire:click="anularCheque({{ $cheque->id }})"
+                                                                wire:confirm="¿Anular cheque #{{ $cheque->numero_cheque }}? Se revertirá el asiento contable."
+                                                                class="text-xs text-red-500 hover:text-red-700 font-semibold px-2 py-1 rounded-lg hover:bg-red-50 transition">
+                                                                Anular
+                                                            </button>
+                                                        @endif
+                                                    </td>
+                                                @endif
                                             </tr>
                                         @endforeach
                                     </tbody>
@@ -641,10 +662,28 @@
 
     {{-- ── Modal: Emitir cheque ────────────────────────────────────────────── --}}
     @if($showChequeForm)
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
-                <div class="flex items-center justify-between mb-5">
-                    <h2 class="text-lg font-bold text-slate-800">Emitir cheque</h2>
+        <div class="fixed inset-0 z-50 flex items-start justify-center bg-black/50 px-4 overflow-y-auto"
+            x-data="{
+                accounts: @js($accounts->map(fn($a) => ['id'=>$a->id,'code'=>$a->code,'display'=>ucwords(strtolower($a->name)),'lname'=>strtolower($a->name)])->values()),
+                deb: {query:'',open:false,results:[]},
+                init() {
+                    this.$watch('$wire.showChequeForm', val => {
+                        if (!val) { this.deb.query=''; this.deb.open=false; this.deb.results=[]; }
+                        else {
+                            const id = this.$wire.cheque_cuenta_debito_id;
+                            if (id) {
+                                const acc = this.accounts.find(a => a.id == id);
+                                this.deb.query = acc ? acc.code+' — '+acc.display : '';
+                            }
+                        }
+                    });
+                },
+                filter(q) { const lo=q.toLowerCase().trim(); this.deb.results=lo.length?this.accounts.filter(a=>a.code.includes(lo)||a.lname.includes(lo)).slice(0,14):[]; this.deb.open=this.deb.results.length>0; },
+                pick(acc) { this.deb.query=acc.code+' — '+acc.display; this.deb.open=false; this.deb.results=[]; $wire.set('cheque_cuenta_debito_id',acc.id); },
+            }">
+            <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md my-8 flex flex-col">
+                <div class="flex items-center justify-between px-6 py-5 border-b border-cream-100">
+                    <h2 class="text-base font-semibold text-slate-800">Emitir cheque</h2>
                     <button wire:click="$set('showChequeForm', false)" class="text-slate-400 hover:text-slate-600">
                         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18 18 6M6 6l12 12"/></svg>
                     </button>
@@ -652,50 +691,90 @@
 
                 @php $cuentaCheque = $this->cuentaActiva; @endphp
                 @if($cuentaCheque && $cuentaCheque->account_type !== 'corriente')
-                    <p class="text-sm text-red-600 text-center py-4">Los cheques solo están disponibles en cuentas corrientes.</p>
+                    <p class="text-sm text-red-600 text-center py-8 px-6">Los cheques solo están disponibles en cuentas corrientes.</p>
                 @else
-                    <div class="space-y-4">
+                    <div class="px-6 py-5 space-y-4">
+                        {{-- Beneficiario --}}
                         <div>
-                            <label class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5 block">Beneficiario</label>
+                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Beneficiario *</label>
                             <input type="text" wire:model="cheque_beneficiario"
-                                class="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-                                placeholder="Nombre del beneficiario">
+                                class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500"
+                                placeholder="Nombre de quien recibe el cheque">
                         </div>
 
-                        <div>
-                            <label class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1.5 block">Valor</label>
-                            <div class="relative">
-                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
-                                <input type="number" wire:model.live="cheque_valor" min="0" step="1000"
-                                    class="w-full pl-7 rounded-xl border border-slate-200 px-3 py-2 text-sm focus:ring-2 focus:ring-gold-500 focus:border-transparent"
-                                    placeholder="0">
+                        {{-- Valor y Fecha --}}
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1.5">Valor *</label>
+                                <div class="relative">
+                                    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
+                                    <input type="number" wire:model.live="cheque_valor" min="0" step="1000"
+                                        class="block w-full pl-7 rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500"
+                                        placeholder="0">
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1.5">Fecha</label>
+                                <input type="date" wire:model="cheque_fecha"
+                                    class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
                             </div>
                         </div>
 
+                        {{-- Concepto --}}
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Concepto</label>
+                            <input type="text" wire:model="cheque_concepto"
+                                class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500"
+                                placeholder="Ej: Pago factura #123, arriendo enero...">
+                        </div>
+
+                        {{-- Cuenta a debitar (PUC autocomplete) --}}
+                        <div class="relative" @click.outside="deb.open=false">
+                            <label class="block text-sm font-medium text-slate-700 mb-1.5">Cuenta contable a debitar *</label>
+                            <input type="text"
+                                x-model="deb.query"
+                                @input="filter($event.target.value)"
+                                @focus="filter(deb.query)"
+                                class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500"
+                                placeholder="Busca por código o nombre (ej: 2205, proveedores...)">
+                            <div x-show="deb.open" x-cloak
+                                class="absolute z-30 left-0 right-0 mt-1 bg-white border border-cream-200 rounded-xl shadow-lg max-h-52 overflow-y-auto">
+                                <template x-for="acc in deb.results" :key="acc.id">
+                                    <button type="button" @click="pick(acc)"
+                                        class="w-full text-left px-3 py-2 text-sm hover:bg-cream-50 flex items-center gap-2">
+                                        <span class="font-mono text-xs text-slate-500 shrink-0" x-text="acc.code"></span>
+                                        <span class="text-slate-700 truncate" x-text="acc.display"></span>
+                                    </button>
+                                </template>
+                            </div>
+                            <p class="text-slate-400 text-xs mt-1">Cuenta que se débita: Proveedores (2205), Gasto, Anticipo proveedor, etc.</p>
+                        </div>
+
+                        {{-- Cargos estimados --}}
                         @if($cheque_valor > 0)
                             @php $gmfCheque = \App\Services\BankService::calcularGmf('cheque', $cheque_valor); @endphp
                             <div class="bg-amber-50 border border-amber-200 rounded-xl p-3 text-xs text-amber-800 space-y-1">
                                 <p>GMF 4×1000: <strong>${{ number_format($gmfCheque, 0, ',', '.') }}</strong></p>
-                                <p class="font-semibold">Total debitado: ${{ number_format($cheque_valor + $gmfCheque, 0, ',', '.') }}</p>
+                                <p class="font-semibold">Total debitado del banco: ${{ number_format($cheque_valor + $gmfCheque, 0, ',', '.') }}</p>
                             </div>
                         @endif
 
                         @if($cuentaCheque)
                             <p class="text-xs text-slate-500">
-                                Cuenta: {{ $cuentaCheque->nombreBanco() }} ***{{ $cuentaCheque->ultimosDigitos() }} |
-                                Cheques emitidos: {{ $cuentaCheque->cheques_emitidos }} /
-                                Disponibles: {{ $cuentaCheque->cheques_disponibles }}
+                                {{ $cuentaCheque->nombreBanco() }} ***{{ $cuentaCheque->ultimosDigitos() }} |
+                                Cheques: {{ $cuentaCheque->cheques_emitidos }}/{{ $cuentaCheque->cheques_disponibles }}
                             </p>
                         @endif
                     </div>
 
-                    <div class="flex gap-3 mt-6">
-                        <button wire:click="emitirCheque"
-                            class="flex-1 px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition">
-                            Emitir cheque
+                    <div class="px-6 py-4 border-t border-cream-100 flex gap-3">
+                        <button wire:click="emitirCheque" wire:loading.attr="disabled"
+                            class="flex-1 px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition disabled:opacity-50">
+                            <span wire:loading.remove wire:target="emitirCheque">Emitir cheque</span>
+                            <span wire:loading wire:target="emitirCheque">Emitiendo…</span>
                         </button>
                         <button wire:click="$set('showChequeForm', false)"
-                            class="flex-1 px-4 py-2 bg-slate-100 text-slate-700 text-sm font-semibold rounded-xl hover:bg-slate-200 transition">
+                            class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-50 transition">
                             Cancelar
                         </button>
                     </div>

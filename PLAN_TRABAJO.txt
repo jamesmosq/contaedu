@@ -1,0 +1,145 @@
+================================================================================
+PLAN DE TRABAJO — ContaEdu
+Fecha: 2026-04-21
+================================================================================
+
+ESTADO: EN PROGRESO
+Responsable: James Mosquera / Claude Code
+
+--------------------------------------------------------------------------------
+MÓDULOS COMPLETADOS
+--------------------------------------------------------------------------------
+
+[x] Facturación de venta (Invoice) + líneas + PDF
+[x] Facturación electrónica DIAN simulada (FeFactura)
+[x] Recibo de caja — vinculado a Invoice y FeFactura + PDF
+[x] Facturas de compra (PurchaseInvoice) + órdenes + pagos a proveedores
+[x] Notas débito y crédito
+[x] Banco — cuentas bancarias, transacciones, GMF, ACH
+[x] Conciliación bancaria
+[x] Activos fijos + depreciación línea recta
+[x] Inventario / Productos — kardex, stock inicial, stock_minimo, abastecer
+[x] Retenciones (fuente, IVA, ICA) en facturas de compra
+[x] PUC completo — 2502 cuentas desde puc_codes.json
+[x] PUC Interactivo (visor pedagógico)
+[x] Terceros (clientes, proveedores, empleados)
+[x] Reportes — libro diario, mayor, balance general, estado de resultados
+[x] Negocios interempresariales (mercado entre estudiantes)
+[x] Configuración empresa (NIT, régimen, CIIU, constitución)
+[x] Sidebar colapsable (Aprendizaje / Mi Empresa)
+[x] Autocomplete PUC en selector de cuentas de productos
+
+--------------------------------------------------------------------------------
+PENDIENTES — PRIORIDAD ALTA
+--------------------------------------------------------------------------------
+
+[x] 1. CHEQUES (UI) — Completado 2026-04-21
+    - emitirCheque() genera JournalEntry: DR cuenta_debito | CR 1110 Bancos
+    - anularCheque() revierte saldo + JournalEntry reverso
+    - marcarCobrado() actualiza estado y fecha_cobro
+    - Modal mejorado: cuenta debitar (autocomplete PUC), concepto, fecha
+    - Tabla chequera: botones Cobrado / Anular por fila
+    - PENDIENTE: PDF comprobante de cheque
+    - PENDIENTE: Recibir cheque de cliente (flujo inverso, cuentas 1115)
+
+[ ] 2. NÓMINA
+    - Modelos nuevos: PayrollPeriod, PayrollEmployee, PayrollLine
+    - Conceptos: sueldo base, horas extra, auxilio transporte,
+      cesantías, intereses cesantías, prima, vacaciones
+    - Deducciones: salud empleado (4%), pensión empleado (4%),
+      embargos, préstamos
+    - Aportes empresa: salud (8.5%), pensión (12%), ARL, CCF, SENA, ICBF
+    - Asiento nómina:
+        DR 5105xx Gasto nómina
+        CR 2505   Salarios por pagar
+        CR 2370   Retenciones y aportes de nómina
+    - Asiento aportes parafiscales:
+        DR 5105xx Prestaciones sociales
+        CR 2370   Aportes por pagar
+    - Liquidación: genera asiento + comprobante de nómina PDF
+    - Livewire: Nomina/Index con tabs: Empleados, Períodos, Liquidación
+
+[ ] 3. COMPROBANTE DE EGRESO
+    - Documento soporte de todo pago a proveedor o gasto
+    - PDF con: empresa, beneficiario, concepto, valor letras+números,
+      método de pago, firma
+    - Vincular a Payment (pago proveedor) y a cualquier egreso directo
+    - Ruta: /empresa/comprobantes/egreso/{id}
+    - El método de pago debe quedar registrado: efectivo, cheque,
+      transferencia, consignación
+
+[ ] 4. MÉTODOS DE PAGO (refactor transversal)
+    - Actualmente pagos solo distinguen banco vs. caja
+    - Agregar campo medio_pago: efectivo | cheque | transferencia |
+      consignacion | tarjeta_debito
+    - Aplica en: Payment (pago proveedor), CashReceipt (recibo de caja),
+      y futura Nómina
+    - Impacto contable: cheque → usa cuenta transitoria 1115 Bancos
+      (cheques girados); transferencia → directo a 1110 Bancos
+
+--------------------------------------------------------------------------------
+PENDIENTES — PRIORIDAD MEDIA
+--------------------------------------------------------------------------------
+
+[ ] 5. DECLARACIÓN DE IVA (educativa)
+    - Resumen bimestral/cuatrimestral: IVA generado vs. IVA descontable
+    - Formulario 300 simplificado (educativo)
+    - Asiento de cierre de IVA: DR 2408 | CR 2365 (o pago DIAN)
+    - Livewire: Reportes/IVA o módulo propio
+
+[ ] 6. RETENCIÓN EN LA FUENTE — Declaración (educativa)
+    - Resumen mensual de retenciones practicadas
+    - Formulario 350 simplificado
+    - Asiento pago retenciones: DR 2365xx | CR Bancos
+
+[ ] 7. CARTERA — Aging report
+    - Cuentas por cobrar: 0-30, 31-60, 61-90, +90 días
+    - Cuentas por pagar: misma estructura
+    - Por tercero, con detalle de facturas pendientes
+
+[ ] 8. FLUJO DE CAJA
+    - Estado de flujo de efectivo (método indirecto)
+    - Actividades: operación, inversión, financiación
+    - Basado en movimientos de cuentas 1110/1105
+
+--------------------------------------------------------------------------------
+PENDIENTES — PRIORIDAD COMPLEMENTARIA
+--------------------------------------------------------------------------------
+
+[ ] 9. PRESUPUESTO
+    - Presupuesto por cuenta contable (mensual)
+    - Comparativo real vs. presupuestado en reportes
+
+[ ] 10. DIFERIDOS
+    - Gastos pagados por anticipado (seguros, arrendamientos)
+    - Amortización mensual automática
+    - Cuentas: 1705 Gastos pagados por anticipado
+
+[ ] 11. LEASING / ARRENDAMIENTO FINANCIERO
+    - Registro inicial del activo y obligación
+    - Tabla de amortización
+    - Asientos mensuales: interés + abono a capital
+
+--------------------------------------------------------------------------------
+DECISIONES TÉCNICAS YA TOMADAS
+--------------------------------------------------------------------------------
+
+- Redis obligatorio para stancl/tenancy (cache tags)
+- SESSION_DRIVER=file, CACHE_STORE=redis
+- PUC completo leído desde database/data/puc_codes.json (2502 cuentas)
+- Autocomplete PUC vía Alpine.js (x-data con $watch, sin x-effect)
+- Stock: decimales según unidad (und/caja/par=0, kg/lt/m/otro=2)
+- Migración tenant auto-apply vía AutoMigrateTenant listener
+- Comando: php artisan app:tenants-migrate-all
+
+--------------------------------------------------------------------------------
+ORDEN DE EJECUCIÓN SUGERIDO
+--------------------------------------------------------------------------------
+
+Semana 1: Cheques (UI) + Métodos de pago
+Semana 2: Nómina (módulo más complejo)
+Semana 3: Comprobante de egreso + Declaración IVA
+Semana 4: Cartera aging + Flujo de caja
+Futuro:   Presupuesto, Diferidos, Leasing
+
+================================================================================

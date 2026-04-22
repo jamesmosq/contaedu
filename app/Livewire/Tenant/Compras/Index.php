@@ -101,6 +101,22 @@ class Index extends Component
         $this->payment_date = now()->toDateString();
         $this->order_date = now()->toDateString();
         $this->order_expected_date = now()->addDays(15)->toDateString();
+
+        // Llegó desde Productos → Abastecer: pre-cargar producto en factura nueva
+        if ($productId = request()->integer('product_id')) {
+            $product = Product::find($productId);
+            if ($product) {
+                $this->view = 'invoices';
+                $this->showForm = true;
+                $this->lines = [[
+                    'product_id' => $product->id,
+                    'description' => $product->name,
+                    'qty' => 1,
+                    'unit_cost' => (float) $product->cost_price,
+                    'tax_rate' => $product->tax_rate->value,
+                ]];
+            }
+        }
     }
 
     // ─── Órdenes de compra ──────────────────────────────────────────────────

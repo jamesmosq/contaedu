@@ -2,10 +2,13 @@
 
 namespace App\Livewire\Tenant\Banco;
 
+use App\Models\Tenant\Account;
 use App\Models\Tenant\BankAccount;
 use App\Models\Tenant\BankCheck;
 use App\Models\Tenant\BankDocument;
 use App\Models\Tenant\BankTransaction;
+use App\Models\Tenant\JournalEntry;
+use App\Models\Tenant\JournalLine;
 use App\Services\BankService;
 use Illuminate\Support\Facades\DB;
 use Livewire\Attributes\Layout;
@@ -47,6 +50,12 @@ class Index extends Component
 
     public float $cheque_valor = 0;
 
+    public ?int $cheque_cuenta_debito_id = null;
+
+    public string $cheque_concepto = '';
+
+    public string $cheque_fecha = '';
+
     // ── Fin de mes ───────────────────────────────────────────────────────────
     public bool $showFinMesConfirm = false;
 
@@ -58,6 +67,7 @@ class Index extends Component
         $principal = BankAccount::where('es_principal', true)->where('activa', true)->first();
         $this->cuentaActivaId = $principal?->id;
         $this->bancoPageUrl = url()->current();
+        $this->cheque_fecha = now()->toDateString();
     }
 
     // ── Getters computados ───────────────────────────────────────────────────
@@ -377,6 +387,11 @@ class Index extends Component
 
             return;
         }
+        if (! $this->cheque_cuenta_debito_id) {
+            $this->dispatch('notify', type: 'error', message: 'Selecciona la cuenta contable a debitar.');
+
+            return;
+        }
 
         $gmf = BankService::calcularGmf('cheque', $this->cheque_valor);
         $cargo = $this->cheque_valor + $gmf;
@@ -389,17 +404,19 @@ class Index extends Component
         }
 
         $numeroCheque = str_pad(($cuenta->cheques_emitidos + 1), 4, '0', STR_PAD_LEFT);
+        $fecha = $this->cheque_fecha ?: now()->toDateString();
+        $descripcion = 'Cheque #'.$numeroCheque.' — '.$this->cheque_beneficiario.($this->cheque_concepto ? ' — '.$this->cheque_concepto : '');
 
-        DB::transaction(function () use ($cuenta, $gmf, $cargo, $numeroCheque) {
+        DB::transaction(function () use ($cuenta, $gmf, $cargo, $numeroCheque, $fecha, $descripcion) {
             $cuenta->decrement('saldo', $cargo);
             $cuenta->increment('cheques_emitidos');
 
-            BankCheck::create([
+            $check = BankCheck::create([
                 'bank_account_id' => $cuenta->id,
                 'numero_cheque' => $numeroCheque,
                 'beneficiario' => $this->cheque_beneficiario,
                 'valor' => $this->cheque_valor,
-                'fecha_emision' => now()->toDateString(),
+                'fecha_emision' => $fecha,
                 'estado' => 'emitido',
             ]);
 
@@ -410,15 +427,126 @@ class Index extends Component
                 'gmf' => $gmf,
                 'comision' => 0,
                 'saldo_despues' => $cuenta->fresh()->saldo,
-                'descripcion' => 'Cheque #'.$numeroCheque.' — '.$this->cheque_beneficiario,
+                'descripcion' => $descripcion,
                 'referencia' => $numeroCheque,
-                'fecha_transaccion' => now()->toDateString(),
+                'fecha_transaccion' => $fecha,
             ]);
+
+            // Asiento contable: DR cuenta_debito | CR 1110 Bancos
+            $bancoAccount = Account::where('code', 'like', '1110%')->where('level', '>=', 3)->first();
+            if ($bancoAccount && $this->cheque_cuenta_debito_id) {
+                $entry = JournalEntry::create([
+                    'modo' => 'real',
+                    'date' => $fecha,
+                    'reference' => 'CHQ-'.$numeroCheque,
+                    'description' => $descripcion,
+                    'document_type' => 'cheque',
+                    'document_id' => $check->id,
+                    'auto_generated' => true,
+                ]);
+
+                JournalLine::create([
+                    'journal_entry_id' => $entry->id,
+                    'account_id' => $this->cheque_cuenta_debito_id,
+                    'debit' => $this->cheque_valor,
+                    'credit' => 0,
+                    'description' => 'Cheque #'.$numeroCheque.' — '.$this->cheque_beneficiario,
+                ]);
+
+                JournalLine::create([
+                    'journal_entry_id' => $entry->id,
+                    'account_id' => $bancoAccount->id,
+                    'debit' => 0,
+                    'credit' => $this->cheque_valor,
+                    'description' => 'Banco — cheque emitido #'.$numeroCheque,
+                ]);
+
+                $check->update(['journal_entry_id' => $entry->id]);
+            }
         });
 
+        $valor = $this->cheque_valor;
         $this->showChequeForm = false;
-        $this->reset(['cheque_beneficiario', 'cheque_valor']);
-        $this->dispatch('notify', type: 'success', message: 'Cheque #'.$numeroCheque.' emitido por $'.number_format($this->cheque_valor, 0, ',', '.'));
+        $this->reset(['cheque_beneficiario', 'cheque_valor', 'cheque_cuenta_debito_id', 'cheque_concepto']);
+        $this->cheque_fecha = now()->toDateString();
+        $this->dispatch('notify', type: 'success', message: 'Cheque #'.$numeroCheque.' emitido por $'.number_format($valor, 0, ',', '.'));
+    }
+
+    // ── Anular cheque ─────────────────────────────────────────────────────────
+
+    public function anularCheque(int $id): void
+    {
+        $check = BankCheck::with(['bankAccount', 'journalEntry.lines'])->findOrFail($id);
+
+        if ($check->estado !== 'emitido') {
+            $this->dispatch('notify', type: 'error', message: 'Solo se pueden anular cheques en estado Emitido.');
+
+            return;
+        }
+
+        DB::transaction(function () use ($check) {
+            // Revertir saldo bancario (sin GMF, ya cobrado)
+            $check->bankAccount->increment('saldo', $check->valor);
+
+            BankTransaction::create([
+                'bank_account_id' => $check->bank_account_id,
+                'tipo' => 'anulacion_cheque',
+                'valor' => $check->valor,
+                'gmf' => 0,
+                'comision' => 0,
+                'saldo_despues' => $check->bankAccount->fresh()->saldo,
+                'descripcion' => 'Anulación cheque #'.$check->numero_cheque.' — '.$check->beneficiario,
+                'referencia' => $check->numero_cheque,
+                'fecha_transaccion' => now()->toDateString(),
+            ]);
+
+            // Reverso contable
+            if ($check->journalEntry) {
+                $reversal = JournalEntry::create([
+                    'modo' => 'real',
+                    'date' => now()->toDateString(),
+                    'reference' => 'AN-CHQ-'.$check->numero_cheque,
+                    'description' => 'Anulación cheque #'.$check->numero_cheque.' — '.$check->beneficiario,
+                    'document_type' => 'cheque_anulado',
+                    'document_id' => $check->id,
+                    'auto_generated' => true,
+                ]);
+
+                foreach ($check->journalEntry->lines as $line) {
+                    JournalLine::create([
+                        'journal_entry_id' => $reversal->id,
+                        'account_id' => $line->account_id,
+                        'debit' => $line->credit,
+                        'credit' => $line->debit,
+                        'description' => 'Reverso: '.$line->description,
+                    ]);
+                }
+            }
+
+            $check->update(['estado' => 'anulado']);
+        });
+
+        $this->dispatch('notify', type: 'success', message: 'Cheque #'.$check->numero_cheque.' anulado correctamente.');
+    }
+
+    // ── Marcar cheque cobrado ─────────────────────────────────────────────────
+
+    public function marcarCobrado(int $id): void
+    {
+        $check = BankCheck::findOrFail($id);
+
+        if ($check->estado !== 'emitido') {
+            $this->dispatch('notify', type: 'error', message: 'Solo se pueden marcar como cobrados los cheques en estado Emitido.');
+
+            return;
+        }
+
+        $check->update([
+            'estado' => 'cobrado',
+            'fecha_cobro' => now()->toDateString(),
+        ]);
+
+        $this->dispatch('notify', type: 'success', message: 'Cheque #'.$check->numero_cheque.' marcado como cobrado.');
     }
 
     // ── Documentos bancarios ─────────────────────────────────────────────────
@@ -631,6 +759,8 @@ class Index extends Component
 
     public function render()
     {
-        return view('livewire.tenant.banco.index');
+        $accounts = Account::orderBy('code')->get();
+
+        return view('livewire.tenant.banco.index', compact('accounts'));
     }
 }
