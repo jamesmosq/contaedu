@@ -91,8 +91,10 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('admin')->name('admin.')-
     Route::post('/impersonate/docente/{userId}', [ImpersonationController::class, 'startTeacher'])->name('impersonate.teacher');
 });
 
-// Salir de impersonación (accesible con cualquier guard o sin guard)
-Route::get('/admin/impersonate/salir', [ImpersonationController::class, 'stop'])->name('admin.impersonate.stop');
+// Salir de impersonación (accesible con guard student o web, no anónimo)
+Route::middleware('auth:web,student')
+    ->get('/admin/impersonate/salir', [ImpersonationController::class, 'stop'])
+    ->name('admin.impersonate.stop');
 
 // ─── Panel Coordinador ────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:coordinator'])->prefix('coordinador')->name('coordinator.')->group(function () {

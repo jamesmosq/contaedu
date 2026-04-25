@@ -27,15 +27,18 @@ class Account extends Model
     protected function casts(): array
     {
         return [
-            'active'    => 'boolean',
+            'active' => 'boolean',
             'is_custom' => 'boolean',
-            'level'     => 'integer',
+            'level' => 'integer',
         ];
     }
 
     protected static function booted(): void
     {
-        $flush = fn () => Cache::forget('puc_map');
+        $flush = function (): void {
+            $tenantId = tenancy()->tenant?->getTenantKey() ?? 'central';
+            Cache::forget("puc_map_{$tenantId}");
+        };
         static::created($flush);
         static::updated($flush);
         static::deleted($flush);

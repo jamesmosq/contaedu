@@ -51,7 +51,10 @@ class ImpersonationController extends Controller
         $request->session()->regenerateToken();
 
         if ($adminId) {
-            auth('web')->loginUsingId($adminId);
+            $admin = User::where('id', $adminId)->where('role', 'superadmin')->first();
+            if ($admin) {
+                auth('web')->login($admin);
+            }
         }
 
         return redirect()->route('admin.dashboard');

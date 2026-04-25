@@ -11,7 +11,6 @@ use App\Models\User;
 use App\Services\TransferStudentService;
 use Carbon\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
@@ -268,7 +267,7 @@ class Dashboard extends Component
     {
         $rules = [
             'teacherName' => ['required', 'string', 'max:150'],
-            'teacherEmail' => ['required', 'email', 'max:150'],
+            'teacherEmail' => ['required', 'email', 'max:150', 'unique:users,email'.($this->teacherEditingId ? ",{$this->teacherEditingId}" : '')],
         ];
 
         if (! $this->teacherEditingId) {
@@ -489,16 +488,17 @@ class Dashboard extends Component
                 return ['nivel' => 'baja', 'color' => 'slate', 'label' => 'Sin estudiantes'];
             }
 
-            $cacheKey = 'admin_metrics_ops_'.$inst->id;
-            $ops = Cache::remember($cacheKey, 300, function () use ($ids) {
+            try {
                 $makeUnion = fn (string $table) => $ids
                     ->map(fn ($id) => "SELECT COUNT(*) as n FROM \"tenant_{$id}\".{$table} WHERE created_at >= NOW() - INTERVAL '30 days'")
                     ->join(' UNION ALL ');
 
-                return (int) DB::selectOne('SELECT SUM(n) as t FROM ('.$makeUnion('invoices').
+                $ops = (int) DB::selectOne('SELECT SUM(n) as t FROM ('.$makeUnion('invoices').
                     ' UNION ALL '.$makeUnion('purchase_invoices').
                     ' UNION ALL '.$makeUnion('journal_entries').') x')?->t;
-            });
+            } catch (\Throwable) {
+                $ops = 0;
+            }
 
             $total = ExerciseCompletion::whereIn('tenant_id', $ids)->count();
             $aprobados = ExerciseCompletion::whereIn('tenant_id', $ids)->where('result', 'aprobado')->count();

@@ -682,8 +682,8 @@ class AccountingService
     {
         $id = $this->accountId($code);
         if (! $id) {
-            // Limpiar caché y reintentar una vez por si el PUC se sembró después
-            Cache::forget('puc_map');
+            $tenantId = tenancy()->tenant?->getTenantKey() ?? 'central';
+            Cache::forget("puc_map_{$tenantId}");
             $id = $this->accountId($code);
         }
 
@@ -696,7 +696,9 @@ class AccountingService
 
     private function pucMap(): array
     {
-        return Cache::remember('puc_map', 86400, fn () => Account::pluck('id', 'code')->all());
+        $tenantId = tenancy()->tenant?->getTenantKey() ?? 'central';
+
+        return Cache::remember("puc_map_{$tenantId}", 86400, fn () => Account::pluck('id', 'code')->all());
     }
 
     private function createEntry(array $entryData, array $lines): JournalEntry
