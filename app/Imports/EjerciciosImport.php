@@ -18,6 +18,10 @@ class EjerciciosImport implements ToCollection, WithHeadingRow
         'pago_proveedor',
     ];
 
+    private const TIPO_ALIASES = [
+        'asiento_contable' => 'asiento_manual',
+    ];
+
     public int $imported = 0;
 
     /** @var array<int, array{fila: int, error: string}> */
@@ -35,6 +39,7 @@ class EjerciciosImport implements ToCollection, WithHeadingRow
 
             $titulo = trim((string) ($row['titulo'] ?? ''));
             $tipo = trim((string) ($row['tipo'] ?? ''));
+            $tipo = self::TIPO_ALIASES[$tipo] ?? $tipo;
             $puntos = (int) ($row['puntos'] ?? 10);
 
             if ($titulo === '') {

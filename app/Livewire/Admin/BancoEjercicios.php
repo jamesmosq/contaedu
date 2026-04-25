@@ -8,13 +8,14 @@ use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithFileUploads;
+use Livewire\WithPagination;
 use Maatwebsite\Excel\Facades\Excel;
 
 #[Layout('layouts.admin')]
 #[Title('Banco de ejercicios')]
 class BancoEjercicios extends Component
 {
-    use WithFileUploads;
+    use WithFileUploads, WithPagination;
 
     public bool $showForm = false;
 
@@ -34,7 +35,21 @@ class BancoEjercicios extends Component
 
     public $ejerciciosFile = null;
 
+    public bool $fileReady = false;
+
     public ?array $importResult = null;
+
+    public int $perPage = 25;
+
+    public function updatingPerPage(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedEjerciciosFile(): void
+    {
+        $this->fileReady = $this->ejerciciosFile !== null;
+    }
 
     public function openForm(?int $id = null): void
     {
@@ -100,31 +115,40 @@ class BancoEjercicios extends Component
     public function importEjercicios(): void
     {
         $this->validate([
-            'ejerciciosFile' => ['required', 'file', 'mimes:xlsx,xls', 'max:2048'],
+            'ejerciciosFile' => ['required', 'file', 'extensions:xlsx,xls', 'max:2048'],
         ], [
             'ejerciciosFile.required' => 'Selecciona un archivo Excel.',
-            'ejerciciosFile.mimes' => 'El archivo debe ser .xlsx o .xls.',
+            'ejerciciosFile.extensions' => 'El archivo debe ser .xlsx o .xls.',
             'ejerciciosFile.max' => 'El archivo no puede superar 2 MB.',
         ]);
 
-        $import = new EjerciciosImport(teacherId: auth()->id(), isGlobal: true);
-        Excel::import($import, $this->ejerciciosFile->getRealPath());
+        try {
+            $import = new EjerciciosImport(teacherId: auth()->id(), isGlobal: true);
+            Excel::import($import, $this->ejerciciosFile);
 
-        $this->importResult = [
-            'imported' => $import->imported,
-            'errors' => $import->errors,
-        ];
-
-        $this->ejerciciosFile = null;
+            $this->importResult = [
+                'imported' => $import->imported,
+                'errors' => $import->errors,
+            ];
+        } catch (\Throwable $e) {
+            $this->dispatch('notify', type: 'error', message: 'Error al procesar el archivo: '.$e->getMessage());
+        } finally {
+            $this->ejerciciosFile = null;
+            $this->fileReady = false;
+        }
     }
 
     public function render(): mixed
     {
-        $exercises = Exercise::global()
+        $query = Exercise::global()
             ->withCount('assignments')
-            ->orderByDesc('created_at')
-            ->get();
+            ->orderByDesc('created_at');
 
-        return view('livewire.admin.banco-ejercicios', compact('exercises'));
+        $total = $query->count();
+        $exercises = $this->perPage > 0
+            ? $query->paginate($this->perPage)
+            : $query->get();
+
+        return view('livewire.admin.banco-ejercicios', compact('exercises', 'total'));
     }
 }

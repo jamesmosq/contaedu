@@ -1,52 +1,57 @@
 <div>
     <x-slot name="header">
-        <div class="flex items-center justify-between flex-wrap gap-3">
-            <div>
-                <h2 class="text-lg font-bold text-slate-800">Banco de ejercicios</h2>
-                <p class="text-xs text-slate-500 mt-0.5">Ejercicios oficiales disponibles para todos los docentes</p>
-            </div>
-            <div class="flex items-center gap-2">
-                {{-- Importar Excel --}}
-                <div x-data="{ open: false }" class="relative">
-                    <button @click="open = !open"
-                        class="flex items-center gap-1.5 px-3 py-1.5 border border-forest-300 text-forest-700 text-xs font-semibold rounded-lg hover:bg-forest-50 transition">
-                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/>
-                        </svg>
-                        Importar Excel
-                    </button>
-                    <div x-show="open" @click.outside="open = false"
-                        class="absolute right-0 top-full mt-1 bg-white border border-cream-200 rounded-xl shadow-lg p-4 w-72 z-10"
-                        style="display:none">
-                        <p class="text-xs text-slate-500 mb-3">Sube un archivo .xlsx con los ejercicios. Máx. 2 MB.</p>
-                        <input wire:model="ejerciciosFile" type="file" accept=".xlsx,.xls"
-                            class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-forest-50 file:text-forest-700 file:text-xs file:font-medium hover:file:bg-forest-100 mb-3">
-                        @error('ejerciciosFile') <p class="text-xs text-red-600 mb-2">{{ $message }}</p> @enderror
-                        <button wire:click="importEjercicios" wire:loading.attr="disabled"
-                            class="w-full px-3 py-1.5 bg-forest-800 text-white text-xs font-semibold rounded-lg hover:bg-forest-700 transition disabled:opacity-50">
-                            <span wire:loading.remove wire:target="importEjercicios">Importar</span>
-                            <span wire:loading wire:target="importEjercicios">Procesando…</span>
-                        </button>
-                    </div>
-                </div>
-
-                <a href="{{ route('admin.ejercicios.plantilla') }}"
-                    class="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 text-slate-600 text-xs font-semibold rounded-lg hover:bg-slate-50 transition">
-                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/>
-                    </svg>
-                    Plantilla
-                </a>
-
-                <button wire:click="openForm()"
-                    class="px-3 py-1.5 bg-forest-800 text-white text-xs font-semibold rounded-lg hover:bg-forest-700 transition">
-                    + Nuevo ejercicio
-                </button>
-            </div>
+        <div>
+            <h2 class="text-lg font-bold text-slate-800">Banco de ejercicios</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Ejercicios oficiales disponibles para todos los docentes</p>
         </div>
     </x-slot>
 
     <div class="max-w-6xl mx-auto px-6 py-8 space-y-6">
+
+        {{-- Barra de acciones --}}
+        <div class="flex items-center justify-between gap-2">
+            <p class="text-xs text-slate-400">
+                {{ $total }} ejercicio(s) en total
+            </p>
+            <div class="flex items-center gap-2">
+            {{-- Importar Excel --}}
+            <div x-data="{ open: false }" x-effect="if ($wire.fileReady) open = true" class="relative">
+                <button @click="open = !open"
+                    class="flex items-center gap-1.5 px-3 py-1.5 border border-forest-300 text-forest-700 text-xs font-semibold rounded-lg hover:bg-forest-50 transition">
+                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/>
+                    </svg>
+                    Importar Excel
+                </button>
+                <div x-show="open" @click.outside="open = false"
+                    class="absolute right-0 top-full mt-1 bg-white border border-cream-200 rounded-xl shadow-lg p-4 w-72 z-10"
+                    style="display:none">
+                    <p class="text-xs text-slate-500 mb-3">Sube un archivo .xlsx con los ejercicios. Máx. 2 MB.</p>
+                    <input wire:model="ejerciciosFile" type="file" accept=".xlsx,.xls"
+                        class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-forest-50 file:text-forest-700 file:text-xs file:font-medium hover:file:bg-forest-100 mb-3">
+                    @error('ejerciciosFile') <p class="text-xs text-red-600 mb-2">{{ $message }}</p> @enderror
+                    <button wire:click="importEjercicios" wire:loading.attr="disabled"
+                        class="w-full px-3 py-1.5 bg-forest-800 text-white text-xs font-semibold rounded-lg hover:bg-forest-700 transition disabled:opacity-50">
+                        <span wire:loading.remove wire:target="importEjercicios">Importar</span>
+                        <span wire:loading wire:target="importEjercicios">Procesando…</span>
+                    </button>
+                </div>
+            </div>
+
+            <a href="{{ route('admin.ejercicios.plantilla') }}"
+                class="flex items-center gap-1.5 px-3 py-1.5 border border-slate-200 text-slate-600 text-xs font-semibold rounded-lg hover:bg-slate-50 transition">
+                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                </svg>
+                Plantilla
+            </a>
+
+            <button wire:click="openForm()"
+                class="px-3 py-1.5 bg-forest-800 text-white text-xs font-semibold rounded-lg hover:bg-forest-700 transition">
+                + Nuevo ejercicio
+            </button>
+            </div>
+        </div>
 
         {{-- Resultado de importación --}}
         @if($importResult)
@@ -120,6 +125,27 @@
                     @endforelse
                 </tbody>
             </table>
+
+            {{-- Paginación / toggle --}}
+            <div class="px-6 py-3 border-t border-cream-200 flex items-center justify-between gap-4">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-400">Mostrar:</span>
+                    <button wire:click="$set('perPage', 25)"
+                        class="px-2.5 py-1 text-xs font-medium rounded-lg border transition
+                               {{ $perPage === 25 ? 'bg-forest-800 text-white border-forest-800' : 'border-cream-300 text-slate-600 hover:bg-cream-50' }}">
+                        25
+                    </button>
+                    <button wire:click="$set('perPage', 0)"
+                        class="px-2.5 py-1 text-xs font-medium rounded-lg border transition
+                               {{ $perPage === 0 ? 'bg-forest-800 text-white border-forest-800' : 'border-cream-300 text-slate-600 hover:bg-cream-50' }}">
+                        Todos
+                    </button>
+                </div>
+
+                @if($perPage > 0 && $exercises->hasPages())
+                    <div>{{ $exercises->links() }}</div>
+                @endif
+            </div>
         </div>
 
         <p class="text-xs text-slate-400">

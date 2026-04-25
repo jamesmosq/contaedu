@@ -10,7 +10,7 @@
             </div>
             <div class="flex items-center gap-2 flex-wrap">
                 {{-- Importar Excel --}}
-                <div x-data="{ open: false }" class="relative">
+                <div x-data="{ open: false }" x-effect="if ($wire.fileReady) open = true" class="relative">
                     <button @click="open = !open"
                         class="flex items-center gap-1.5 px-4 py-2 bg-white/15 hover:bg-white/25 text-white text-sm font-medium rounded-xl transition">
                         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
@@ -88,7 +88,7 @@
 
         {{-- ── Tab: Mis ejercicios ───────────────────────────────────────────── --}}
         @if($tab === 'ejercicios')
-            @if($exercises->isEmpty())
+            @if($exercisesTotal === 0)
                 <div class="bg-white rounded-2xl border border-cream-200 shadow-card px-6 py-16 text-center">
                     <div class="w-14 h-14 bg-forest-50 rounded-2xl flex items-center justify-center mx-auto mb-4">
                         <svg class="w-7 h-7 text-forest-400" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
@@ -156,15 +156,39 @@
                             @endforeach
                         </tbody>
                     </table>
+
+                    {{-- Paginación / toggle --}}
+                    <div class="px-5 py-3 border-t border-cream-200 flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-400">Mostrar:</span>
+                            <button wire:click="$set('perPage', 25)"
+                                class="px-2.5 py-1 text-xs font-medium rounded-lg border transition
+                                       {{ $perPage === 25 ? 'bg-forest-800 text-white border-forest-800' : 'border-cream-300 text-slate-600 hover:bg-cream-50' }}">
+                                25
+                            </button>
+                            <button wire:click="$set('perPage', 0)"
+                                class="px-2.5 py-1 text-xs font-medium rounded-lg border transition
+                                       {{ $perPage === 0 ? 'bg-forest-800 text-white border-forest-800' : 'border-cream-300 text-slate-600 hover:bg-cream-50' }}">
+                                Todos
+                            </button>
+                        </div>
+
+                        @if($perPage > 0 && $exercises->hasPages())
+                            <div>{{ $exercises->links() }}</div>
+                        @endif
+                    </div>
                 </div>
             @endif
 
             {{-- Catálogo de ejercicios oficiales --}}
-            @if($globalExercises->isNotEmpty())
+            @if($globalTotal > 0)
                 <div class="bg-white rounded-2xl border border-cream-200 shadow-card overflow-hidden">
-                    <div class="px-6 py-4 border-b border-cream-100">
-                        <h3 class="text-sm font-semibold text-slate-700">Ejercicios oficiales</h3>
-                        <p class="text-xs text-slate-400 mt-0.5">Creados por ContaEdu. Usa uno como punto de partida y personalízalo.</p>
+                    <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-semibold text-slate-700">Ejercicios oficiales</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Creados por ContaEdu. Usa uno como punto de partida y personalízalo.</p>
+                        </div>
+                        <span class="text-xs text-slate-400">{{ $globalTotal }} en total</span>
                     </div>
                     <table class="w-full text-sm">
                         <thead class="bg-cream-50 text-xs text-slate-500 uppercase tracking-wide border-b border-cream-200">
@@ -196,6 +220,27 @@
                             @endforeach
                         </tbody>
                     </table>
+
+                    {{-- Paginación / toggle --}}
+                    <div class="px-5 py-3 border-t border-cream-200 flex items-center justify-between gap-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs text-slate-400">Mostrar:</span>
+                            <button wire:click="$set('globalPerPage', 25)"
+                                class="px-2.5 py-1 text-xs font-medium rounded-lg border transition
+                                       {{ $globalPerPage === 25 ? 'bg-forest-800 text-white border-forest-800' : 'border-cream-300 text-slate-600 hover:bg-cream-50' }}">
+                                25
+                            </button>
+                            <button wire:click="$set('globalPerPage', 0)"
+                                class="px-2.5 py-1 text-xs font-medium rounded-lg border transition
+                                       {{ $globalPerPage === 0 ? 'bg-forest-800 text-white border-forest-800' : 'border-cream-300 text-slate-600 hover:bg-cream-50' }}">
+                                Todos
+                            </button>
+                        </div>
+
+                        @if($globalPerPage > 0 && $globalExercises->hasPages())
+                            <div>{{ $globalExercises->links() }}</div>
+                        @endif
+                    </div>
                 </div>
             @endif
         @endif
