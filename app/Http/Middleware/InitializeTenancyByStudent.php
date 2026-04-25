@@ -5,6 +5,7 @@ namespace App\Http\Middleware;
 use App\Models\Central\Tenant;
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Symfony\Component\HttpFoundation\Response;
 
 class InitializeTenancyByStudent
@@ -45,16 +46,49 @@ class InitializeTenancyByStudent
             }
 
             // Modo auditoría: docente o coordinador auditando empresa (solo lectura)
-            if (session('audit_mode') && session('audit_tenant_id')) {
-                $isAuditRoute = $request->routeIs('teacher.auditoria.*')
-                    || $request->routeIs('coordinator.auditoria.*');
-                $isLivewireFromAudit = str_starts_with($request->path(), 'livewire')
-                    && (str_contains($referer, '/docente/auditoria/')
-                        || str_contains($referer, '/coordinador/auditoria/'));
+            $isAuditRoute = $request->routeIs('teacher.auditoria.*')
+                || $request->routeIs('coordinator.auditoria.*');
+            $isLivewireFromAudit = str_starts_with($request->path(), 'livewire')
+                && (str_contains($referer, '/docente/auditoria/')
+                    || str_contains($referer, '/coordinador/auditoria/'));
 
-                if ($isAuditRoute || $isLivewireFromAudit) {
-                    $tenant = Tenant::on($centralConn)->find(session('audit_tenant_id'));
+            if ($isAuditRoute || $isLivewireFromAudit) {
+                // Usar el parámetro de ruta como fuente primaria; la sesión es secundaria
+                $routeTenantId = $request->route('tenantId');
+                $auditTenantId = $routeTenantId ?? session('audit_tenant_id');
+
+                if ($auditTenantId) {
+                    $tenant = Tenant::on($centralConn)->find($auditTenantId);
+
                     if ($tenant) {
+                        // Si el tenant difiere del que está en sesión, re-validar autorización
+                        if ($auditTenantId !== session('audit_tenant_id')) {
+                            $user = auth('web')->user();
+                            $hasAccess = false;
+
+                            if ($user?->role?->value === 'coordinator') {
+                                $hasAccess = $user->institution?->groups()
+                                    ->whereHas('tenants', fn ($q) => $q->where('id', $auditTenantId))
+                                    ->exists() ?? false;
+                            } else {
+                                $hasAccess = $user?->teacherGroups()
+                                    ->whereHas('tenants', fn ($q) => $q->where('id', $auditTenantId))
+                                    ->exists() ?? false;
+                            }
+
+                            if (! $hasAccess) {
+                                return $next($request);
+                            }
+
+                            // Restaurar sesión de auditoría
+                            session([
+                                'audit_mode' => true,
+                                'audit_tenant_id' => $tenant->id,
+                                'audit_student_name' => $tenant->student_name,
+                                'audit_company_name' => $tenant->company_name,
+                            ]);
+                        }
+
                         tenancy()->initialize($tenant);
                     }
                 }
@@ -66,6 +100,24 @@ class InitializeTenancyByStudent
         // ── 4. Estudiante autenticado ──────────────────────────────────────────
         $student = auth('student')->user();
         if ($student instanceof Tenant) {
+            // Bloquear si la institución fue deshabilitada con sesión activa
+            if ($student->group_id) {
+                $institutionActive = DB::table('groups')
+                    ->join('institutions', 'groups.institution_id', '=', 'institutions.id')
+                    ->where('groups.id', $student->group_id)
+                    ->value('institutions.active');
+
+                if ($institutionActive === false) {
+                    auth('student')->logout();
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+
+                    return redirect()->route('student.login')->withErrors([
+                        'cedula' => 'Tu institución no tiene acceso activo a ContaEdu. Contacta a tu coordinador.',
+                    ]);
+                }
+            }
+
             $centralConn = config('tenancy.database.central_connection', 'pgsql');
             $referer = $request->header('referer', '');
 

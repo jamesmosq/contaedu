@@ -39,6 +39,8 @@
             {{-- Contenido principal --}}
             <div class="flex-1 flex flex-col min-w-0">
 
+                @include('partials.impersonation-banner')
+
                 {{-- Topbar móvil --}}
                 <div class="lg:hidden flex items-center justify-between px-4 py-3 bg-forest-900 shrink-0">
                     <span class="font-display text-lg font-bold text-white">Conta<span class="text-gold-400">Edu</span></span>

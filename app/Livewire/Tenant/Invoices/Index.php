@@ -69,6 +69,8 @@ class Index extends Component
 
     public string $receipt_notes = '';
 
+    public string $receipt_medio_pago = 'efectivo';
+
     public string $receipt_ref = '';   // solo lectura, para mostrar en modal
 
     public string $fe_search = '';
@@ -306,6 +308,7 @@ class Index extends Component
         $this->receipt_date = now()->toDateString();
         $this->receipt_amount = round($invoice->balance(), 2);
         $this->receipt_notes = '';
+        $this->receipt_medio_pago = 'efectivo';
         $this->receipt_ref = $invoice->fullReference().' — '.$invoice->third->name;
         $this->showReceiptForm = true;
     }
@@ -319,6 +322,7 @@ class Index extends Component
         $this->receipt_date = now()->toDateString();
         $this->receipt_amount = round($fe->balance(), 2);
         $this->receipt_notes = '';
+        $this->receipt_medio_pago = 'efectivo';
         $this->receipt_ref = $fe->numero_completo.' — '.($fe->nombre_adquirente ?? $fe->cliente?->name ?? '—');
         $this->showReceiptForm = true;
     }
@@ -349,6 +353,7 @@ class Index extends Component
                         'total' => $this->receipt_amount,
                         'notes' => $this->receipt_notes ?: null,
                         'status' => ReceiptStatus::Borrador->value,
+                        'medio_pago' => $this->receipt_medio_pago,
                     ]);
 
                     CashReceiptItem::create([
@@ -377,6 +382,7 @@ class Index extends Component
                         'total' => $this->receipt_amount,
                         'notes' => $this->receipt_notes ?: null,
                         'status' => ReceiptStatus::Borrador->value,
+                        'medio_pago' => $this->receipt_medio_pago,
                     ]);
 
                     CashReceiptItem::create([
@@ -392,7 +398,7 @@ class Index extends Component
             }
 
             $this->showReceiptForm = false;
-            $this->reset(['receipt_invoice_id', 'receipt_fe_factura_id', 'receipt_date', 'receipt_amount', 'receipt_notes', 'receipt_ref']);
+            $this->reset(['receipt_invoice_id', 'receipt_fe_factura_id', 'receipt_date', 'receipt_amount', 'receipt_notes', 'receipt_ref', 'receipt_medio_pago']);
             $this->dispatch('notify', type: 'success', message: 'Recibo de caja registrado y asiento generado.');
         } catch (\Exception $e) {
             $this->dispatch('notify', type: 'error', message: $e->getMessage());

@@ -141,12 +141,16 @@ class AccountingService
      */
     public function generateReceiptEntry(CashReceipt $receipt): JournalEntry
     {
-        $cash = $this->accountId('1105'); // Caja
+        $medioPago = $receipt->medio_pago ?? 'efectivo';
+        $contraCode = $medioPago === 'efectivo' ? '1105' : '1110';
+        $contraAccount = $this->accountId($contraCode);
         $ar = $this->accountId('1305'); // Cuentas por cobrar
 
+        $contraLabel = $medioPago === 'efectivo' ? 'Recibo caja' : 'Recibo '.ucfirst($medioPago);
+
         $lines = [
-            ['account_id' => $cash, 'debit' => $receipt->total, 'credit' => 0,               'description' => 'Recibo caja '.$receipt->third->name],
-            ['account_id' => $ar,   'debit' => 0,               'credit' => $receipt->total, 'description' => 'Abono cartera '.$receipt->third->name],
+            ['account_id' => $contraAccount, 'debit' => $receipt->total, 'credit' => 0,               'description' => $contraLabel.' '.$receipt->third->name],
+            ['account_id' => $ar,            'debit' => 0,               'credit' => $receipt->total, 'description' => 'Abono cartera '.$receipt->third->name],
         ];
 
         return $this->createEntry([
@@ -552,13 +556,13 @@ class AccountingService
     {
         $suppliers = $this->accountId('2205'); // Proveedores nacionales
 
-        // Si el pago viene de una cuenta bancaria → débita Bancos, sino Caja
-        $usaBanco = ! empty($payment->bank_account_id);
+        $medioPago = $payment->medio_pago ?? 'efectivo';
+        $usaBanco = $medioPago !== 'efectivo' && ! empty($payment->bank_account_id);
         $contrapartida = $usaBanco
             ? $this->accountId('1110') // Bancos
             : $this->accountId('1105'); // Caja
         $contraDesc = $usaBanco
-            ? 'Egreso banco — '.$payment->third->name
+            ? 'Egreso '.ucfirst($medioPago).' — '.$payment->third->name
             : 'Egreso caja — '.$payment->third->name;
 
         $lines = [

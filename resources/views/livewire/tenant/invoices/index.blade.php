@@ -405,11 +405,21 @@
                                 @error('receipt_amount') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                             </div>
                             <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Medio de pago</label>
+                                <select wire:model.live="receipt_medio_pago" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
+                                    <option value="efectivo">Efectivo</option>
+                                    <option value="cheque">Cheque</option>
+                                    <option value="transferencia">Transferencia bancaria</option>
+                                    <option value="consignacion">Consignación</option>
+                                    <option value="tarjeta_debito">Tarjeta débito</option>
+                                </select>
+                            </div>
+                            <div>
                                 <label class="block text-sm font-medium text-slate-700 mb-1">Notas <span class="text-slate-400">(opcional)</span></label>
                                 <input wire:model="receipt_notes" type="text" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
                             </div>
                             <p class="text-xs text-slate-500">
-                                Se generará el asiento: Débito 1105 Caja / Crédito 1305 Cuentas por cobrar
+                                Asiento: {{ $receipt_medio_pago === 'efectivo' ? 'DR 1105 Caja' : 'DR 1110 Bancos' }} / CR 1305 Cuentas por cobrar
                             </p>
                         </div>
                         <div class="px-6 py-4 border-t border-cream-100 flex justify-end gap-3">

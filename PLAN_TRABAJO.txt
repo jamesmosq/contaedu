@@ -68,7 +68,7 @@ PENDIENTES — PRIORIDAD ALTA
     - El método de pago debe quedar registrado: efectivo, cheque,
       transferencia, consignación
 
-[ ] 4. MÉTODOS DE PAGO (refactor transversal)
+[x] 4. MÉTODOS DE PAGO — Completado 2026-04-24
     - Actualmente pagos solo distinguen banco vs. caja
     - Agregar campo medio_pago: efectivo | cheque | transferencia |
       consignacion | tarjeta_debito
@@ -141,5 +141,170 @@ Semana 2: Nómina (módulo más complejo)
 Semana 3: Comprobante de egreso + Declaración IVA
 Semana 4: Cartera aging + Flujo de caja
 Futuro:   Presupuesto, Diferidos, Leasing
+
+================================================================================
+PANEL DOCENTE — NUEVAS FEATURES (2026-04-24)
+================================================================================
+
+[x] F1. EXPORTAR CALIFICACIONES A CSV — Completado 2026-04-24
+    Complejidad: BAJA · Prioridad: ALTA
+    ─────────────────────────────────────────────────────────────────────────
+    Descripción:
+      El docente exporta las notas de la rúbrica de todos los estudiantes de
+      un grupo en un CSV. Columnas: Cédula, Nombre, Empresa, Maestros,
+      Facturación, Compras, Cierre, Promedio.
+
+    Archivos a crear:
+      · app/Http/Controllers/Teacher/ExportCalificacionesController.php
+          -> Consulta student_scores (tabla central, sin cambio de tenancy)
+          -> Genera CSV con Response::streamDownload()
+          -> Valida que el grupo pertenece al docente autenticado
+
+    Archivos a modificar:
+      · routes/web.php
+          -> GET /docente/grupos/{groupId}/exportar-calificaciones
+             name: teacher.exportar-calificaciones
+      · resources/views/livewire/teacher/dashboard.blade.php
+          -> Botón "Exportar CSV" en cabecera de panel de estudiantes del grupo
+
+    Base de datos: sin cambios.
+
+    Notas técnicas:
+      · Sin cambio de contexto de tenancy — student_scores es tabla central
+      · Si un estudiante no tiene nota en un módulo -> celda vacía en el CSV
+
+
+[x] F2. PANEL DE ALERTAS CONTABLES DEL GRUPO — Completado 2026-04-24
+    Complejidad: MEDIA · Prioridad: MEDIA
+    ─────────────────────────────────────────────────────────────────────────
+    Descripción:
+      El docente ve en un panel unificado qué estudiantes tienen problemas,
+      sin auditar empresa por empresa. Indicadores por estudiante:
+        A1. Asientos desbalanceados  (JournalEntry: sum debit != sum credit)
+        A2. Cuenta bancaria bloqueada (BankAccount: bloqueada = true)
+        A3. Sin actividad reciente   (last_activity_at > 30 días o null)
+        A4. Sin configuración inicial (company_config vacía)
+        A5. Sin terceros registrados  (thirds count = 0)
+        A6. Sin productos registrados (products count = 0)
+
+    Archivos a crear:
+      · app/Livewire/Teacher/Alertas.php
+          -> Loop sobre tenants: $tenant->run() para evaluar cada condición
+          -> cache()->remember() con TTL 15min para no recalcular en cada render
+          -> Botón "Actualizar" para forzar re-evaluación (olvida caché)
+      · resources/views/livewire/teacher/alertas.blade.php
+          -> Tabla: Empresa | Estudiante | A1 | A2 | A3 | A4 | A5 | A6 | Auditar
+          -> Badges rojo/verde/gris por indicador
+          -> Filtro por grupo y por tipo de alerta
+
+    Archivos a modificar:
+      · routes/web.php
+          -> GET /docente/alertas -> name: teacher.alertas
+      · resources/views/layouts/teacher-navigation.blade.php
+          -> Ítem "Alertas" en el sidebar
+
+    Base de datos: sin cambios.
+
+    Notas técnicas:
+      · Pre-cargar TODOS los modelos Central antes del primer $tenant->run()
+      · Clave de caché: "alertas_{teacher_id}_{group_id}"
+      · Cada alerta se evalúa DENTRO del $tenant->run() (contexto del tenant)
+
+
+[ ] F3. EJERCICIOS CON VERIFICACIÓN AUTOMÁTICA
+    Complejidad: ALTA · Prioridad: ALTA (diferenciador pedagógico)
+    ─────────────────────────────────────────────────────────────────────────
+    Descripción:
+      El docente crea ejercicios contables y los asigna a grupos con fecha
+      límite. Los estudiantes los ven en /aprendizaje/ejercicios (modo=sandbox)
+      y al marcar "Listo" el sistema verifica automáticamente las condiciones.
+      El estudiante practica sin afectar su empresa real (Mi Empresa).
+
+    Tipos de ejercicio (primera versión):
+      TIPO              | CONDICIÓN VERIFICADA
+      ──────────────────|──────────────────────────────────────────────────────
+      factura_venta     | Invoice sandbox creada después de assigned_at
+                        | con total >= monto_minimo (si se define)
+      factura_compra    | PurchaseInvoice sandbox creada después de assigned_at
+      asiento_manual    | JournalEntry sandbox creado y balanceado
+      registro_tercero  | Third creado (tipo cliente o proveedor)
+      registro_producto | Product creado con cuenta PUC vinculada
+      pago_proveedor    | Payment sandbox creado
+
+    Base de datos — tablas centrales (migrations/):
+
+      exercises
+        id, teacher_id FK->users, title string(200), instructions text,
+        type enum(tipos arriba), monto_minimo decimal(15,2) nullable,
+        cuenta_puc_requerida string(10) nullable, puntos tinyint default 10,
+        active boolean default true, timestamps
+
+      exercise_assignments
+        id, exercise_id FK->exercises, group_id FK->groups,
+        assigned_at timestamp, due_date date nullable, timestamps
+
+      exercise_completions
+        id, exercise_id FK->exercises, tenant_id FK->tenants,
+        assignment_id FK->exercise_assignments, submitted_at timestamp,
+        result enum('aprobado','parcial','no_cumple','pendiente'),
+        verification_detail jsonb, timestamps
+        UNIQUE(assignment_id, tenant_id)
+
+    Archivos a crear — panel docente:
+      · app/Models/Central/Exercise.php
+      · app/Models/Central/ExerciseAssignment.php
+      · app/Models/Central/ExerciseCompletion.php
+      · app/Services/ExerciseVerificationService.php
+          -> verify(Exercise, Tenant, ExerciseAssignment): array
+          -> Pre-carga modelos Central, luego $tenant->run() para verificar
+          -> Retorna: ['result' => 'aprobado', 'detail' => [...]]
+      · app/Livewire/Teacher/Ejercicios/Index.php
+          -> CRUD ejercicios + asignación a grupos con fecha límite
+          -> Vista de resultados por ejercicio (aprobado/parcial/no cumple)
+      · resources/views/livewire/teacher/ejercicios/index.blade.php
+
+    Archivos a crear — módulo estudiante (zona aprendizaje):
+      · app/Livewire/Tenant/Ejercicios/Index.php
+          -> Lista ejercicios del grupo con estado (pendiente/entregado)
+          -> Botón "Marcar como listo" -> llama ExerciseVerificationService
+          -> Muestra resultado inmediato con detalle
+      · resources/views/livewire/tenant/ejercicios/index.blade.php
+
+    Archivos a modificar:
+      · routes/web.php
+          -> GET /docente/ejercicios         -> teacher.ejercicios
+          -> GET /aprendizaje/ejercicios     -> sandbox.ejercicios
+      · resources/views/layouts/teacher-navigation.blade.php
+          -> Ítem "Ejercicios" en sidebar docente
+      · resources/views/layouts/tenant.blade.php
+          -> Ítem "Ejercicios" con badge de pendientes (sidebar aprendizaje)
+      · database/migrations/ (3 archivos nuevos para tablas centrales)
+
+    Flujo completo:
+      1. Docente crea ejercicio "factura_venta, monto_minimo=$2.000.000"
+      2. Asigna al Grupo A con fecha límite 2026-05-10
+      3. Estudiante ve la tarea en /aprendizaje/ejercicios
+      4. Estudiante crea la factura en /aprendizaje/facturas (sandbox)
+      5. Estudiante hace clic en "Marcar como listo"
+      6. ExerciseVerificationService entra al tenant context (sandbox):
+           - Busca Invoice donde modo=sandbox, created_at >= assigned_at,
+             total >= 2.000.000
+           - result='aprobado' si existe
+           - result='parcial' si hay factura pero total menor al mínimo
+           - result='no_cumple' si no hay factura sandbox
+      7. Docente ve resultados: Aprobado / Parcial / No cumple por estudiante
+
+    Notas técnicas:
+      · ExerciseVerificationService DEBE pre-cargar modelos Central antes de run()
+      · La verificación opera en modo sandbox (ruta /aprendizaje/*)
+      · Badge de pendientes: query solo sobre tablas centrales (sin run())
+      · Los tipos de ejercicio se extienden añadiendo casos al Service sin
+        modificar el modelo de datos
+
+
+Orden de ejecución sugerido — features panel docente:
+  Sprint 1 (1-2 días):  F1 — Exportar calificaciones
+  Sprint 2 (3-4 días):  F2 — Panel de alertas
+  Sprint 3 (7-10 días): F3 — Ejercicios con verificación automática
 
 ================================================================================

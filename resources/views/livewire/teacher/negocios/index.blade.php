@@ -96,7 +96,7 @@
                                         <span>Comprador: <strong>{{ $inv->buyer?->company_name ?? '—' }}</strong></span>
                                     </div>
                                 </div>
-                                <div class="text-right shrink-0">
+                                <div class="text-right shrink-0 flex flex-col items-end gap-1">
                                     <p class="text-lg font-bold text-slate-800">${{ number_format($inv->total, 0, ',', '.') }}</p>
                                     @if($inv->retencion_fuente > 0)
                                         <p class="text-xs text-orange-600">Ret. fte: ${{ number_format($inv->retencion_fuente, 0, ',', '.') }}</p>
@@ -108,6 +108,10 @@
                                         <p class="text-xs text-orange-600">Ret. ICA: ${{ number_format($inv->retencion_ica, 0, ',', '.') }}</p>
                                     @endif
                                     <p class="text-xs text-slate-400">IVA: ${{ number_format($inv->iva, 0, ',', '.') }}</p>
+                                    <button wire:click="openDetail({{ $inv->id }})"
+                                        class="mt-1 text-xs text-forest-600 hover:text-forest-800 font-medium hover:underline transition-colors">
+                                        Ver detalle →
+                                    </button>
                                 </div>
                             </div>
 
@@ -186,14 +190,19 @@
                                     @endif
                                 </td>
                                 <td class="px-4 py-3 text-center">
-                                    @if($inv->isAceptada())
-                                        <button wire:click.stop="openAnnul({{ $inv->id }})"
-                                            class="text-xs text-red-600 hover:text-red-700 font-medium hover:underline transition-colors">
-                                            Anular
+                                    <div class="flex items-center justify-center gap-2">
+                                        <button wire:click="openDetail({{ $inv->id }})"
+                                            class="text-xs text-forest-600 hover:text-forest-800 font-medium hover:underline transition-colors">
+                                            Ver
                                         </button>
-                                    @else
-                                        <span class="text-xs text-slate-300">—</span>
-                                    @endif
+                                        @if($inv->isAceptada())
+                                            <span class="text-slate-200">|</span>
+                                            <button wire:click.stop="openAnnul({{ $inv->id }})"
+                                                class="text-xs text-red-600 hover:text-red-700 font-medium hover:underline transition-colors">
+                                                Anular
+                                            </button>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
@@ -276,6 +285,326 @@
                 "Ciclo completo" = al menos 1 venta aceptada + 1 compra aceptada en el periodo
             </p>
         @endif
+    @endif
+
+    {{-- ── Modal: Detalle de transacción ──────────────────────────────────── --}}
+    @if($showDetailModal && $detailInvoice)
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-3xl max-h-[90vh] flex flex-col" @click.stop>
+
+                {{-- Cabecera --}}
+                <div class="px-6 py-4 border-b border-cream-200 flex items-center justify-between gap-4 shrink-0">
+                    <div class="flex items-center gap-3">
+                        <h3 class="font-display text-base font-bold text-slate-800">
+                            Transacción {{ $detailInvoice->consecutive }}
+                        </h3>
+                        <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium {{ $detailInvoice->statusClasses() }}">
+                            {{ $detailInvoice->statusLabel() }}
+                        </span>
+                    </div>
+                    <button wire:click="closeDetail"
+                        class="w-7 h-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition text-sm shrink-0">✕</button>
+                </div>
+
+                {{-- Cuerpo con scroll --}}
+                <div class="overflow-y-auto flex-1 px-6 py-5 space-y-5">
+
+                    {{-- Flujo vendedor → comprador --}}
+                    <div class="flex items-center gap-3 flex-wrap">
+                        <div class="flex-1 min-w-0 bg-forest-50 rounded-xl px-4 py-3">
+                            <p class="text-xs text-forest-500 font-medium uppercase tracking-wide mb-0.5">Vendedor</p>
+                            <p class="font-semibold text-forest-900 truncate">{{ $detailInvoice->seller?->company_name ?? '—' }}</p>
+                            <p class="text-xs text-forest-600">{{ $detailInvoice->seller?->student_name ?? '' }}</p>
+                        </div>
+                        <svg class="w-5 h-5 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3"/>
+                        </svg>
+                        <div class="flex-1 min-w-0 bg-blue-50 rounded-xl px-4 py-3">
+                            <p class="text-xs text-blue-500 font-medium uppercase tracking-wide mb-0.5">Comprador</p>
+                            <p class="font-semibold text-blue-900 truncate">{{ $detailInvoice->buyer?->company_name ?? '—' }}</p>
+                            <p class="text-xs text-blue-600">{{ $detailInvoice->buyer?->student_name ?? '' }}</p>
+                        </div>
+                    </div>
+
+                    {{-- Concepto y montos --}}
+                    <div class="bg-slate-50 rounded-xl px-4 py-3 space-y-1.5">
+                        <p class="text-sm font-semibold text-slate-800">{{ $detailInvoice->concepto }}</p>
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs pt-1">
+                            <div>
+                                <p class="text-slate-500">Subtotal</p>
+                                <p class="font-semibold text-slate-800">${{ number_format($detailInvoice->subtotal, 0, ',', '.') }}</p>
+                            </div>
+                            <div>
+                                <p class="text-slate-500">IVA</p>
+                                <p class="font-semibold text-slate-800">${{ number_format($detailInvoice->iva, 0, ',', '.') }}</p>
+                            </div>
+                            @if($detailInvoice->retencion_fuente > 0)
+                            <div>
+                                <p class="text-orange-500">Ret. Fuente</p>
+                                <p class="font-semibold text-orange-700">-${{ number_format($detailInvoice->retencion_fuente, 0, ',', '.') }}</p>
+                            </div>
+                            @endif
+                            @if($detailInvoice->retencion_iva > 0)
+                            <div>
+                                <p class="text-orange-500">Ret. IVA</p>
+                                <p class="font-semibold text-orange-700">-${{ number_format($detailInvoice->retencion_iva, 0, ',', '.') }}</p>
+                            </div>
+                            @endif
+                            @if($detailInvoice->retencion_ica > 0)
+                            <div>
+                                <p class="text-orange-500">Ret. ICA</p>
+                                <p class="font-semibold text-orange-700">-${{ number_format($detailInvoice->retencion_ica, 0, ',', '.') }}</p>
+                            </div>
+                            @endif
+                            <div>
+                                <p class="text-slate-500">Total</p>
+                                <p class="font-bold text-forest-800 text-sm">${{ number_format($detailInvoice->total, 0, ',', '.') }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {{-- Ítems --}}
+                    @if($detailInvoice->items->count())
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Ítems de la oferta</p>
+                            <div class="border border-cream-200 rounded-xl overflow-hidden">
+                                <table class="w-full text-xs">
+                                    <thead class="bg-slate-50 border-b border-cream-100">
+                                        <tr>
+                                            <th class="text-left px-3 py-2 text-slate-500 font-medium">Descripción</th>
+                                            <th class="text-right px-3 py-2 text-slate-500 font-medium">Cant.</th>
+                                            <th class="text-right px-3 py-2 text-slate-500 font-medium">Precio</th>
+                                            <th class="text-right px-3 py-2 text-slate-500 font-medium">IVA</th>
+                                            <th class="text-right px-3 py-2 text-slate-500 font-medium">Subtotal</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="divide-y divide-cream-100">
+                                        @foreach($detailInvoice->items as $item)
+                                            <tr>
+                                                <td class="px-3 py-2 text-slate-700">{{ $item->descripcion }}</td>
+                                                <td class="px-3 py-2 text-right">{{ number_format($item->cantidad, 0) }}</td>
+                                                <td class="px-3 py-2 text-right">${{ number_format($item->precio_unitario, 0, ',', '.') }}</td>
+                                                <td class="px-3 py-2 text-right">{{ $item->porcentaje_iva }}%</td>
+                                                <td class="px-3 py-2 text-right font-medium">${{ number_format($item->subtotal, 0, ',', '.') }}</td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    @endif
+
+                    {{-- Asientos contables --}}
+                    @if($detailInvoice->isAceptada() || $detailInvoice->isAnulada())
+                        <div>
+                            <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-3">
+                                Asientos contables generados
+                            </p>
+
+                            @php
+                                $sellerEntry = $detailJournalData['seller'] ?? null;
+                                $buyerEntry  = $detailJournalData['buyer']  ?? null;
+                                $bothPresent = $sellerEntry && $buyerEntry;
+                                $bothBalanced = ($sellerEntry['balanced'] ?? false) && ($buyerEntry['balanced'] ?? false);
+                            @endphp
+
+                            {{-- Indicador global --}}
+                            <div class="flex items-center gap-2 mb-3">
+                                @if($bothPresent && $bothBalanced)
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-full">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="m4.5 12.75 6 6 9-13.5"/>
+                                        </svg>
+                                        Contabilización correcta — ambos asientos cuadran
+                                    </span>
+                                @elseif($bothPresent && !$bothBalanced)
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-red-700 bg-red-50 border border-red-200 px-3 py-1.5 rounded-full">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                                        </svg>
+                                        Asientos generados pero desbalanceados
+                                    </span>
+                                @elseif(!$sellerEntry || !$buyerEntry)
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full">
+                                        <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke="currentColor">
+                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z"/>
+                                        </svg>
+                                        Faltan asientos — la contabilización pudo ser incompleta
+                                    </span>
+                                @endif
+                            </div>
+
+                            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                {{-- Asiento vendedor --}}
+                                <div class="border border-forest-200 rounded-xl overflow-hidden">
+                                    <div class="bg-forest-50 px-3 py-2 flex items-center justify-between">
+                                        <p class="text-xs font-semibold text-forest-700">Vendedor — {{ $detailInvoice->seller?->company_name }}</p>
+                                        @if($sellerEntry)
+                                            @if($sellerEntry['balanced'])
+                                                <span class="text-xs text-emerald-600 font-medium">Cuadra</span>
+                                            @else
+                                                <span class="text-xs text-red-600 font-medium">Desbalanceado</span>
+                                            @endif
+                                        @else
+                                            <span class="text-xs text-amber-600 font-medium">Sin asiento</span>
+                                        @endif
+                                    </div>
+                                    @if($sellerEntry)
+                                        <div class="px-3 py-2 border-b border-forest-100">
+                                            <p class="text-xs text-slate-500">Ref: <span class="font-mono font-medium text-slate-700">{{ $sellerEntry['reference'] }}</span></p>
+                                        </div>
+                                        <table class="w-full text-xs">
+                                            <thead class="bg-slate-50">
+                                                <tr>
+                                                    <th class="text-left px-3 py-1.5 text-slate-400 font-medium">Cuenta</th>
+                                                    <th class="text-right px-2 py-1.5 text-slate-400 font-medium">Débito</th>
+                                                    <th class="text-right px-2 py-1.5 text-slate-400 font-medium">Crédito</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-slate-50">
+                                                @foreach($sellerEntry['lines'] as $line)
+                                                    <tr>
+                                                        <td class="px-3 py-1.5">
+                                                            <span class="font-mono text-slate-500">{{ $line['code'] }}</span>
+                                                            <span class="text-slate-600 ml-1">{{ Str::limit($line['name'], 25) }}</span>
+                                                        </td>
+                                                        <td class="px-2 py-1.5 text-right {{ $line['debit'] > 0 ? 'font-medium text-slate-800' : 'text-slate-300' }}">
+                                                            {{ $line['debit'] > 0 ? '$'.number_format($line['debit'], 0, ',', '.') : '—' }}
+                                                        </td>
+                                                        <td class="px-2 py-1.5 text-right {{ $line['credit'] > 0 ? 'font-medium text-slate-800' : 'text-slate-300' }}">
+                                                            {{ $line['credit'] > 0 ? '$'.number_format($line['credit'], 0, ',', '.') : '—' }}
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                            <tfoot class="border-t border-forest-200 bg-forest-50">
+                                                <tr>
+                                                    <td class="px-3 py-1.5 text-xs font-semibold text-forest-700">Total</td>
+                                                    <td class="px-2 py-1.5 text-right text-xs font-semibold text-slate-700">${{ number_format($sellerEntry['total_debit'], 0, ',', '.') }}</td>
+                                                    <td class="px-2 py-1.5 text-right text-xs font-semibold text-slate-700">${{ number_format($sellerEntry['total_credit'], 0, ',', '.') }}</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    @else
+                                        <div class="px-3 py-6 text-center">
+                                            <p class="text-xs text-slate-400">No se encontró el asiento contable.</p>
+                                        </div>
+                                    @endif
+                                </div>
+
+                                {{-- Asiento comprador --}}
+                                <div class="border border-blue-200 rounded-xl overflow-hidden">
+                                    <div class="bg-blue-50 px-3 py-2 flex items-center justify-between">
+                                        <p class="text-xs font-semibold text-blue-700">Comprador — {{ $detailInvoice->buyer?->company_name }}</p>
+                                        @if($buyerEntry)
+                                            @if($buyerEntry['balanced'])
+                                                <span class="text-xs text-emerald-600 font-medium">Cuadra</span>
+                                            @else
+                                                <span class="text-xs text-red-600 font-medium">Desbalanceado</span>
+                                            @endif
+                                        @else
+                                            <span class="text-xs text-amber-600 font-medium">Sin asiento</span>
+                                        @endif
+                                    </div>
+                                    @if($buyerEntry)
+                                        <div class="px-3 py-2 border-b border-blue-100">
+                                            <p class="text-xs text-slate-500">Ref: <span class="font-mono font-medium text-slate-700">{{ $buyerEntry['reference'] }}</span></p>
+                                        </div>
+                                        <table class="w-full text-xs">
+                                            <thead class="bg-slate-50">
+                                                <tr>
+                                                    <th class="text-left px-3 py-1.5 text-slate-400 font-medium">Cuenta</th>
+                                                    <th class="text-right px-2 py-1.5 text-slate-400 font-medium">Débito</th>
+                                                    <th class="text-right px-2 py-1.5 text-slate-400 font-medium">Crédito</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody class="divide-y divide-slate-50">
+                                                @foreach($buyerEntry['lines'] as $line)
+                                                    <tr>
+                                                        <td class="px-3 py-1.5">
+                                                            <span class="font-mono text-slate-500">{{ $line['code'] }}</span>
+                                                            <span class="text-slate-600 ml-1">{{ Str::limit($line['name'], 25) }}</span>
+                                                        </td>
+                                                        <td class="px-2 py-1.5 text-right {{ $line['debit'] > 0 ? 'font-medium text-slate-800' : 'text-slate-300' }}">
+                                                            {{ $line['debit'] > 0 ? '$'.number_format($line['debit'], 0, ',', '.') : '—' }}
+                                                        </td>
+                                                        <td class="px-2 py-1.5 text-right {{ $line['credit'] > 0 ? 'font-medium text-slate-800' : 'text-slate-300' }}">
+                                                            {{ $line['credit'] > 0 ? '$'.number_format($line['credit'], 0, ',', '.') : '—' }}
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            </tbody>
+                                            <tfoot class="border-t border-blue-200 bg-blue-50">
+                                                <tr>
+                                                    <td class="px-3 py-1.5 text-xs font-semibold text-blue-700">Total</td>
+                                                    <td class="px-2 py-1.5 text-right text-xs font-semibold text-slate-700">${{ number_format($buyerEntry['total_debit'], 0, ',', '.') }}</td>
+                                                    <td class="px-2 py-1.5 text-right text-xs font-semibold text-slate-700">${{ number_format($buyerEntry['total_credit'], 0, ',', '.') }}</td>
+                                                </tr>
+                                            </tfoot>
+                                        </table>
+                                    @else
+                                        <div class="px-3 py-6 text-center">
+                                            <p class="text-xs text-slate-400">No se encontró el asiento contable.</p>
+                                        </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+
+                    @elseif($detailInvoice->isPendiente())
+                        <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3">
+                            <p class="text-xs font-semibold text-amber-700">Transacción pendiente</p>
+                            <p class="text-xs text-amber-600 mt-0.5">Los asientos contables se generarán automáticamente cuando el comprador acepte la oferta.</p>
+                        </div>
+
+                    @elseif($detailInvoice->isRechazada())
+                        <div class="bg-slate-50 border border-slate-200 rounded-xl px-4 py-3">
+                            <p class="text-xs font-semibold text-slate-600">Transacción rechazada</p>
+                            @if($detailInvoice->rechazo_motivo)
+                                <p class="text-xs text-slate-500 mt-0.5">Motivo: {{ $detailInvoice->rechazo_motivo }}</p>
+                            @endif
+                        </div>
+                    @endif
+
+                    {{-- Info de anulación --}}
+                    @if($detailInvoice->isAnulada() && $detailInvoice->anulacion_motivo)
+                        <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                            <p class="text-xs font-semibold text-red-700">Motivo de anulación</p>
+                            <p class="text-xs text-red-600 mt-0.5">{{ $detailInvoice->anulacion_motivo }}</p>
+                        </div>
+                    @endif
+
+                </div>
+
+                {{-- Footer --}}
+                <div class="px-6 py-4 border-t border-cream-100 flex items-center justify-between shrink-0">
+                    <p class="text-xs text-slate-400">
+                        Creada {{ $detailInvoice->created_at->format('d/m/Y H:i') }}
+                        @if($detailInvoice->accepted_at)
+                            · Aceptada {{ $detailInvoice->accepted_at->format('d/m/Y H:i') }}
+                        @endif
+                    </p>
+                    <div class="flex items-center gap-3">
+                        @if($detailInvoice->isAceptada())
+                            <button
+                                x-on:click="confirmAction(
+                                    '¿Anular la transacción {{ addslashes($detailInvoice->consecutive) }}? Se revertirán los asientos en ambas empresas.',
+                                    () => $wire.openAnnul({{ $detailInvoice->id }}),
+                                    { danger: true, confirmText: 'Sí, anular' }
+                                )"
+                                class="px-4 py-2 bg-red-600 text-white text-sm font-semibold rounded-xl hover:bg-red-700 transition">
+                                Anular transacción
+                            </button>
+                        @endif
+                        <button wire:click="closeDetail"
+                            class="px-4 py-2 text-sm {{ $detailInvoice->isAceptada() ? 'text-slate-600 hover:text-slate-800 rounded-xl hover:bg-slate-50' : 'bg-forest-800 text-white font-semibold rounded-xl hover:bg-forest-700' }} transition">
+                            {{ $detailInvoice->isAceptada() ? 'Dejar aceptada' : 'Cerrar' }}
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
     @endif
 
     {{-- ── Modal: Anular transacción ───────────────────────────────────────── --}}

@@ -329,24 +329,28 @@
                                 @endif
                             </div>
 
-                            {{-- Forma de pago: banco o caja --}}
+                            {{-- Medio de pago --}}
+                            <div>
+                                <label class="block text-sm font-medium text-slate-700 mb-1">Medio de pago</label>
+                                <select wire:model.live="payment_medio_pago" class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
+                                    <option value="efectivo">Efectivo</option>
+                                    <option value="cheque">Cheque</option>
+                                    <option value="transferencia">Transferencia bancaria</option>
+                                    <option value="consignacion">Consignación</option>
+                                    <option value="tarjeta_debito">Tarjeta débito</option>
+                                </select>
+                            </div>
+
+                            {{-- Cuenta bancaria (solo si no es efectivo) --}}
+                            @if($payment_medio_pago !== 'efectivo')
                             @php
                                 $cuentasPago = \App\Models\Tenant\BankAccount::where('activa', true)
                                     ->orderByDesc('es_principal')->get();
                             @endphp
                             @if($cuentasPago->isNotEmpty())
                             <div>
-                                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Pagar desde</p>
+                                <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-2">Cuenta bancaria</p>
                                 <div class="grid grid-cols-2 gap-2">
-                                    <button type="button" wire:click="$set('payment_bank_account_id', null)"
-                                        class="flex items-center gap-2 px-3 py-2 rounded-xl border text-sm transition text-left
-                                            {{ is_null($payment_bank_account_id) ? 'border-forest-500 bg-forest-50 text-forest-700 font-semibold' : 'border-slate-200 text-slate-600 hover:border-slate-300' }}">
-                                        <span class="w-2 h-2 rounded-full bg-slate-400 shrink-0"></span>
-                                        <div>
-                                            <p class="text-xs font-semibold">Caja (1105)</p>
-                                            <p class="text-xs opacity-60">Sin GMF</p>
-                                        </div>
-                                    </button>
                                     @foreach($cuentasPago as $cta)
                                         @php
                                             $dot = match($cta->bank) { 'bancolombia' => 'bg-blue-500', 'davivienda' => 'bg-red-500', 'banco_bogota' => 'bg-green-600', default => 'bg-slate-400' };
@@ -366,6 +370,7 @@
                                     @endforeach
                                 </div>
                             </div>
+                            @endif
                             @endif
                         </div>
                         <div class="px-6 py-4 border-t border-cream-100 flex justify-end gap-3">

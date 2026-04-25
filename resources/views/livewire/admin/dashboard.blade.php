@@ -67,7 +67,7 @@
 
             {{-- ── Tabs ─────────────────────────────────────────────────── --}}
             <div class="flex border-b border-cream-300 gap-1 -mb-2">
-                @foreach(['resumen' => 'Resumen', 'instituciones' => 'Instituciones', 'coordinadores' => 'Coordinadores', 'docentes' => 'Docentes', 'estudiantes' => 'Estudiantes'] as $key => $label)
+                @foreach(['resumen' => 'Resumen', 'instituciones' => 'Instituciones', 'coordinadores' => 'Coordinadores', 'docentes' => 'Docentes', 'estudiantes' => 'Estudiantes', 'banco' => 'Banco Ejercicios', 'metricas' => 'Métricas'] as $key => $label)
                     <button wire:click="$set('tab','{{ $key }}')"
                         class="px-4 py-2.5 text-sm font-medium transition border-b-2
                             {{ $tab === $key
@@ -97,10 +97,12 @@
                                     <th class="text-left px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Institución</th>
                                     <th class="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Grupos</th>
                                     <th class="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Estudiantes</th>
+                                    <th class="text-center px-4 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Uso</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-cream-100">
                                 @forelse($institutions as $inst)
+                                    @php $salud = $saludResumen[$inst->id] ?? ($metrics['saludPorInstitucion'][$inst->id] ?? null); @endphp
                                     <tr class="hover:bg-cream-50 transition">
                                         <td class="px-5 py-3">
                                             <p class="font-medium text-slate-800">{{ $inst->name }}</p>
@@ -117,6 +119,17 @@
                                             <span class="inline-flex items-center justify-center w-7 h-7 rounded-full bg-gold-50 text-gold-700 text-xs font-bold">
                                                 {{ $inst->students_count }}
                                             </span>
+                                        </td>
+                                        <td class="px-4 py-3 text-center">
+                                            @if($salud)
+                                                <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+                                                    {{ $salud['color'] === 'green' ? 'bg-green-50 text-green-700' : ($salud['color'] === 'amber' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500') }}">
+                                                    <span class="w-1.5 h-1.5 rounded-full {{ $salud['color'] === 'green' ? 'bg-green-500' : ($salud['color'] === 'amber' ? 'bg-amber-400' : 'bg-slate-400') }}"></span>
+                                                    {{ $salud['label'] }}
+                                                </span>
+                                            @else
+                                                <span class="text-xs text-slate-300">—</span>
+                                            @endif
                                         </td>
                                     </tr>
                                 @empty
@@ -177,6 +190,8 @@
                                 <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">NIT</th>
                                 <th class="text-left px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Ciudad</th>
                                 <th class="text-center px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Grupos</th>
+                                <th class="text-center px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Contrato</th>
+                                <th class="text-center px-6 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wide">Estado</th>
                                 <th class="px-6 py-3"></th>
                             </tr>
                         </thead>
@@ -191,8 +206,38 @@
                                             {{ $inst->groups_count }}
                                         </span>
                                     </td>
+                                    <td class="px-6 py-4 text-center">
+                                        @if($inst->contract_expires_at)
+                                            @php $cs = $inst->contractStatus(); @endphp
+                                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium
+                                                {{ $cs === 'vigente'  ? 'bg-green-50 text-green-700'  : '' }}
+                                                {{ $cs === 'proximo'  ? 'bg-amber-50 text-amber-700'  : '' }}
+                                                {{ $cs === 'critico'  ? 'bg-red-50 text-red-700'      : '' }}
+                                                {{ $cs === 'vencido'  ? 'bg-slate-100 text-slate-500' : '' }}">
+                                                {{ $inst->contract_expires_at->format('d/m/Y') }}
+                                                @if($cs === 'vencido') · Vencido
+                                                @elseif($cs === 'critico') · {{ now()->diffInDays($inst->contract_expires_at) }}d
+                                                @elseif($cs === 'proximo') · {{ now()->diffInDays($inst->contract_expires_at) }}d
+                                                @endif
+                                            </span>
+                                        @else
+                                            <span class="text-xs text-slate-300">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 text-center">
+                                        <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold
+                                            {{ $inst->active ? 'bg-green-50 text-green-700' : 'bg-slate-100 text-slate-500' }}">
+                                            <span class="w-1.5 h-1.5 rounded-full {{ $inst->active ? 'bg-green-500' : 'bg-slate-400' }}"></span>
+                                            {{ $inst->active ? 'Activa' : 'Inactiva' }}
+                                        </span>
+                                    </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center justify-end gap-3">
+                                            <button wire:click="toggleInstitution({{ $inst->id }})"
+                                                wire:confirm="{{ $inst->active ? '¿Deshabilitar esta institución? Los estudiantes no podrán iniciar sesión.' : '¿Habilitar esta institución?' }}"
+                                                class="text-xs font-medium {{ $inst->active ? 'text-amber-600 hover:text-amber-800' : 'text-green-600 hover:text-green-800' }}">
+                                                {{ $inst->active ? 'Deshabilitar' : 'Habilitar' }}
+                                            </button>
                                             <button wire:click="openEditInst({{ $inst->id }})"
                                                 class="text-xs text-forest-600 hover:text-forest-800 font-medium">Editar</button>
                                             <button x-on:click="confirmAction('¿Eliminar esta institución?', () => $wire.deleteInst({{ $inst->id }}), {danger: true, confirmText: 'Sí, eliminar'})"
@@ -335,6 +380,10 @@
                                     </td>
                                     <td class="px-6 py-4">
                                         <div class="flex items-center justify-end gap-3">
+                                            <form method="POST" action="{{ route('admin.impersonate.teacher', $teacher->id) }}">
+                                                @csrf
+                                                <button type="submit" class="text-xs text-rose-600 hover:text-rose-800 font-medium">Entrar como</button>
+                                            </form>
                                             <button wire:click="openEditTeacher({{ $teacher->id }})"
                                                 class="text-xs text-forest-600 hover:text-forest-800 font-medium">Editar</button>
                                             <button x-on:click="confirmAction('¿Eliminar este docente?', () => $wire.deleteTeacher({{ $teacher->id }}), {danger: true, confirmText: 'Sí, eliminar'})"
@@ -405,12 +454,18 @@
                                         {{ $tenant->created_at?->format('d/m/Y') }}
                                     </td>
                                     <td class="px-6 py-3 text-right">
-                                        @if($tenant->isStudent())
-                                            <button wire:click="openTransfer('{{ $tenant->id }}')"
-                                                class="text-xs text-forest-700 font-medium hover:text-forest-900 hover:underline transition">
-                                                Transferir
-                                            </button>
-                                        @endif
+                                        <div class="flex items-center justify-end gap-3">
+                                            <form method="POST" action="{{ route('admin.impersonate.student', $tenant->id) }}">
+                                                @csrf
+                                                <button type="submit" class="text-xs text-rose-600 hover:text-rose-800 font-medium">Entrar como</button>
+                                            </form>
+                                            @if($tenant->isStudent())
+                                                <button wire:click="openTransfer('{{ $tenant->id }}')"
+                                                    class="text-xs text-forest-700 font-medium hover:text-forest-900 hover:underline transition">
+                                                    Transferir
+                                                </button>
+                                            @endif
+                                        </div>
                                     </td>
                                 </tr>
                             @empty
@@ -423,6 +478,238 @@
                         </tbody>
                     </table>
                 </div>
+            @endif
+
+            {{-- ── TAB BANCO GLOBAL DE EJERCICIOS ────────────────────── --}}
+            @if($tab === 'banco')
+                <div class="bg-white rounded-2xl border border-cream-200 shadow-card-sm overflow-hidden">
+                    <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
+                        <div>
+                            <h3 class="text-sm font-semibold text-slate-700">Ejercicios oficiales</h3>
+                            <p class="text-xs text-slate-400 mt-0.5">Los docentes pueden clonar estos ejercicios a su banco personal y asignarlos a sus grupos.</p>
+                        </div>
+                        <button wire:click="openGlobalExerciseForm()"
+                            class="px-3 py-1.5 bg-forest-800 text-white text-xs font-semibold rounded-lg hover:bg-forest-700 transition">
+                            + Nuevo ejercicio oficial
+                        </button>
+                    </div>
+                    <table class="w-full text-sm">
+                        <thead class="bg-cream-50 text-xs text-slate-500 uppercase tracking-wide">
+                            <tr>
+                                <th class="px-6 py-3 text-left">Ejercicio</th>
+                                <th class="px-6 py-3 text-left">Tipo</th>
+                                <th class="px-6 py-3 text-right">Monto mín.</th>
+                                <th class="px-6 py-3 text-right">Pts</th>
+                                <th class="px-6 py-3 text-right">Asignaciones</th>
+                                <th class="px-6 py-3"></th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-cream-100">
+                            @forelse($globalExercises as $ex)
+                                <tr wire:key="gex-{{ $ex->id }}" class="hover:bg-cream-50 transition">
+                                    <td class="px-6 py-3">
+                                        <p class="font-medium text-slate-800">{{ $ex->title }}</p>
+                                        @if($ex->instructions)
+                                            <p class="text-xs text-slate-400 truncate max-w-xs">{{ $ex->instructions }}</p>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-3 text-slate-500 text-xs">
+                                        {{ \App\Models\Central\Exercise::typeLabel($ex->type) }}
+                                    </td>
+                                    <td class="px-6 py-3 text-right text-slate-500 text-xs">
+                                        {{ $ex->monto_minimo ? '$ '.number_format($ex->monto_minimo, 0, ',', '.') : '—' }}
+                                    </td>
+                                    <td class="px-6 py-3 text-right font-semibold text-forest-700">{{ $ex->puntos }}</td>
+                                    <td class="px-6 py-3 text-right text-slate-400 text-xs">{{ $ex->assignments_count }}</td>
+                                    <td class="px-6 py-3 text-right">
+                                        <div class="flex items-center justify-end gap-3">
+                                            <button wire:click="openGlobalExerciseForm({{ $ex->id }})"
+                                                class="text-xs text-forest-600 hover:text-forest-800 font-medium">Editar</button>
+                                            <button wire:click="deleteGlobalExercise({{ $ex->id }})"
+                                                wire:confirm="¿Eliminar este ejercicio oficial? Los docentes que lo hayan clonado conservarán su copia."
+                                                class="text-xs text-red-500 hover:text-red-700 font-medium">Eliminar</button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="px-6 py-10 text-center text-slate-400">
+                                        No hay ejercicios oficiales.
+                                        <button wire:click="openGlobalExerciseForm()" class="ml-2 text-forest-600 hover:underline">Crear el primero</button>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+
+            {{-- ── TAB MÉTRICAS ────────────────────────────────────── --}}
+            @if($tab === 'metricas' && $metrics)
+
+                {{-- Selector de institución --}}
+                <div class="bg-white rounded-2xl border border-cream-200 shadow-card-sm px-6 py-4 mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
+                    <div class="flex-1">
+                        <p class="text-xs font-semibold text-slate-500 uppercase tracking-wide mb-1">Filtrar por institución</p>
+                        <select wire:model.live="metricsInstitutionId"
+                            class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-forest-500 focus:border-forest-500">
+                            <option value="0">Todas las instituciones</option>
+                            @foreach($institutions as $inst)
+                                <option value="{{ $inst->id }}">{{ $inst->name }}{{ ! $inst->active ? ' (inactiva)' : '' }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                    <div class="sm:text-right flex flex-col items-end gap-2">
+                        <div>
+                            <p class="text-xs text-slate-400">Mostrando datos de</p>
+                            <p class="text-base font-bold {{ $metrics['institucionNombre'] ? 'text-forest-800' : 'text-slate-600' }}">
+                                {{ $metrics['institucionNombre'] ?? 'Toda la plataforma' }}
+                            </p>
+                        </div>
+                        @if($metrics['institucionNombre'])
+                            @php $s = $metrics['saludUso']; @endphp
+                            <div class="flex items-center gap-3">
+                                <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold
+                                    {{ $s['color'] === 'green' ? 'bg-green-50 text-green-700' : ($s['color'] === 'amber' ? 'bg-amber-50 text-amber-700' : 'bg-slate-100 text-slate-500') }}">
+                                    <span class="w-2 h-2 rounded-full {{ $s['color'] === 'green' ? 'bg-green-500' : ($s['color'] === 'amber' ? 'bg-amber-400' : 'bg-slate-400') }}"></span>
+                                    {{ $s['label'] }}
+                                </span>
+                                <span class="text-xs text-slate-400">{{ $s['ops'] }} ops · {{ $s['tasa'] }}% aprobación</span>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Actividad operacional (cache 5 min) --}}
+                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+                    @foreach([
+                        ['label' => 'Facturas (7d)',   'value' => $metrics['operacional']['facturas_7d'],  'sub' => $metrics['operacional']['facturas_30d'].' en 30d'],
+                        ['label' => 'Compras (7d)',    'value' => $metrics['operacional']['compras_7d'],   'sub' => $metrics['operacional']['compras_30d'].' en 30d'],
+                        ['label' => 'Asientos (7d)',   'value' => $metrics['operacional']['asientos_7d'],  'sub' => $metrics['operacional']['asientos_30d'].' en 30d'],
+                        ['label' => 'Nuevos (mes)',    'value' => $metrics['estudiantesEsteMes'],           'sub' => $metrics['estudiantesMesAnterior'].' mes ant.'],
+                        ['label' => 'Ejerc. aprobados','value' => $metrics['completaciones']['aprobado'] ?? 0, 'sub' => ($metrics['completaciones']['parcial'] ?? 0).' parciales'],
+                        ['label' => 'Total ejercicios','value' => collect($metrics['completaciones'])->sum(), 'sub' => 'completaciones'],
+                    ] as $card)
+                        <div class="bg-white rounded-xl border border-cream-200 shadow-card-sm p-4">
+                            <p class="text-xs text-slate-400 mb-1">{{ $card['label'] }}</p>
+                            <p class="text-2xl font-bold text-slate-800">{{ number_format($card['value']) }}</p>
+                            <p class="text-xs text-slate-400 mt-0.5">{{ $card['sub'] }}</p>
+                        </div>
+                    @endforeach
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+
+                    {{-- Registros por semana --}}
+                    <div class="bg-white rounded-2xl border border-cream-200 shadow-card-sm p-6">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-4">Nuevos estudiantes por semana</h3>
+                        @if($metrics['registrosSemana']->isEmpty())
+                            <p class="text-sm text-slate-400">Sin registros en las últimas 8 semanas.</p>
+                        @else
+                            @php $maxReg = $metrics['registrosSemana']->max('total') ?: 1; @endphp
+                            <div class="flex items-end gap-2 h-28">
+                                @foreach($metrics['registrosSemana'] as $punto)
+                                    <div class="flex-1 flex flex-col items-center gap-1">
+                                        <span class="text-xs text-slate-500 font-medium">{{ $punto['total'] }}</span>
+                                        <div class="w-full bg-forest-600 rounded-t"
+                                             style="height: {{ max(4, round(($punto['total'] / $maxReg) * 80)) }}px"></div>
+                                        <span class="text-[10px] text-slate-400 leading-none">{{ $punto['semana'] }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+
+                    {{-- Completaciones de ejercicios --}}
+                    <div class="bg-white rounded-2xl border border-cream-200 shadow-card-sm p-6">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-4">Resultado de ejercicios</h3>
+                        @php
+                            $resultados = [
+                                'aprobado'  => ['label' => 'Aprobado',   'color' => 'bg-green-500'],
+                                'parcial'   => ['label' => 'Parcial',    'color' => 'bg-amber-400'],
+                                'no_cumple' => ['label' => 'No cumple',  'color' => 'bg-red-400'],
+                                'pendiente' => ['label' => 'Pendiente',  'color' => 'bg-slate-300'],
+                            ];
+                            $totalComp = collect($metrics['completaciones'])->sum() ?: 1;
+                        @endphp
+                        <div class="space-y-3">
+                            @foreach($resultados as $key => $cfg)
+                                @php $n = $metrics['completaciones'][$key] ?? 0; @endphp
+                                <div class="flex items-center gap-3">
+                                    <span class="text-xs text-slate-500 w-20">{{ $cfg['label'] }}</span>
+                                    <div class="flex-1 bg-cream-100 rounded-full h-2">
+                                        <div class="{{ $cfg['color'] }} h-2 rounded-full transition-all"
+                                             style="width: {{ round(($n / $totalComp) * 100) }}%"></div>
+                                    </div>
+                                    <span class="text-xs font-semibold text-slate-700 w-8 text-right">{{ $n }}</span>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+
+                    {{-- Top grupos --}}
+                    <div class="bg-white rounded-2xl border border-cream-200 shadow-card-sm overflow-hidden">
+                        <div class="px-6 py-4 border-b border-cream-100">
+                            <h3 class="text-sm font-semibold text-slate-700">Top grupos por ejercicios aprobados</h3>
+                        </div>
+                        <table class="w-full text-sm">
+                            <thead class="bg-cream-50 text-xs text-slate-500 uppercase tracking-wide">
+                                <tr>
+                                    <th class="px-4 py-2 text-left">Grupo / Institución</th>
+                                    <th class="px-4 py-2 text-right">Estud.</th>
+                                    <th class="px-4 py-2 text-right">Aprobados</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-cream-100">
+                                @forelse($metrics['topGrupos'] as $g)
+                                    <tr class="hover:bg-cream-50">
+                                        <td class="px-4 py-2.5">
+                                            <p class="font-medium text-slate-800">{{ $g['nombre'] }}</p>
+                                            <p class="text-xs text-slate-400">{{ $g['institucion'] }}</p>
+                                        </td>
+                                        <td class="px-4 py-2.5 text-right text-slate-500">{{ $g['estudiantes'] }}</td>
+                                        <td class="px-4 py-2.5 text-right font-semibold {{ $g['aprobados'] > 0 ? 'text-green-600' : 'text-slate-300' }}">
+                                            {{ $g['aprobados'] }}
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="3" class="px-4 py-8 text-center text-slate-400">Sin datos.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {{-- Tipos de ejercicio --}}
+                    <div class="bg-white rounded-2xl border border-cream-200 shadow-card-sm p-6">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-4">Ejercicios por tipo</h3>
+                        @if($metrics['tiposEjercicio']->isEmpty())
+                            <p class="text-sm text-slate-400">No hay ejercicios creados todavía.</p>
+                        @else
+                            @php $maxTipo = $metrics['tiposEjercicio']->max('total') ?: 1; @endphp
+                            <div class="space-y-3">
+                                @foreach($metrics['tiposEjercicio'] as $tipo)
+                                    <div class="flex items-center gap-3">
+                                        <span class="text-xs text-slate-500 w-32 truncate">{{ \App\Models\Central\Exercise::typeLabel($tipo->type) }}</span>
+                                        <div class="flex-1 bg-cream-100 rounded-full h-2">
+                                            <div class="bg-forest-500 h-2 rounded-full"
+                                                 style="width: {{ round(($tipo->total / $maxTipo) * 100) }}%"></div>
+                                        </div>
+                                        <span class="text-xs font-semibold text-slate-700 w-5 text-right">{{ $tipo->total }}</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+
+                </div>
+
+                <p class="text-xs text-slate-400 mt-4 text-right">
+                    Los datos operacionales se actualizan cada 5 minutos.
+                </p>
+
             @endif
 
         </div>
@@ -548,6 +835,13 @@
                         <label class="block text-sm font-medium text-slate-700 mb-1">Ciudad</label>
                         <input wire:model="instCity" type="text" placeholder="Ej: Bogotá"
                             class="block w-full rounded-xl border-cream-300 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Vencimiento de contrato</label>
+                        <input wire:model="instContractExpiresAt" type="date"
+                            class="block w-full rounded-xl border-cream-300 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                        <p class="mt-1 text-xs text-slate-400">Al vencer, la institución se deshabilita automáticamente.</p>
+                        @error('instContractExpiresAt') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
                     </div>
                 </div>
                 <div class="px-6 py-4 border-t border-cream-100 flex justify-end gap-3">
@@ -675,6 +969,68 @@
                         class="px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition disabled:opacity-50">
                         <span wire:loading.remove wire:target="saveTeacher">Guardar</span>
                         <span wire:loading wire:target="saveTeacher">Guardando…</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- ── Modal ejercicio global ────────────────────────────────────── --}}
+    @if($showGlobalExerciseForm)
+        <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center p-4">
+            <div class="bg-white rounded-2xl shadow-card-lg w-full max-w-lg">
+                <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
+                    <h3 class="font-semibold text-slate-800">{{ $globalExerciseEditingId ? 'Editar ejercicio oficial' : 'Nuevo ejercicio oficial' }}</h3>
+                    <button wire:click="$set('showGlobalExerciseForm',false)" class="text-slate-400 hover:text-slate-600 text-xl leading-none">&times;</button>
+                </div>
+                <div class="px-6 py-5 space-y-4">
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Título</label>
+                        <input wire:model="gTitle" type="text" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-forest-500 focus:border-forest-500">
+                        @error('gTitle') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 mb-1">Instrucciones</label>
+                        <textarea wire:model="gInstructions" rows="3" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-forest-500 focus:border-forest-500 resize-none"></textarea>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Tipo</label>
+                            <select wire:model="gType" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-forest-500">
+                                <option value="factura_venta">Factura de venta</option>
+                                <option value="factura_compra">Factura de compra</option>
+                                <option value="asiento_manual">Asiento contable</option>
+                                <option value="registro_tercero">Registro de tercero</option>
+                                <option value="registro_producto">Registro de producto</option>
+                                <option value="pago_proveedor">Pago a proveedor</option>
+                            </select>
+                            @error('gType') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Puntos</label>
+                            <input wire:model="gPuntos" type="number" min="1" max="100" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-forest-500">
+                            @error('gPuntos') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Monto mínimo (opcional)</label>
+                            <input wire:model="gMontoMinimo" type="number" min="0" step="0.01" placeholder="0.00" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-forest-500">
+                            @error('gMontoMinimo') <p class="mt-1 text-xs text-red-600">{{ $message }}</p> @enderror
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 mb-1">Cuenta PUC requerida (opcional)</label>
+                            <input wire:model="gCuentaPuc" type="text" placeholder="ej. 1105" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm focus:ring-2 focus:ring-forest-500">
+                        </div>
+                    </div>
+                </div>
+                <div class="px-6 py-4 border-t border-cream-100 flex justify-end gap-3">
+                    <button wire:click="$set('showGlobalExerciseForm',false)"
+                        class="px-4 py-2 text-sm text-slate-600 bg-cream-100 rounded-xl hover:bg-cream-200 transition">Cancelar</button>
+                    <button wire:click="saveGlobalExercise" wire:loading.attr="disabled"
+                        class="px-4 py-2 bg-forest-800 text-white text-sm font-semibold rounded-xl hover:bg-forest-700 transition disabled:opacity-50">
+                        <span wire:loading.remove wire:target="saveGlobalExercise">Guardar</span>
+                        <span wire:loading wire:target="saveGlobalExercise">Guardando…</span>
                     </button>
                 </div>
             </div>

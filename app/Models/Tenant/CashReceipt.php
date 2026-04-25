@@ -1,17 +1,18 @@
 <?php
+
 namespace App\Models\Tenant;
 
 use App\Enums\ReceiptStatus;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class CashReceipt extends Model
 {
     use SoftDeletes;
 
-    protected $fillable = ['modo', 'third_id', 'date', 'total', 'notes', 'status'];
+    protected $fillable = ['modo', 'third_id', 'date', 'total', 'notes', 'status', 'medio_pago'];
 
     public function scopeModoActual($query): void
     {
@@ -19,9 +20,9 @@ class CashReceipt extends Model
     }
 
     protected $casts = [
-        'date'   => 'date',
+        'date' => 'date',
         'status' => ReceiptStatus::class,
-        'total'  => 'float',
+        'total' => 'float',
     ];
 
     public function third(): BelongsTo

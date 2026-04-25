@@ -1,6 +1,13 @@
 <div>
+    <x-slot name="header">
+        <div>
+            <h2 class="text-lg font-bold text-slate-800">Transferencias</h2>
+            <p class="text-xs text-slate-500 mt-0.5">Solicitudes de cambio de grupo entre estudiantes</p>
+        </div>
+    </x-slot>
+
     {{-- Filtros --}}
-    <div class="flex gap-2 mb-5">
+    <div class="flex gap-2 mb-5 px-6 pt-6">
         @foreach(['pending' => 'Pendientes', 'approved' => 'Aprobadas', 'rejected' => 'Rechazadas'] as $value => $label)
             <button wire:click="$set('filter', '{{ $value }}')"
                     class="px-3 py-1.5 rounded-lg text-sm font-medium transition

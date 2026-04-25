@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Auth\LoginRequest;
+use App\Services\SessionTracker;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -30,6 +31,10 @@ class AuthenticatedSessionController extends Controller
 
         $user = Auth::user();
 
+        if ($user->role->value === 'teacher') {
+            app(SessionTracker::class)->startTeacher($user, $request);
+        }
+
         return match ($user->role->value) {
             'superadmin' => redirect()->route('admin.dashboard'),
             'coordinator' => redirect()->route('coordinator.dashboard'),
@@ -37,15 +42,17 @@ class AuthenticatedSessionController extends Controller
         };
     }
 
-    /**
-     * Destroy an authenticated session.
-     */
     public function destroy(Request $request): RedirectResponse
     {
+        $user = Auth::guard('web')->user();
+
+        if ($user?->role?->value === 'teacher') {
+            app(SessionTracker::class)->endTeacher($user->id);
+        }
+
         Auth::guard('web')->logout();
 
         $request->session()->invalidate();
-
         $request->session()->regenerateToken();
 
         return redirect('/');

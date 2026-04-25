@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Coordinator\AuditController as CoordinatorAudit;
 use App\Http\Controllers\SandboxController;
 use App\Http\Controllers\Student\AuthController as StudentAuth;
@@ -7,6 +8,7 @@ use App\Http\Controllers\Student\ReferenceController;
 use App\Http\Controllers\Teacher\AuditController;
 use App\Http\Controllers\Teacher\BulkTemplateController;
 use App\Http\Controllers\Teacher\DemoController;
+use App\Http\Controllers\Teacher\ExportCalificacionesController;
 use App\Http\Controllers\Tenant\ActivosFijosPdfController;
 use App\Http\Controllers\Tenant\BancoPdfController;
 use App\Http\Controllers\Tenant\CashReceiptPdfController;
@@ -15,15 +17,19 @@ use App\Http\Controllers\Tenant\DashboardController as TenantDashboard;
 use App\Http\Controllers\Tenant\FacturacionElectronica\FacturacionElectronicaController;
 use App\Http\Controllers\Tenant\FacturacionElectronica\FeResolucionController;
 use App\Http\Controllers\Tenant\ReportPdfController;
+use App\Livewire\Admin\Analisis as AdminAnalisis;
+use App\Livewire\Admin\Contratos as AdminContratos;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\SecurityLogs as AdminSecurityLogs;
 use App\Livewire\Admin\TransferRequests as AdminTransferRequests;
 use App\Livewire\Coordinator\Dashboard as CoordinatorDashboard;
 use App\Livewire\Student\Referencias as StudentReferencias;
+use App\Livewire\Teacher\Alertas as TeacherAlertas;
 use App\Livewire\Teacher\Announcements as TeacherAnnouncements;
 use App\Livewire\Teacher\Comparativo as TeacherComparativo;
 use App\Livewire\Teacher\Dashboard as TeacherDashboard;
 use App\Livewire\Teacher\DemoCompanies as TeacherDemoCompanies;
+use App\Livewire\Teacher\Ejercicios\Index as TeacherEjerciciosIndex;
 use App\Livewire\Teacher\EnviarDinero as TeacherEnviarDinero;
 use App\Livewire\Teacher\Negocios\Index as TeacherNegociosIndex;
 use App\Livewire\Teacher\Rubrica as TeacherRubrica;
@@ -34,6 +40,7 @@ use App\Livewire\Tenant\Calendario\Index as CalendarioIndex;
 use App\Livewire\Tenant\Compras\Index as ComprasIndex;
 use App\Livewire\Tenant\Conciliacion\Index as ConciliacionIndex;
 use App\Livewire\Tenant\Config\CompanyConfig;
+use App\Livewire\Tenant\Ejercicios\Index as EjerciciosIndex;
 use App\Livewire\Tenant\Invoices\Index as InvoicesIndex;
 use App\Livewire\Tenant\Negocios\Index as NegociosIndex;
 use App\Livewire\Tenant\PlanDeCuentas;
@@ -71,9 +78,17 @@ require __DIR__.'/auth.php';
 // ─── Panel Superadmin ──────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:superadmin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', AdminDashboard::class)->name('dashboard');
+    Route::get('/contratos', AdminContratos::class)->name('contratos');
+    Route::get('/analisis', AdminAnalisis::class)->name('analisis');
     Route::get('/transferencias', AdminTransferRequests::class)->name('transferencias');
     Route::get('/seguridad', AdminSecurityLogs::class)->name('seguridad');
+
+    Route::post('/impersonate/estudiante/{tenantId}', [ImpersonationController::class, 'startStudent'])->name('impersonate.student');
+    Route::post('/impersonate/docente/{userId}', [ImpersonationController::class, 'startTeacher'])->name('impersonate.teacher');
 });
+
+// Salir de impersonación (accesible con cualquier guard o sin guard)
+Route::get('/admin/impersonate/salir', [ImpersonationController::class, 'stop'])->name('admin.impersonate.stop');
 
 // ─── Panel Coordinador ────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:coordinator'])->prefix('coordinador')->name('coordinator.')->group(function () {
@@ -109,6 +124,9 @@ Route::middleware(['auth', 'role:teacher'])->prefix('docente')->name('teacher.')
     Route::get('/negocios', TeacherNegociosIndex::class)->name('negocios');
     Route::get('/buscar-estudiante', TeacherStudentSearch::class)->name('buscar-estudiante');
     Route::get('/plantilla-estudiantes', BulkTemplateController::class)->name('plantilla');
+    Route::get('/grupos/{groupId}/exportar-calificaciones', ExportCalificacionesController::class)->name('exportar-calificaciones');
+    Route::get('/alertas', TeacherAlertas::class)->name('alertas');
+    Route::get('/ejercicios', TeacherEjerciciosIndex::class)->name('ejercicios');
     Route::get('/comparativo', TeacherComparativo::class)->name('comparativo');
     Route::get('/anuncios', TeacherAnnouncements::class)->name('announcements');
     Route::get('/enviar-dinero', TeacherEnviarDinero::class)->name('enviar-dinero');
@@ -373,6 +391,9 @@ Route::middleware(['auth:student', 'tenant.initialize'])
 
         // PUC Interactivo
         Route::get('/puc', PucInteractivo::class)->name('puc');
+
+        // Ejercicios del docente (modo sandbox)
+        Route::get('/ejercicios', EjerciciosIndex::class)->name('ejercicios');
 
         // Reset sandbox
         Route::post('/reset', [SandboxController::class, 'reset'])->name('reset');

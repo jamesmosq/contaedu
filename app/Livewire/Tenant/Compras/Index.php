@@ -84,7 +84,9 @@ class Index extends Component
     // ─── Pago ────────────────────────────────────────────────────────────────
     public bool $showPaymentForm = false;
 
-    public ?int $payment_bank_account_id = null; // null = pago desde caja
+    public ?int $payment_bank_account_id = null;
+
+    public string $payment_medio_pago = 'efectivo';
 
     public int $payment_third_id = 0;
 
@@ -508,6 +510,8 @@ class Index extends Component
         $this->payment_third_id = $supplierId;
         $this->payment_date = now()->toDateString();
         $this->payment_notes = '';
+        $this->payment_medio_pago = 'efectivo';
+        $this->payment_bank_account_id = null;
 
         // Cargar facturas pendientes del proveedor
         $pending = PurchaseInvoice::where('third_id', $supplierId)
@@ -538,7 +542,7 @@ class Index extends Component
             $total = array_sum(array_column($this->payment_items, 'amount_applied'));
 
             // Validar saldo si paga desde banco
-            if ($this->payment_bank_account_id) {
+            if ($this->payment_medio_pago !== 'efectivo' && $this->payment_bank_account_id) {
                 $cuentaBanco = BankAccount::find($this->payment_bank_account_id);
                 if ($cuentaBanco) {
                     $gmf = BankService::calcularGmf('pago_proveedor', $total);
@@ -551,13 +555,16 @@ class Index extends Component
                 }
             }
 
+            $bankAccountId = $this->payment_medio_pago !== 'efectivo' ? $this->payment_bank_account_id : null;
+
             $payment = Payment::create([
                 'third_id' => $this->payment_third_id,
                 'date' => $this->payment_date,
                 'total' => $total,
                 'notes' => $this->payment_notes ?: null,
                 'status' => 'borrador',
-                'bank_account_id' => $this->payment_bank_account_id,
+                'medio_pago' => $this->payment_medio_pago,
+                'bank_account_id' => $bankAccountId,
             ]);
 
             $items = array_map(fn ($i) => [
@@ -568,7 +575,7 @@ class Index extends Component
             [$payment, $entry] = $service->applyPayment($payment, $items);
 
             // Registrar transacción bancaria si se pagó desde banco
-            if ($this->payment_bank_account_id && $cuentaBanco = BankAccount::find($this->payment_bank_account_id)) {
+            if ($this->payment_medio_pago !== 'efectivo' && $this->payment_bank_account_id && $cuentaBanco = BankAccount::find($this->payment_bank_account_id)) {
                 $gmf = BankService::calcularGmf('pago_proveedor', $total);
                 $totalCargo = $total + $gmf;
                 $cuentaBanco->decrement('saldo', $totalCargo);
@@ -588,7 +595,7 @@ class Index extends Component
             }
 
             $this->showPaymentForm = false;
-            $this->reset(['payment_third_id', 'payment_notes', 'payment_items', 'payment_bank_account_id']);
+            $this->reset(['payment_third_id', 'payment_notes', 'payment_items', 'payment_bank_account_id', 'payment_medio_pago']);
             $this->dispatch('notify', type: 'success', message: 'Pago aplicado y asiento generado.');
         } catch (\Exception $e) {
             $this->dispatch('notify', type: 'error', message: $e->getMessage());
