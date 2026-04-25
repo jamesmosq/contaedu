@@ -18,6 +18,7 @@ use App\Http\Controllers\Tenant\DashboardController as TenantDashboard;
 use App\Http\Controllers\Tenant\FacturacionElectronica\FacturacionElectronicaController;
 use App\Http\Controllers\Tenant\FacturacionElectronica\FeResolucionController;
 use App\Http\Controllers\Tenant\ReportPdfController;
+use App\Http\Controllers\VitalsController;
 use App\Livewire\Admin\Analisis as AdminAnalisis;
 use App\Livewire\Admin\BancoEjercicios as AdminBancoEjercicios;
 use App\Livewire\Admin\Contratos as AdminContratos;
@@ -52,8 +53,32 @@ use App\Livewire\Tenant\Reportes\Index as ReportesIndex;
 use App\Livewire\Tenant\Terceros\Index as TercerosIndex;
 use App\Models\Tenant\FeFactura;
 use App\Models\Tenant\FeResolucion;
+use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+
+// ─── Web Vitals beacon (sin CSRF — usa sendBeacon) ────────────────────────
+Route::post('/vitals', VitalsController::class)->withoutMiddleware([VerifyCsrfToken::class]);
+
+// ─── Health check (Railway uptime monitoring) ──────────────────────────────
+Route::get('/health', function () {
+    try {
+        DB::connection('pgsql')->getPdo();
+        $db = 'ok';
+    } catch (Throwable) {
+        $db = 'error';
+    }
+
+    $status = $db === 'ok' ? 200 : 503;
+
+    return response()->json([
+        'status' => $db === 'ok' ? 'ok' : 'degraded',
+        'db' => $db,
+        'version' => config('app.version', '1.0'),
+        'env' => config('app.env'),
+    ], $status);
+})->name('health');
 
 // ─── Página principal ──────────────────────────────────────────────────────
 Route::get('/', function () {

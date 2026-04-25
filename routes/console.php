@@ -10,3 +10,4 @@ Artisan::command('inspire', function () {
 
 Schedule::command('app:expire-institution-contracts')->dailyAt('00:05');
 Schedule::command('app:close-abandoned-sessions')->hourly();
+Schedule::command('telescope:prune --hours=72')->dailyAt('01:00');

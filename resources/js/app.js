@@ -1,4 +1,19 @@
 import './bootstrap';
+import { onCLS, onINP, onLCP, onFCP, onTTFB } from 'web-vitals';
+
+// ── Web Vitals — métricas reales de usuarios ──────────────────────────────────
+function sendVital({ name, value, rating, id }) {
+    if (!navigator.sendBeacon) { return; }
+
+    const body = JSON.stringify({ name, value: Math.round(name === 'CLS' ? value * 1000 : value), rating, id, url: location.pathname });
+    navigator.sendBeacon('/vitals', body);
+}
+
+onCLS(sendVital);
+onINP(sendVital);
+onLCP(sendVital);
+onFCP(sendVital);
+onTTFB(sendVital);
 
 // ── SweetAlert2 (cargado vía CDN antes de este módulo) ───────────────────────
 // Guard defensivo: si el CDN falla, se usan alerts nativos para no romper nada.

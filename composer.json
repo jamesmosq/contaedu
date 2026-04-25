@@ -14,10 +14,12 @@
         "ext-zip": "*",
         "barryvdh/laravel-dompdf": "^3.1",
         "laravel/framework": "^12.0",
+        "laravel/telescope": "^5.20",
         "laravel/tinker": "^2.10.1",
         "livewire/livewire": "^4.2",
         "maatwebsite/excel": "^3.1",
         "predis/predis": "^2.3",
+        "sentry/sentry-laravel": "*",
         "stancl/tenancy": "^3.9"
     },
     "require-dev": {
