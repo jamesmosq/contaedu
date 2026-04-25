@@ -2,7 +2,7 @@
   "phases": {
     "extensions": {
       "commands": [
-        "install-php-extensions gd ctype curl dom fileinfo filter hash mbstring openssl pcre pdo session tokenizer xml pdo_pgsql redis"
+        "install-php-extensions gd zip ctype curl dom fileinfo filter hash mbstring openssl pcre pdo session tokenizer xml pdo_pgsql redis"
       ]
     }
   }
