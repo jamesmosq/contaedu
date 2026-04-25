@@ -67,7 +67,8 @@
       "Bash(powershell -Command \"Get-Command redis-server -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source\")",
       "Bash(python3 -c ' *)",
       "Bash(python -c ' *)",
-      "Bash(composer require *)"
+      "Bash(composer require *)",
+      "Bash(npm install *)"
     ]
   },
   "enableAllProjectMcpServers": true,
