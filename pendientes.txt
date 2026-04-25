@@ -36,3 +36,29 @@
   │ Cierre contable guiado            │ Asistente paso a paso: verificar balance → generar estado de resultados → transferir utilidad a patrimonio →      │
   │                                   │ confirmar cierre.                                                                                                 │
   └───────────────────────────────────┴───────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────
+  PENDIENTES - MONITOREO Y ANÁLISIS DE PLATAFORMA
+  ──────────────────────────────────────────────────────────────────────────────────────────────────────
+
+  1. ALERTAS ACTIVAS EN SENTRY (urgente)
+     - Configurar alerta: email cuando aparezca un error nuevo
+     - Configurar alerta: email cuando la tasa de errores supere X en 1 hora
+     - Sin esto, Sentry solo recibe datos pero no avisa proactivamente.
+
+  2. MONITOREO DE JOBS PROGRAMADOS (Better Stack - Cron Monitoring)
+     - Añadir ping al final de cada cronjob para que Better Stack detecte si fallan silenciosamente
+     - Jobs a monitorear:
+         * app:expire-institution-contracts  (diario 00:05)
+         * app:close-abandoned-sessions      (cada hora)
+         * telescope:prune                   (diario 01:00)
+
+  3. ANALÍTICA DE COMPORTAMIENTO DE USUARIOS
+     - Saber qué hacen los usuarios: qué ejercicios usan más, dónde abandonan, qué funciones no se tocan
+     - Opciones evaluadas:
+         * PostHog  — open source, gratis hasta 1M eventos/mes, self-hosteable
+         * Plausible — más simple, pago, sin cookies
+     - Recomendado: PostHog (por el free tier y la profundidad de análisis)
+
+  NOTA: No agregar APM adicional (Datadog, New Relic) hasta que el volumen lo justifique.
+        Sentry ya cubre performance tracing suficientemente.

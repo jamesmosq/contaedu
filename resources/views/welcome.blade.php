@@ -378,6 +378,9 @@
         .foot-brand em{font-style:normal;color:var(--gold-400)}
         .foot-text{font-size:.8rem;color:rgba(255,255,255,.35);text-align:center}
         .foot-year{font-size:.8rem;color:rgba(255,255,255,.25)}
+        .foot-links{display:flex;gap:20px;align-items:center}
+        .foot-links a{font-size:.8rem;color:rgba(255,255,255,.35);text-decoration:none;transition:color .2s}
+        .foot-links a:hover{color:rgba(255,255,255,.7)}
 
         /* ── HERO VISUAL (SVG ledger panel) ── */
         .hero-visual{
@@ -835,7 +838,11 @@
     <div class="foot-inner">
         <span class="foot-brand">Conta<em>Edu</em></span>
         <p class="foot-text">Plataforma contable educativa · Colombia · PUC · Doble partida</p>
-        <span class="foot-year">© {{ date('Y') }}</span>
+        <div class="foot-links">
+            <a href="{{ route('legal.terminos') }}">Términos de uso</a>
+            <a href="{{ route('legal.privacidad') }}">Privacidad</a>
+            <span class="foot-year">© {{ date('Y') }}</span>
+        </div>
     </div>
 </footer>
 

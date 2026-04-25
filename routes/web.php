@@ -21,6 +21,7 @@ use App\Http\Controllers\Tenant\ReportPdfController;
 use App\Http\Controllers\VitalsController;
 use App\Livewire\Admin\Analisis as AdminAnalisis;
 use App\Livewire\Admin\BancoEjercicios as AdminBancoEjercicios;
+use App\Livewire\Admin\Comunicaciones as AdminComunicaciones;
 use App\Livewire\Admin\Contratos as AdminContratos;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\SecurityLogs as AdminSecurityLogs;
@@ -57,6 +58,10 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Route;
+
+// ─── Páginas legales ──────────────────────────────────────────────────────
+Route::get('/privacidad', fn () => view('legal.privacidad'))->name('legal.privacidad');
+Route::get('/terminos', fn () => view('legal.terminos'))->name('legal.terminos');
 
 // ─── Web Vitals beacon (sin CSRF — usa sendBeacon) ────────────────────────
 Route::post('/vitals', VitalsController::class)->withoutMiddleware([VerifyCsrfToken::class]);
@@ -111,6 +116,7 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('admin')->name('admin.')-
     Route::get('/ejercicios/plantilla', EjerciciosTemplateController::class)->name('ejercicios.plantilla');
     Route::get('/transferencias', AdminTransferRequests::class)->name('transferencias');
     Route::get('/seguridad', AdminSecurityLogs::class)->name('seguridad');
+    Route::get('/comunicaciones', AdminComunicaciones::class)->name('comunicaciones');
 
     Route::post('/impersonate/estudiante/{tenantId}', [ImpersonationController::class, 'startStudent'])->name('impersonate.student');
     Route::post('/impersonate/docente/{userId}', [ImpersonationController::class, 'startTeacher'])->name('impersonate.teacher');
