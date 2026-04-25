@@ -24,6 +24,7 @@ use App\Livewire\Teacher\Announcements as TeacherAnnouncements;
 use App\Livewire\Teacher\Comparativo as TeacherComparativo;
 use App\Livewire\Teacher\Dashboard as TeacherDashboard;
 use App\Livewire\Teacher\DemoCompanies as TeacherDemoCompanies;
+use App\Livewire\Teacher\EnviarDinero as TeacherEnviarDinero;
 use App\Livewire\Teacher\Negocios\Index as TeacherNegociosIndex;
 use App\Livewire\Teacher\Rubrica as TeacherRubrica;
 use App\Livewire\Teacher\StudentSearch as TeacherStudentSearch;
@@ -110,6 +111,7 @@ Route::middleware(['auth', 'role:teacher'])->prefix('docente')->name('teacher.')
     Route::get('/plantilla-estudiantes', BulkTemplateController::class)->name('plantilla');
     Route::get('/comparativo', TeacherComparativo::class)->name('comparativo');
     Route::get('/anuncios', TeacherAnnouncements::class)->name('announcements');
+    Route::get('/enviar-dinero', TeacherEnviarDinero::class)->name('enviar-dinero');
     Route::get('/rubrica/{tenantId}', TeacherRubrica::class)->name('rubrica');
 
     // Iniciar / detener modo auditoría (salir ANTES del wildcard)
