@@ -123,6 +123,11 @@ return [
             'handler' => NullHandler::class,
         ],
 
+        'sentry_logs' => [
+            'driver' => 'sentry_logs',
+            'level' => env('LOG_LEVEL', 'error'),
+        ],
+
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
         ],
