@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Teacher\Ejercicios;
 
+use App\Imports\EjerciciosImport;
 use App\Models\Central\Exercise;
 use App\Models\Central\ExerciseAssignment;
 use App\Models\Central\ExerciseCompletion;
@@ -10,11 +11,15 @@ use App\Models\Central\Tenant as CentralTenant;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
+use Livewire\WithFileUploads;
+use Maatwebsite\Excel\Facades\Excel;
 
 #[Layout('layouts.teacher')]
 #[Title('Ejercicios')]
 class Index extends Component
 {
+    use WithFileUploads;
+
     public string $tab = 'ejercicios'; // 'ejercicios' | 'asignar' | 'resultados'
 
     // ── Crear ejercicio ────────────────────────────────────────────────────────
@@ -147,6 +152,31 @@ class Index extends Component
     {
         $this->viewingAssignmentId = $assignmentId;
         $this->tab = 'resultados';
+    }
+
+    public $ejerciciosFile = null;
+
+    public ?array $importResult = null;
+
+    public function importEjercicios(): void
+    {
+        $this->validate([
+            'ejerciciosFile' => ['required', 'file', 'mimes:xlsx,xls', 'max:2048'],
+        ], [
+            'ejerciciosFile.required' => 'Selecciona un archivo Excel.',
+            'ejerciciosFile.mimes' => 'El archivo debe ser .xlsx o .xls.',
+            'ejerciciosFile.max' => 'El archivo no puede superar 2 MB.',
+        ]);
+
+        $import = new EjerciciosImport(teacherId: auth()->id(), isGlobal: false);
+        Excel::import($import, $this->ejerciciosFile->getRealPath());
+
+        $this->importResult = [
+            'imported' => $import->imported,
+            'errors' => $import->errors,
+        ];
+
+        $this->ejerciciosFile = null;
     }
 
     public function cloneGlobal(int $exerciseId): void

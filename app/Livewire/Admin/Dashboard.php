@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Admin;
 
+use App\Imports\EjerciciosImport;
 use App\Models\Central\Exercise;
 use App\Models\Central\ExerciseCompletion;
 use App\Models\Central\Group;
@@ -16,10 +17,14 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
+use Livewire\WithFileUploads;
+use Maatwebsite\Excel\Facades\Excel;
 
 #[Layout('layouts.admin')]
 class Dashboard extends Component
 {
+    use WithFileUploads;
+
     // ── Tab activa ──────────────────────────────────────────────────────────
     public string $tab = 'resumen';
 
@@ -334,6 +339,32 @@ class Dashboard extends Component
         $this->redirect(route('admin.dashboard'), navigate: false);
     }
 
+    // ── Importación masiva ejercicios globales ──────────────────────────────
+    public $ejerciciosFile = null;
+
+    public ?array $importResult = null;
+
+    public function importEjercicios(): void
+    {
+        $this->validate([
+            'ejerciciosFile' => ['required', 'file', 'mimes:xlsx,xls', 'max:2048'],
+        ], [
+            'ejerciciosFile.required' => 'Selecciona un archivo Excel.',
+            'ejerciciosFile.mimes' => 'El archivo debe ser .xlsx o .xls.',
+            'ejerciciosFile.max' => 'El archivo no puede superar 2 MB.',
+        ]);
+
+        $import = new EjerciciosImport(teacherId: auth()->id(), isGlobal: true);
+        Excel::import($import, $this->ejerciciosFile->getRealPath());
+
+        $this->importResult = [
+            'imported' => $import->imported,
+            'errors' => $import->errors,
+        ];
+
+        $this->ejerciciosFile = null;
+    }
+
     // ── Banco global CRUD ───────────────────────────────────────────────────
 
     public function openGlobalExerciseForm(?int $id = null): void
@@ -425,21 +456,16 @@ class Dashboard extends Component
         ))->title('Superadmin — ContaEdu');
     }
 
-    private function buildMetrics(Collection $tenants): array
+    private function computeOperacional(Collection $studentIds): array
     {
-        $instId = $this->metricsInstitutionId ?: null;
+        $empty = ['facturas_30d' => 0, 'compras_30d' => 0, 'asientos_30d' => 0,
+            'facturas_7d' => 0, 'compras_7d' => 0, 'asientos_7d' => 0];
 
-        $studentIds = Tenant::where('type', 'student')
-            ->when($instId, fn ($q) => $q->whereHas('group', fn ($g) => $g->where('institution_id', $instId)))
-            ->pluck('id');
+        if ($studentIds->isEmpty()) {
+            return $empty;
+        }
 
-        $cacheKey = 'admin_metrics_detail_'.($instId ?? 'all');
-        $operacional = Cache::remember($cacheKey, 300, function () use ($studentIds) {
-            if ($studentIds->isEmpty()) {
-                return ['facturas_30d' => 0, 'compras_30d' => 0, 'asientos_30d' => 0,
-                    'facturas_7d' => 0, 'compras_7d' => 0, 'asientos_7d' => 0];
-            }
-
+        try {
             $makeUnion = fn (string $table, string $interval) => $studentIds
                 ->map(fn ($id) => "SELECT COUNT(*) as n FROM \"tenant_{$id}\".{$table} WHERE created_at >= NOW() - INTERVAL '{$interval}'")
                 ->join(' UNION ALL ');
@@ -452,7 +478,20 @@ class Dashboard extends Component
                 'compras_7d' => (int) DB::selectOne("SELECT SUM(n) as t FROM ({$makeUnion('purchase_invoices', '7 days')}) x")?->t,
                 'asientos_7d' => (int) DB::selectOne("SELECT SUM(n) as t FROM ({$makeUnion('journal_entries', '7 days')}) x")?->t,
             ];
-        });
+        } catch (\Throwable) {
+            return $empty;
+        }
+    }
+
+    private function buildMetrics(Collection $tenants): array
+    {
+        $instId = $this->metricsInstitutionId ?: null;
+
+        $studentIds = Tenant::where('type', 'student')
+            ->when($instId, fn ($q) => $q->whereHas('group', fn ($g) => $g->where('institution_id', $instId)))
+            ->pluck('id');
+
+        $operacional = $this->computeOperacional($studentIds);
 
         // Registros de estudiantes por semana (últimas 8 semanas)
         $registrosSemana = Tenant::where('type', 'student')

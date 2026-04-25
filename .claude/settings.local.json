@@ -66,7 +66,8 @@
       "Bash(where redis-server *)",
       "Bash(powershell -Command \"Get-Command redis-server -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source\")",
       "Bash(python3 -c ' *)",
-      "Bash(python -c ' *)"
+      "Bash(python -c ' *)",
+      "Bash(composer require *)"
     ]
   },
   "enableAllProjectMcpServers": true,

@@ -8,13 +8,46 @@
                 <h1 class="font-display text-2xl font-bold text-white">Ejercicios</h1>
                 <p class="text-forest-300 text-sm mt-1">Crea ejercicios y asígnalos a tus grupos con fecha límite</p>
             </div>
-            <button wire:click="openForm()"
-                class="flex items-center gap-2 px-4 py-2 bg-gold-500 hover:bg-gold-400 text-forest-950 text-sm font-semibold rounded-xl transition shrink-0">
-                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
-                </svg>
-                Nuevo ejercicio
-            </button>
+            <div class="flex items-center gap-2 flex-wrap">
+                {{-- Importar Excel --}}
+                <div x-data="{ open: false }" class="relative">
+                    <button @click="open = !open"
+                        class="flex items-center gap-1.5 px-4 py-2 bg-white/15 hover:bg-white/25 text-white text-sm font-medium rounded-xl transition">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/>
+                        </svg>
+                        Importar Excel
+                    </button>
+                    <div x-show="open" @click.outside="open = false"
+                        class="absolute right-0 top-full mt-2 bg-white border border-cream-200 rounded-xl shadow-lg p-4 w-72 z-20"
+                        style="display:none">
+                        <p class="text-xs font-semibold text-slate-700 mb-1">Importar ejercicios desde Excel</p>
+                        <p class="text-xs text-slate-400 mb-3">Sube un .xlsx con tus ejercicios. Usa la plantilla para no tener errores.</p>
+                        <input wire:model="ejerciciosFile" type="file" accept=".xlsx,.xls"
+                            class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-forest-50 file:text-forest-700 file:text-xs file:font-medium hover:file:bg-forest-100 mb-2">
+                        @error('ejerciciosFile') <p class="text-xs text-red-600 mb-2">{{ $message }}</p> @enderror
+                        <div class="flex gap-2">
+                            <a href="{{ route('teacher.ejercicios.plantilla') }}"
+                                class="flex-1 text-center px-3 py-1.5 border border-slate-200 text-slate-600 text-xs font-medium rounded-lg hover:bg-slate-50 transition">
+                                Plantilla
+                            </a>
+                            <button wire:click="importEjercicios" wire:loading.attr="disabled"
+                                class="flex-1 px-3 py-1.5 bg-forest-800 text-white text-xs font-semibold rounded-lg hover:bg-forest-700 transition disabled:opacity-50">
+                                <span wire:loading.remove wire:target="importEjercicios">Importar</span>
+                                <span wire:loading wire:target="importEjercicios">Procesando…</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <button wire:click="openForm()"
+                    class="flex items-center gap-2 px-4 py-2 bg-gold-500 hover:bg-gold-400 text-forest-950 text-sm font-semibold rounded-xl transition shrink-0">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"/>
+                    </svg>
+                    Nuevo ejercicio
+                </button>
+            </div>
         </div>
     </div>
 
@@ -30,6 +63,28 @@
                 </button>
             @endforeach
         </div>
+
+        {{-- Resultado de importación --}}
+        @if($importResult)
+            <div class="bg-white rounded-2xl border {{ $importResult['errors'] ? 'border-amber-200' : 'border-green-200' }} shadow-card-sm px-5 py-4">
+                <div class="flex items-start gap-3">
+                    <div class="flex-1">
+                        <p class="text-sm font-semibold {{ $importResult['errors'] ? 'text-amber-700' : 'text-green-700' }}">
+                            {{ $importResult['imported'] }} ejercicio(s) importado(s) a tu banco personal.
+                            @if($importResult['errors']) {{ count($importResult['errors']) }} fila(s) con error. @endif
+                        </p>
+                        @if($importResult['errors'])
+                            <ul class="mt-2 space-y-0.5">
+                                @foreach($importResult['errors'] as $err)
+                                    <li class="text-xs text-amber-600">Fila {{ $err['fila'] }}: {{ $err['error'] }}</li>
+                                @endforeach
+                            </ul>
+                        @endif
+                    </div>
+                    <button wire:click="$set('importResult', null)" class="text-slate-400 hover:text-slate-600 text-lg leading-none">&times;</button>
+                </div>
+            </div>
+        @endif
 
         {{-- ── Tab: Mis ejercicios ───────────────────────────────────────────── --}}
         @if($tab === 'ejercicios')

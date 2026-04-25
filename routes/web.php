@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\ImpersonationController;
 use App\Http\Controllers\Coordinator\AuditController as CoordinatorAudit;
+use App\Http\Controllers\EjerciciosTemplateController;
 use App\Http\Controllers\SandboxController;
 use App\Http\Controllers\Student\AuthController as StudentAuth;
 use App\Http\Controllers\Student\ReferenceController;
@@ -80,6 +81,7 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('admin')->name('admin.')-
     Route::get('/dashboard', AdminDashboard::class)->name('dashboard');
     Route::get('/contratos', AdminContratos::class)->name('contratos');
     Route::get('/analisis', AdminAnalisis::class)->name('analisis');
+    Route::get('/ejercicios/plantilla', EjerciciosTemplateController::class)->name('ejercicios.plantilla');
     Route::get('/transferencias', AdminTransferRequests::class)->name('transferencias');
     Route::get('/seguridad', AdminSecurityLogs::class)->name('seguridad');
 
@@ -127,6 +129,7 @@ Route::middleware(['auth', 'role:teacher'])->prefix('docente')->name('teacher.')
     Route::get('/grupos/{groupId}/exportar-calificaciones', ExportCalificacionesController::class)->name('exportar-calificaciones');
     Route::get('/alertas', TeacherAlertas::class)->name('alertas');
     Route::get('/ejercicios', TeacherEjerciciosIndex::class)->name('ejercicios');
+    Route::get('/ejercicios/plantilla', EjerciciosTemplateController::class)->name('ejercicios.plantilla');
     Route::get('/comparativo', TeacherComparativo::class)->name('comparativo');
     Route::get('/anuncios', TeacherAnnouncements::class)->name('announcements');
     Route::get('/enviar-dinero', TeacherEnviarDinero::class)->name('enviar-dinero');

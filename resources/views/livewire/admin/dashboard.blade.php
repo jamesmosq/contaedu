@@ -482,16 +482,71 @@
 
             {{-- ── TAB BANCO GLOBAL DE EJERCICIOS ────────────────────── --}}
             @if($tab === 'banco')
+                {{-- Resultado de importación --}}
+                @if($importResult)
+                    <div class="bg-white rounded-2xl border {{ $importResult['errors'] ? 'border-amber-200' : 'border-green-200' }} shadow-card-sm px-6 py-4 mb-4">
+                        <div class="flex items-start gap-3">
+                            <div class="flex-1">
+                                <p class="text-sm font-semibold {{ $importResult['errors'] ? 'text-amber-700' : 'text-green-700' }}">
+                                    {{ $importResult['imported'] }} ejercicio(s) importado(s) correctamente.
+                                    @if($importResult['errors']) {{ count($importResult['errors']) }} fila(s) con error. @endif
+                                </p>
+                                @if($importResult['errors'])
+                                    <ul class="mt-2 space-y-0.5">
+                                        @foreach($importResult['errors'] as $err)
+                                            <li class="text-xs text-amber-600">Fila {{ $err['fila'] }}: {{ $err['error'] }}</li>
+                                        @endforeach
+                                    </ul>
+                                @endif
+                            </div>
+                            <button wire:click="$set('importResult', null)" class="text-slate-400 hover:text-slate-600 text-lg leading-none shrink-0">&times;</button>
+                        </div>
+                    </div>
+                @endif
+
                 <div class="bg-white rounded-2xl border border-cream-200 shadow-card-sm overflow-hidden">
-                    <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between">
+                    <div class="px-6 py-4 border-b border-cream-100 flex items-center justify-between gap-4 flex-wrap">
                         <div>
                             <h3 class="text-sm font-semibold text-slate-700">Ejercicios oficiales</h3>
                             <p class="text-xs text-slate-400 mt-0.5">Los docentes pueden clonar estos ejercicios a su banco personal y asignarlos a sus grupos.</p>
                         </div>
-                        <button wire:click="openGlobalExerciseForm()"
-                            class="px-3 py-1.5 bg-forest-800 text-white text-xs font-semibold rounded-lg hover:bg-forest-700 transition">
-                            + Nuevo ejercicio oficial
-                        </button>
+                        <div class="flex items-center gap-2 flex-wrap">
+                            {{-- Importar Excel --}}
+                            <div x-data="{ open: false }" class="relative">
+                                <button @click="open = !open"
+                                    class="px-3 py-1.5 border border-forest-300 text-forest-700 text-xs font-semibold rounded-lg hover:bg-forest-50 transition flex items-center gap-1.5">
+                                    <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5"/>
+                                    </svg>
+                                    Importar Excel
+                                </button>
+                                <div x-show="open" @click.outside="open = false"
+                                    class="absolute right-0 top-full mt-1 bg-white border border-cream-200 rounded-xl shadow-lg p-4 w-72 z-10"
+                                    style="display:none">
+                                    <p class="text-xs text-slate-500 mb-3">Sube un archivo .xlsx con los ejercicios. Máx. 2 MB.</p>
+                                    <input wire:model="ejerciciosFile" type="file" accept=".xlsx,.xls"
+                                        class="block w-full text-xs text-slate-500 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-forest-50 file:text-forest-700 file:text-xs file:font-medium hover:file:bg-forest-100 mb-3">
+                                    @error('ejerciciosFile') <p class="text-xs text-red-600 mb-2">{{ $message }}</p> @enderror
+                                    <button wire:click="importEjercicios" wire:loading.attr="disabled"
+                                        class="w-full px-3 py-1.5 bg-forest-800 text-white text-xs font-semibold rounded-lg hover:bg-forest-700 transition disabled:opacity-50">
+                                        <span wire:loading.remove wire:target="importEjercicios">Importar</span>
+                                        <span wire:loading wire:target="importEjercicios">Procesando…</span>
+                                    </button>
+                                </div>
+                            </div>
+                            {{-- Descargar plantilla --}}
+                            <a href="{{ route('admin.ejercicios.plantilla') }}"
+                                class="px-3 py-1.5 border border-slate-200 text-slate-600 text-xs font-semibold rounded-lg hover:bg-slate-50 transition flex items-center gap-1.5">
+                                <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3"/>
+                                </svg>
+                                Plantilla
+                            </a>
+                            <button wire:click="openGlobalExerciseForm()"
+                                class="px-3 py-1.5 bg-forest-800 text-white text-xs font-semibold rounded-lg hover:bg-forest-700 transition">
+                                + Nuevo
+                            </button>
+                        </div>
                     </div>
                     <table class="w-full text-sm">
                         <thead class="bg-cream-50 text-xs text-slate-500 uppercase tracking-wide">
