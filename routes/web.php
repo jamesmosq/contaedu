@@ -19,6 +19,7 @@ use App\Http\Controllers\Tenant\FacturacionElectronica\FacturacionElectronicaCon
 use App\Http\Controllers\Tenant\FacturacionElectronica\FeResolucionController;
 use App\Http\Controllers\Tenant\ReportPdfController;
 use App\Livewire\Admin\Analisis as AdminAnalisis;
+use App\Livewire\Admin\BancoEjercicios as AdminBancoEjercicios;
 use App\Livewire\Admin\Contratos as AdminContratos;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\SecurityLogs as AdminSecurityLogs;
@@ -81,6 +82,7 @@ Route::middleware(['auth', 'role:superadmin'])->prefix('admin')->name('admin.')-
     Route::get('/dashboard', AdminDashboard::class)->name('dashboard');
     Route::get('/contratos', AdminContratos::class)->name('contratos');
     Route::get('/analisis', AdminAnalisis::class)->name('analisis');
+    Route::get('/banco-ejercicios', AdminBancoEjercicios::class)->name('banco-ejercicios');
     Route::get('/ejercicios/plantilla', EjerciciosTemplateController::class)->name('ejercicios.plantilla');
     Route::get('/transferencias', AdminTransferRequests::class)->name('transferencias');
     Route::get('/seguridad', AdminSecurityLogs::class)->name('seguridad');
