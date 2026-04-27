@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Admin\ImpersonationController;
+use App\Http\Controllers\Auth\ForcePasswordChangeController;
 use App\Http\Controllers\Coordinator\AuditController as CoordinatorAudit;
 use App\Http\Controllers\EjerciciosTemplateController;
 use App\Http\Controllers\SandboxController;
@@ -26,6 +27,9 @@ use App\Livewire\Admin\Contratos as AdminContratos;
 use App\Livewire\Admin\Dashboard as AdminDashboard;
 use App\Livewire\Admin\SecurityLogs as AdminSecurityLogs;
 use App\Livewire\Admin\TransferRequests as AdminTransferRequests;
+use App\Livewire\Coordinator\Actividad;
+use App\Livewire\Coordinator\Anuncios;
+use App\Livewire\Coordinator\Calificaciones;
 use App\Livewire\Coordinator\Dashboard as CoordinatorDashboard;
 use App\Livewire\Student\Referencias as StudentReferencias;
 use App\Livewire\Teacher\Alertas as TeacherAlertas;
@@ -107,6 +111,22 @@ Route::get('/', function () {
 // ─── Rutas de Breeze (superadmin y docente usan el guard web) ──────────────
 require __DIR__.'/auth.php';
 
+// ─── Cambio forzado de contraseña (web guard) ─────────────────────────────
+Route::middleware('auth')->group(function () {
+    Route::get('/cambiar-contrasena', [ForcePasswordChangeController::class, 'show'])
+        ->name('password.force-change');
+    Route::put('/cambiar-contrasena', [ForcePasswordChangeController::class, 'update'])
+        ->name('password.force-change.update');
+});
+
+// ─── Cambio forzado de contraseña (student guard) ─────────────────────────
+Route::middleware('auth:student')->group(function () {
+    Route::get('/estudiante/cambiar-contrasena', [App\Http\Controllers\Student\ForcePasswordChangeController::class, 'show'])
+        ->name('student.password.force-change');
+    Route::put('/estudiante/cambiar-contrasena', [App\Http\Controllers\Student\ForcePasswordChangeController::class, 'update'])
+        ->name('student.password.force-change.update');
+});
+
 // ─── Panel Superadmin ──────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:superadmin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', AdminDashboard::class)->name('dashboard');
@@ -130,7 +150,10 @@ Route::middleware('auth:web,student')
 // ─── Panel Coordinador ────────────────────────────────────────────────────
 Route::middleware(['auth', 'role:coordinator'])->prefix('coordinador')->name('coordinator.')->group(function () {
     Route::get('/dashboard', CoordinatorDashboard::class)->name('dashboard');
-    Route::get('/negocios', TeacherNegociosIndex::class)->name('negocios');
+    Route::get('/actividad', Actividad::class)->name('actividad');
+    Route::get('/calificaciones', Calificaciones::class)->name('calificaciones');
+    Route::get('/calificaciones/exportar', App\Http\Controllers\Coordinator\ExportCalificacionesController::class)->name('calificaciones.export');
+    Route::get('/anuncios', Anuncios::class)->name('anuncios');
     Route::get('/plantilla-estudiantes', BulkTemplateController::class)->name('plantilla');
 
     // Iniciar / detener auditoría

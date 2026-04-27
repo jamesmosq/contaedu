@@ -17,7 +17,12 @@
             </div>
 
             <div>
-                <x-input-label for="password" value="Contraseña" />
+                <div class="flex items-center justify-between">
+                    <x-input-label for="password" value="Contraseña" />
+                    <a href="{{ route('password.request') }}" class="text-sm text-slate-500 hover:text-brand-700 transition">
+                        ¿Olvidaste tu contraseña?
+                    </a>
+                </div>
                 <x-text-input id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="current-password" />
                 <x-input-error :messages="$errors->get('password')" class="mt-2" />
             </div>

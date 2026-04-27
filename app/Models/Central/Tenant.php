@@ -42,6 +42,7 @@ class Tenant extends Authenticatable implements TenantWithDatabase
         'company_name',
         'nit_empresa',
         'password',
+        'must_change_password',
         'tenancy_db_name',
         'active',
         'published',
@@ -59,6 +60,7 @@ class Tenant extends Authenticatable implements TenantWithDatabase
             'active' => 'boolean',
             'published' => 'boolean',
             'password' => 'hashed',
+            'must_change_password' => 'boolean',
             'last_activity_at' => 'datetime',
         ];
     }

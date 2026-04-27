@@ -76,6 +76,13 @@ class Dashboard extends Component
 
     public int $bulkResultsPage = 1;
 
+    // ── Reset de contraseña ─────────────────────────────────────────────────
+    public bool $showTempPasswordModal = false;
+
+    public string $tempPassword = '';
+
+    public string $tempPasswordFor = '';
+
     // ── Transferencia ───────────────────────────────────────────────────────
     public bool $showTransferModal = false;
 
@@ -189,8 +196,8 @@ class Dashboard extends Component
         $institution = $this->institution();
 
         $this->validate([
-            'groupName'      => ['required', 'string', 'max:100'],
-            'groupPeriod'    => ['required', 'string', 'max:20'],
+            'groupName' => ['required', 'string', 'max:100'],
+            'groupPeriod' => ['required', 'string', 'max:20'],
             'groupTeacherId' => ['required', 'integer', 'min:1', 'exists:users,id'],
         ], [
             'groupTeacherId.min' => 'Selecciona un docente.',
@@ -200,18 +207,18 @@ class Dashboard extends Component
             Group::where('id', $this->groupEditingId)
                 ->where('institution_id', $institution->id)
                 ->update([
-                    'name'       => $this->groupName,
-                    'period'     => $this->groupPeriod,
+                    'name' => $this->groupName,
+                    'period' => $this->groupPeriod,
                     'teacher_id' => $this->groupTeacherId,
                 ]);
             $this->dispatch('notify', type: 'success', message: 'Grupo actualizado.');
         } else {
             Group::create([
                 'institution_id' => $institution->id,
-                'teacher_id'     => $this->groupTeacherId,
-                'name'           => $this->groupName,
-                'period'         => $this->groupPeriod,
-                'active'         => true,
+                'teacher_id' => $this->groupTeacherId,
+                'name' => $this->groupName,
+                'period' => $this->groupPeriod,
+                'active' => true,
             ]);
             $this->dispatch('notify', type: 'success', message: 'Grupo creado.');
         }
@@ -227,6 +234,7 @@ class Dashboard extends Component
 
         if ($group->tenants()->exists()) {
             $this->dispatch('notify', type: 'error', message: 'No se puede eliminar un grupo con estudiantes asignados.');
+
             return;
         }
 
@@ -255,15 +263,15 @@ class Dashboard extends Component
 
     public function createCompany(TenantProvisionService $service): void
     {
-        $institution  = $this->institution();
+        $institution = $this->institution();
         $multipleGroups = Group::where('institution_id', $institution->id)->count() > 1;
 
         $rules = [
-            'cedula'      => ['required', 'string', 'max:20', 'unique:tenants,id'],
+            'cedula' => ['required', 'string', 'max:20', 'unique:tenants,id'],
             'studentName' => ['required', 'string', 'max:120'],
             'companyName' => ['required', 'string', 'max:120'],
-            'nitEmpresa'  => ['required', 'string', 'max:20'],
-            'password'    => ['required', 'string', 'min:6'],
+            'nitEmpresa' => ['required', 'string', 'max:20'],
+            'password' => ['required', 'string', 'min:6'],
         ];
 
         if ($multipleGroups) {
@@ -271,20 +279,20 @@ class Dashboard extends Component
         }
 
         $this->validate($rules, [
-            'cedula.unique'            => 'Ya existe un estudiante con esa cédula.',
-            'createForGroupId.min'     => 'Selecciona un grupo.',
-            'createForGroupId.required'=> 'Selecciona un grupo.',
+            'cedula.unique' => 'Ya existe un estudiante con esa cédula.',
+            'createForGroupId.min' => 'Selecciona un grupo.',
+            'createForGroupId.required' => 'Selecciona un grupo.',
         ]);
 
         $group = $this->resolveGroup();
 
         $service->provision([
-            'cedula'       => $this->cedula,
+            'cedula' => $this->cedula,
             'student_name' => $this->studentName,
             'company_name' => $this->companyName,
-            'nit_empresa'  => $this->nitEmpresa,
-            'group_id'     => $group->id,
-            'password'     => $this->password,
+            'nit_empresa' => $this->nitEmpresa,
+            'group_id' => $group->id,
+            'password' => $this->password,
         ]);
 
         $companyName = $this->companyName;
@@ -303,11 +311,11 @@ class Dashboard extends Component
             'bulkFile' => ['required', 'file', 'mimes:csv,txt', 'max:512'],
         ], [
             'bulkFile.required' => 'Selecciona un archivo CSV.',
-            'bulkFile.mimes'   => 'El archivo debe ser CSV (.csv).',
-            'bulkFile.max'     => 'El archivo no puede superar 512 KB.',
+            'bulkFile.mimes' => 'El archivo debe ser CSV (.csv).',
+            'bulkFile.max' => 'El archivo no puede superar 512 KB.',
         ]);
 
-        $path   = $this->bulkFile->getRealPath();
+        $path = $this->bulkFile->getRealPath();
         $handle = fopen($path, 'r');
         $preview = [];
         $row = 0;
@@ -318,32 +326,49 @@ class Dashboard extends Component
 
         while (($cols = fgetcsv($handle, 1000, $separator)) !== false) {
             $row++;
-            if ($row === 1) { continue; }
-            if ($row === 2 && isset($cols[0])) { $cols[0] = ltrim($cols[0], "\xEF\xBB\xBF"); }
-            if (empty(array_filter($cols))) { continue; }
+            if ($row === 1) {
+                continue;
+            }
+            if ($row === 2 && isset($cols[0])) {
+                $cols[0] = ltrim($cols[0], "\xEF\xBB\xBF");
+            }
+            if (empty(array_filter($cols))) {
+                continue;
+            }
 
             if (count($cols) < 5) {
                 $this->bulkError = "Fila {$row}: el archivo no tiene las 5 columnas requeridas.";
                 fclose($handle);
+
                 return;
             }
 
             [$cedula, $nombre, $empresa, $nit, $pass] = array_map('trim', $cols);
 
             $errors = [];
-            if (empty($cedula))              { $errors[] = 'cédula requerida'; }
-            if (empty($nombre))              { $errors[] = 'nombre requerido'; }
-            if (empty($empresa))             { $errors[] = 'empresa requerida'; }
-            if (empty($nit))                 { $errors[] = 'NIT requerido'; }
-            if (empty($pass) || strlen($pass) < 6) { $errors[] = 'contraseña mín. 6 caracteres'; }
+            if (empty($cedula)) {
+                $errors[] = 'cédula requerida';
+            }
+            if (empty($nombre)) {
+                $errors[] = 'nombre requerido';
+            }
+            if (empty($empresa)) {
+                $errors[] = 'empresa requerida';
+            }
+            if (empty($nit)) {
+                $errors[] = 'NIT requerido';
+            }
+            if (empty($pass) || strlen($pass) < 6) {
+                $errors[] = 'contraseña mín. 6 caracteres';
+            }
 
             $preview[] = [
-                'cedula'       => $cedula,
+                'cedula' => $cedula,
                 'student_name' => $nombre,
                 'company_name' => $empresa,
-                'nit_empresa'  => $nit,
-                'password'     => $pass,
-                'error'        => implode(', ', $errors),
+                'nit_empresa' => $nit,
+                'password' => $pass,
+                'error' => implode(', ', $errors),
             ];
         }
 
@@ -351,6 +376,7 @@ class Dashboard extends Component
 
         if (empty($preview)) {
             $this->bulkError = 'El archivo no contiene filas de datos.';
+
             return;
         }
 
@@ -360,65 +386,81 @@ class Dashboard extends Component
 
     public function confirmBulkCreate(TenantProvisionService $service): void
     {
-        if (empty($this->bulkPreview)) { return; }
+        if (empty($this->bulkPreview)) {
+            return;
+        }
 
         $institution = $this->institution();
         $multipleGroups = Group::where('institution_id', $institution->id)->count() > 1;
 
         if ($multipleGroups && ! $this->createForGroupId) {
             $this->addError('createForGroupId', 'Selecciona un grupo antes de importar.');
+
             return;
         }
 
         set_time_limit(0);
         ini_set('memory_limit', '-1');
 
-        $group   = $this->resolveGroup();
+        $group = $this->resolveGroup();
         $results = [];
 
         foreach ($this->bulkPreview as $row) {
-            if (! empty($row['error'])) { continue; }
+            if (! empty($row['error'])) {
+                continue;
+            }
 
             if (Tenant::where('id', $row['cedula'])->exists()) {
                 $results[] = array_merge($row, ['status' => 'skipped', 'message' => 'Ya existe, omitido.']);
+
                 continue;
             }
 
             try {
-                if (tenancy()->tenant !== null) { tenancy()->end(); }
+                if (tenancy()->tenant !== null) {
+                    tenancy()->end();
+                }
 
                 $service->provision([
-                    'cedula'       => $row['cedula'],
+                    'cedula' => $row['cedula'],
                     'student_name' => $row['student_name'],
                     'company_name' => $row['company_name'],
-                    'nit_empresa'  => $row['nit_empresa'],
-                    'group_id'     => $group->id,
-                    'password'     => $row['password'],
+                    'nit_empresa' => $row['nit_empresa'],
+                    'group_id' => $group->id,
+                    'password' => $row['password'],
                 ]);
 
                 $results[] = array_merge($row, ['status' => 'ok', 'message' => '']);
             } catch (\Exception $e) {
                 $results[] = array_merge($row, ['status' => 'error', 'message' => $e->getMessage()]);
             } finally {
-                if (tenancy()->tenant !== null) { tenancy()->end(); }
+                if (tenancy()->tenant !== null) {
+                    tenancy()->end();
+                }
             }
         }
 
-        $this->bulkPreview  = [];
-        $this->bulkResults  = $results;
-        $this->bulkFile     = null;
+        $this->bulkPreview = [];
+        $this->bulkResults = $results;
+        $this->bulkFile = null;
         $this->bulkResultsPage = 1;
 
         $created = count(array_filter($results, fn ($r) => $r['status'] === 'ok'));
         $skipped = count(array_filter($results, fn ($r) => $r['status'] === 'skipped'));
-        $failed  = count(array_filter($results, fn ($r) => $r['status'] === 'error'));
+        $failed = count(array_filter($results, fn ($r) => $r['status'] === 'error'));
 
         $parts = [];
-        if ($created > 0) { $parts[] = "{$created} creada(s)"; }
-        if ($skipped > 0) { $parts[] = "{$skipped} ya existían"; }
-        if ($failed  > 0) { $parts[] = "{$failed} con error"; }
+        if ($created > 0) {
+            $parts[] = "{$created} creada(s)";
+        }
+        if ($skipped > 0) {
+            $parts[] = "{$skipped} ya existían";
+        }
+        if ($failed > 0) {
+            $parts[] = "{$failed} con error";
+        }
 
-        $type    = $failed > 0 ? 'warning' : ($created > 0 ? 'success' : 'info');
+        $type = $failed > 0 ? 'warning' : ($created > 0 ? 'success' : 'info');
         $message = implode(', ', $parts).'.';
         $this->dispatch('notify', type: $type, message: $message);
     }
@@ -426,23 +468,95 @@ class Dashboard extends Component
     public function bulkPreviewNextPage(): void
     {
         $total = (int) ceil(count($this->bulkPreview) / $this->bulkPreviewPerPage);
-        if ($this->bulkPreviewPage < $total) { $this->bulkPreviewPage++; }
+        if ($this->bulkPreviewPage < $total) {
+            $this->bulkPreviewPage++;
+        }
     }
 
     public function bulkPreviewPrevPage(): void
     {
-        if ($this->bulkPreviewPage > 1) { $this->bulkPreviewPage--; }
+        if ($this->bulkPreviewPage > 1) {
+            $this->bulkPreviewPage--;
+        }
     }
 
     public function bulkResultsNextPage(): void
     {
         $total = (int) ceil(count($this->bulkResults) / $this->bulkPreviewPerPage);
-        if ($this->bulkResultsPage < $total) { $this->bulkResultsPage++; }
+        if ($this->bulkResultsPage < $total) {
+            $this->bulkResultsPage++;
+        }
     }
 
     public function bulkResultsPrevPage(): void
     {
-        if ($this->bulkResultsPage > 1) { $this->bulkResultsPage--; }
+        if ($this->bulkResultsPage > 1) {
+            $this->bulkResultsPage--;
+        }
+    }
+
+    // ── Reset de contraseña ──────────────────────────────────────────────────
+
+    public function resetTeacherPassword(int $id): void
+    {
+        $institution = $this->institution();
+
+        $belongs = User::where('id', $id)
+            ->where('role', 'teacher')
+            ->whereHas('teacherGroups', fn ($q) => $q->where('institution_id', $institution->id))
+            ->exists();
+
+        abort_if(! $belongs, 403);
+
+        $temp = $this->generateTempPassword();
+        $teacher = User::findOrFail($id);
+
+        $teacher->update([
+            'password' => Hash::make($temp),
+            'must_change_password' => true,
+        ]);
+
+        $this->tempPassword = $temp;
+        $this->tempPasswordFor = $teacher->name;
+        $this->showTempPasswordModal = true;
+    }
+
+    public function resetStudentPassword(string $tenantId): void
+    {
+        $institution = $this->institution();
+
+        $belongs = Tenant::where('id', $tenantId)
+            ->where('type', 'student')
+            ->whereHas('group', fn ($q) => $q->where('institution_id', $institution->id))
+            ->exists();
+
+        abort_if(! $belongs, 403);
+
+        $temp = $this->generateTempPassword();
+        $tenant = Tenant::findOrFail($tenantId);
+
+        $tenant->update([
+            'password' => Hash::make($temp),
+            'must_change_password' => true,
+        ]);
+
+        $this->tempPassword = $temp;
+        $this->tempPasswordFor = $tenant->student_name;
+        $this->showTempPasswordModal = true;
+    }
+
+    public function closeTempPasswordModal(): void
+    {
+        $this->showTempPasswordModal = false;
+        $this->tempPassword = '';
+        $this->tempPasswordFor = '';
+    }
+
+    private function generateTempPassword(): string
+    {
+        return strtoupper(substr(bin2hex(random_bytes(4)), 0, 4))
+            .'-'
+            .strtolower(substr(bin2hex(random_bytes(4)), 0, 4));
     }
 
     // ── Transferencia ────────────────────────────────────────────────────────

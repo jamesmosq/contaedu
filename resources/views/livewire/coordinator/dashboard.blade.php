@@ -109,6 +109,9 @@
                                             <td class="px-6 py-3 text-right">
                                                 <button wire:click="openEditTeacher({{ $teacher->id }})" @click.stop
                                                     class="text-xs text-slate-500 hover:text-forest-700 mr-3 transition">Editar</button>
+                                                <button wire:click="resetTeacherPassword({{ $teacher->id }})"
+                                                    wire:confirm="¿Restablecer la contraseña de {{ $teacher->name }}? Se generará una temporal."
+                                                    class="text-xs text-amber-600 hover:text-amber-800 mr-3 transition">Resetear clave</button>
                                                 <button wire:click="deleteTeacher({{ $teacher->id }})"
                                                     wire:confirm="¿Seguro que deseas eliminar este docente? Se perderán sus grupos."
                                                     class="text-xs text-red-400 hover:text-red-600 transition">Eliminar</button>
@@ -233,6 +236,11 @@
                                                     class="text-xs text-slate-500 hover:text-forest-700 transition">
                                                     Auditar
                                                 </a>
+                                                <button wire:click="resetStudentPassword('{{ $tenant->id }}')"
+                                                    wire:confirm="¿Restablecer la contraseña de {{ $tenant->student_name }}? Se generará una temporal."
+                                                    class="text-xs text-amber-600 hover:text-amber-800 transition">
+                                                    Resetear clave
+                                                </button>
                                                 <button wire:click="openTransfer('{{ $tenant->id }}')" @click.stop
                                                     class="text-xs text-forest-700 font-medium hover:text-forest-900 hover:underline transition">
                                                     Transferir
@@ -634,6 +642,43 @@
                             {{ $transferMode === 'fresh' ? 'bg-red-600 hover:bg-red-700 text-white' : ($transferMode === 'reset' ? 'bg-yellow-500 hover:bg-yellow-600 text-white' : 'bg-forest-800 hover:bg-forest-700 text-white') }}">
                         <span wire:loading.remove wire:target="confirmTransfer">Confirmar transferencia</span>
                         <span wire:loading wire:target="confirmTransfer">Procesando…</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Modal: contraseña temporal --}}
+    @if($showTempPasswordModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+                <div class="px-6 py-5 border-b border-cream-100">
+                    <h3 class="text-lg font-bold text-slate-800">Contraseña temporal generada</h3>
+                </div>
+                <div class="px-6 py-6 space-y-4">
+                    <p class="text-sm text-slate-600">
+                        Comparte esta contraseña con <strong>{{ $tempPasswordFor }}</strong>. Al ingresar, el sistema le pedirá cambiarla.
+                    </p>
+                    <div class="flex items-center justify-between bg-slate-100 rounded-xl px-4 py-3">
+                        <span class="font-mono text-xl font-bold tracking-widest text-slate-800">{{ $tempPassword }}</span>
+                        <button
+                            x-data
+                            x-on:click="navigator.clipboard.writeText('{{ $tempPassword }}'); $dispatch('notify', {type:'success', message:'Copiado al portapapeles'})"
+                            class="ml-3 text-slate-400 hover:text-slate-700 transition"
+                            title="Copiar">
+                            <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" d="M15.666 3.888A2.25 2.25 0 0 0 13.5 2.25h-3c-1.03 0-1.9.693-2.166 1.638m7.332 0c.055.194.084.4.084.612v0a.75.75 0 0 1-.75.75H9a.75.75 0 0 1-.75-.75v0c0-.212.03-.418.084-.612m7.332 0c.646.049 1.288.11 1.927.184 1.1.128 1.907 1.077 1.907 2.185V19.5a2.25 2.25 0 0 1-2.25 2.25H6.75A2.25 2.25 0 0 1 4.5 19.5V6.257c0-1.108.806-2.057 1.907-2.185a48.208 48.208 0 0 1 1.927-.184" />
+                            </svg>
+                        </button>
+                    </div>
+                    <p class="text-xs text-amber-700 bg-amber-50 border border-amber-100 rounded-xl px-4 py-3">
+                        Esta contraseña no se volverá a mostrar. Cópiala antes de cerrar.
+                    </p>
+                </div>
+                <div class="px-6 py-4 border-t border-cream-100 flex justify-end">
+                    <button wire:click="closeTempPasswordModal"
+                        class="px-4 py-2 text-sm font-semibold bg-forest-800 hover:bg-forest-700 text-white rounded-xl transition">
+                        Entendido, ya la copié
                     </button>
                 </div>
             </div>

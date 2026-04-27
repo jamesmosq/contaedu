@@ -68,7 +68,8 @@
       "Bash(python3 -c ' *)",
       "Bash(python -c ' *)",
       "Bash(composer require *)",
-      "Bash(npm install *)"
+      "Bash(npm install *)",
+      "Bash(powershell.exe -Command \"\\(Get-Content 'C:\\\\Users\\\\jmosquerarei\\\\Herd\\\\contaedu\\\\resources\\\\views\\\\livewire\\\\coordinator\\\\dashboard.blade.php'\\).Count\")"
     ]
   },
   "enableAllProjectMcpServers": true,

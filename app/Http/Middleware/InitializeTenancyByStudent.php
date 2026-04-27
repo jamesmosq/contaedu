@@ -14,7 +14,7 @@ class InitializeTenancyByStudent
     {
         // ── 1. Rutas de autenticación central (docente/admin) ─────────────────
         // Se usa is() porque POST /login no tiene nombre de ruta en Breeze.
-        if ($request->is('login', 'logout', 'register', 'forgot-password', 'confirm-password', 'password', 'reset-password/*', 'email/verification-notification')
+        if ($request->is('login', 'logout', 'register', 'forgot-password', 'confirm-password', 'password', 'reset-password/*', 'cambiar-contrasena', 'email/verification-notification')
             || $request->routeIs('password.*', 'verification.*')) {
             return $next($request);
         }

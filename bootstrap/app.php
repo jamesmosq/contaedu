@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\AuditModeOnly;
 use App\Http\Middleware\CheckRole;
+use App\Http\Middleware\ForcePasswordChange;
 use App\Http\Middleware\InitializeTenancyByStudent;
 use Illuminate\Auth\Middleware\Authenticate;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
@@ -40,7 +41,10 @@ return Application::configure(basePath: dirname(__DIR__))
             'tenant.initialize' => InitializeTenancyByStudent::class,
             'audit.only' => AuditModeOnly::class,
             'role' => CheckRole::class,
+            'force.password' => ForcePasswordChange::class,
         ]);
+
+        $middleware->appendToGroup('web', ForcePasswordChange::class);
 
         // Redirigir usuarios ya autenticados que visiten rutas "guest"
         $middleware->redirectUsersTo(function (Request $request) {
@@ -79,6 +83,7 @@ return Application::configure(basePath: dirname(__DIR__))
             ShareErrorsFromSession::class,
             VerifyCsrfToken::class,
             Authenticate::class,
+            ForcePasswordChange::class,
             InitializeTenancyByStudent::class,
             SubstituteBindings::class,
         ]);
