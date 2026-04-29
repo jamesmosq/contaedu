@@ -717,8 +717,8 @@
                                                                         <input type="checkbox" x-model="reteiva" class="rounded text-forest-600" />
                                                                         <span class="text-sm text-slate-700">Reteiva (15% del IVA)</span>
                                                                     </label>
-                                                                    <label class="flex items-center gap-3 cursor-pointer">
-                                                                        <input type="checkbox" x-model="reteica" class="rounded text-forest-600" />
+                                                                    <label class="flex items-center gap-3 {{ $esResponsableIva ? 'cursor-pointer' : 'cursor-not-allowed opacity-50' }}">
+                                                                        <input type="checkbox" x-model="reteica" @if(!$esResponsableIva) disabled @endif class="rounded text-forest-600 disabled:cursor-not-allowed" />
                                                                         <span class="text-sm text-slate-700">Reteica (0.4‰ del subtotal)</span>
                                                                     </label>
                                                                 </div>
@@ -808,6 +808,50 @@
 
             {{-- ══════════════════════════════════ TAB: F. ELECTRÓNICAS ══════════════════════════════════ --}}
             @if($activeTab === 'fe')
+                {{-- Panel resumen IVA --}}
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                    {{-- IVA ventas --}}
+                    <div class="bg-white rounded-2xl border border-cream-200 shadow-card px-5 py-4">
+                        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">IVA cobrado (ventas)</p>
+                        <p class="text-xl font-bold text-slate-800 font-mono">$ {{ number_format($totalIvaVentas, 0, ',', '.') }}</p>
+                        <p class="text-xs text-slate-400 mt-1">Facturas emitidas + F. Electrónica</p>
+                    </div>
+
+                    {{-- IVA compras --}}
+                    <div class="bg-white rounded-2xl border border-cream-200 shadow-card px-5 py-4">
+                        <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">IVA pagado (compras)</p>
+                        <p class="text-xl font-bold text-slate-800 font-mono">$ {{ number_format($totalIvaCompras, 0, ',', '.') }}</p>
+                        <p class="text-xs text-slate-400 mt-1">IVA descontable de facturas de compra</p>
+                    </div>
+
+                    {{-- Saldo IVA --}}
+                    @if($diferenciaIva > 0)
+                        <div class="bg-red-50 rounded-2xl border border-red-200 shadow-card px-5 py-4">
+                            <p class="text-xs font-medium text-red-600 uppercase tracking-wide mb-1">Saldo a pagar a la DIAN</p>
+                            <p class="text-xl font-bold text-red-700 font-mono">$ {{ number_format($diferenciaIva, 0, ',', '.') }}</p>
+                            <p class="text-xs text-red-400 mt-1">IVA ventas &minus; IVA compras</p>
+                            @if(!session('audit_mode') && !session('reference_mode'))
+                                <button wire:click="openPagoIvaModal"
+                                    class="mt-3 w-full px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-xl transition">
+                                    Declarar y pagar
+                                </button>
+                            @endif
+                        </div>
+                    @elseif($diferenciaIva < 0)
+                        <div class="bg-green-50 rounded-2xl border border-green-200 shadow-card px-5 py-4">
+                            <p class="text-xs font-medium text-green-700 uppercase tracking-wide mb-1">Saldo a favor</p>
+                            <p class="text-xl font-bold text-green-700 font-mono">$ {{ number_format(abs($diferenciaIva), 0, ',', '.') }}</p>
+                            <p class="text-xs text-green-500 mt-1">El IVA pagado supera el cobrado</p>
+                        </div>
+                    @else
+                        <div class="bg-slate-50 rounded-2xl border border-slate-200 shadow-card px-5 py-4">
+                            <p class="text-xs font-medium text-slate-500 uppercase tracking-wide mb-1">IVA en equilibrio</p>
+                            <p class="text-xl font-bold text-slate-600 font-mono">$ 0</p>
+                            <p class="text-xs text-slate-400 mt-1">IVA ventas = IVA compras</p>
+                        </div>
+                    @endif
+                </div>
+
                 <div class="mb-4">
                     <input wire:model.live.debounce.300ms="fe_search" type="text" placeholder="Buscar por número o adquirente…"
                         class="w-full sm:w-80 pl-3 rounded-xl border-cream-200 text-sm shadow-sm focus:ring-forest-500 focus:border-forest-500" />
@@ -862,6 +906,64 @@
                         </tbody>
                     </table>
                 </div>
+
+                {{-- Modal pago IVA DIAN --}}
+                @if($showPagoIvaModal)
+                    <div class="fixed inset-0 bg-slate-900/60 z-40 flex items-center justify-center">
+                        <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4 p-6" @click.stop>
+                            <div class="flex items-center justify-between mb-5">
+                                <h3 class="text-base font-bold text-slate-800">Pago IVA a la DIAN</h3>
+                                <button wire:click="$set('showPagoIvaModal', false)" class="text-slate-400 hover:text-slate-600">
+                                    <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke-width="2" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+                                </button>
+                            </div>
+
+                            <div class="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-5">
+                                <p class="text-xs text-red-600 font-medium mb-0.5">Monto a pagar a la DIAN</p>
+                                <p class="text-2xl font-bold text-red-700 font-mono">$ {{ number_format($diferenciaIva, 0, ',', '.') }}</p>
+                                <p class="text-xs text-red-400 mt-1">Se generará: DR 2408 IVA por pagar / CR 1110 Bancos</p>
+                            </div>
+
+                            <div class="space-y-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Fecha del pago</label>
+                                    <input wire:model="pagoIva_fecha" type="date"
+                                        class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500" />
+                                    @error('pagoIva_fecha') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+
+                                <div>
+                                    <label class="block text-sm font-medium text-slate-700 mb-1.5">Cuenta bancaria</label>
+                                    <select wire:model="pagoIva_bankAccountId"
+                                        class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500">
+                                        <option value="">Selecciona una cuenta…</option>
+                                        @foreach($cuentasBancarias as $cuenta)
+                                            <option value="{{ $cuenta->id }}">
+                                                {{ ucfirst($cuenta->bank) }} — {{ $cuenta->account_number }}
+                                                (Saldo: $ {{ number_format($cuenta->saldo, 0, ',', '.') }})
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('pagoIva_bankAccountId') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
+                                </div>
+
+                                <div class="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-xs text-amber-800">
+                                    Se aplicará el GMF (4×1000) sobre el monto pagado. El saldo bancario se reducirá en el total más el impuesto.
+                                </div>
+                            </div>
+
+                            <div class="flex justify-end gap-3 mt-6">
+                                <button wire:click="$set('showPagoIvaModal', false)"
+                                    class="px-4 py-2 text-sm text-slate-600 hover:text-slate-800">Cancelar</button>
+                                <button wire:click="pagarIvaDian" wire:loading.attr="disabled"
+                                    class="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-semibold rounded-xl transition disabled:opacity-50">
+                                    <span wire:loading.remove wire:target="pagarIvaDian">Confirmar pago</span>
+                                    <span wire:loading wire:target="pagarIvaDian">Registrando…</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
             @endif
 
             {{-- ══════════════════════════════════ TAB: NOTAS DE CRÉDITO ══════════════════════════════════ --}}

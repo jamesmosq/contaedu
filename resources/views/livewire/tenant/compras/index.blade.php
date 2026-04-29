@@ -585,15 +585,19 @@
                     </div>
 
                     {{-- Reteica --}}
-                    <div>
+                    <div class="{{ $esResponsableIva ? '' : 'opacity-50' }}">
                         <label class="block text-sm font-medium text-slate-700 mb-1">
                             Reteica — porcentaje <span class="text-slate-400 font-normal">(0 = no aplica)</span>
                         </label>
+                        @if(!$esResponsableIva)
+                            <p class="text-xs text-slate-400 mb-1">No aplica para empresas no responsables de IVA.</p>
+                        @endif
                         <div class="flex items-center gap-2">
                             <input type="number" step="0.01" min="0" max="10"
                                    wire:model.live="reteica_porcentaje"
                                    wire:change="calcularRetenciones"
-                                   class="block w-32 rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 text-right"
+                                   @disabled(!$esResponsableIva)
+                                   class="block w-32 rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 text-right disabled:bg-cream-50 disabled:text-slate-400 disabled:cursor-not-allowed"
                                    placeholder="0.00">
                             <span class="text-sm text-slate-500">%</span>
                         </div>

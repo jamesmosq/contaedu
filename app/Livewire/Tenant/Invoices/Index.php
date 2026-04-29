@@ -2,22 +2,28 @@
 
 namespace App\Livewire\Tenant\Invoices;
 
+use App\Enums\EstadoFacturaEnum;
 use App\Enums\InvoiceStatus;
 use App\Enums\InvoiceType;
 use App\Enums\PurchaseInvoiceStatus;
 use App\Enums\ReceiptStatus;
 use App\Models\Tenant\Account;
+use App\Models\Tenant\BankAccount;
+use App\Models\Tenant\BankTransaction;
 use App\Models\Tenant\CashReceipt;
 use App\Models\Tenant\CashReceiptItem;
+use App\Models\Tenant\CompanyConfig;
 use App\Models\Tenant\CreditNote;
 use App\Models\Tenant\DebitNote;
 use App\Models\Tenant\FeFactura;
 use App\Models\Tenant\Invoice;
 use App\Models\Tenant\JournalEntry;
+use App\Models\Tenant\JournalLine;
 use App\Models\Tenant\Product;
 use App\Models\Tenant\PurchaseInvoice;
 use App\Models\Tenant\Third;
 use App\Services\AccountingService;
+use App\Services\BankService;
 use App\Services\DebitNoteService;
 use App\Services\InvoiceService;
 use Illuminate\Support\Facades\DB;
@@ -132,12 +138,20 @@ class Index extends Component
 
     public array $pi_lines = [];
 
+    // ─── Pago IVA DIAN ──────────────────────────────────────────────────────
+    public bool $showPagoIvaModal = false;
+
+    public ?int $pagoIva_bankAccountId = null;
+
+    public string $pagoIva_fecha = '';
+
     public function mount(): void
     {
         $this->date = now()->toDateString();
         $this->due_date = now()->addDays(30)->toDateString();
         $this->pi_date = now()->toDateString();
         $this->pi_due_date = now()->addDays(30)->toDateString();
+        $this->pagoIva_fecha = now()->toDateString();
     }
 
     // ─── Facturas: CRUD ──────────────────────────────────────────────────────
@@ -813,6 +827,126 @@ class Index extends Component
         $this->pi_due_date = now()->addDays(30)->toDateString();
     }
 
+    // ─── Pago IVA DIAN ──────────────────────────────────────────────────────
+
+    public function openPagoIvaModal(): void
+    {
+        $this->pagoIva_fecha = now()->toDateString();
+        $this->pagoIva_bankAccountId = BankAccount::where('activa', true)
+            ->orderByDesc('es_principal')
+            ->value('id');
+        $this->showPagoIvaModal = true;
+    }
+
+    public function pagarIvaDian(): void
+    {
+        $this->validate([
+            'pagoIva_bankAccountId' => 'required|integer',
+            'pagoIva_fecha' => 'required|date',
+        ], [
+            'pagoIva_bankAccountId.required' => 'Selecciona una cuenta bancaria.',
+            'pagoIva_fecha.required' => 'Indica la fecha del pago.',
+        ]);
+
+        // Recalcular saldo IVA en el momento del pago
+        $ivaVentas = (float) Invoice::modoActual()
+            ->whereNotIn('status', [InvoiceStatus::Borrador->value, InvoiceStatus::Anulada->value])
+            ->sum('tax_amount');
+        $ivaVentas += (float) FeFactura::whereNotIn('estado', [
+            EstadoFacturaEnum::Borrador->value,
+            EstadoFacturaEnum::Anulada->value,
+            EstadoFacturaEnum::Rechazada->value,
+        ])->sum('valor_iva');
+        $ivaCompras = (float) PurchaseInvoice::modoActual()
+            ->whereNotIn('status', [PurchaseInvoiceStatus::Borrador->value, PurchaseInvoiceStatus::Anulada->value])
+            ->sum('tax_amount');
+        $ivaPagadoDian = (float) DB::table('journal_entries')
+            ->join('journal_lines', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+            ->join('accounts', 'accounts.id', '=', 'journal_lines.account_id')
+            ->where('journal_entries.document_type', 'pago_iva_dian')
+            ->where('journal_entries.modo', modoContable())
+            ->where('accounts.code', '2408')
+            ->selectRaw('COALESCE(SUM(journal_lines.debit), 0) as total')
+            ->value('total');
+        $diferencia = round($ivaVentas - $ivaCompras - $ivaPagadoDian, 2);
+
+        if ($diferencia <= 0) {
+            $this->showPagoIvaModal = false;
+            $this->dispatch('notify', type: 'info', message: 'No hay saldo IVA a pagar.');
+
+            return;
+        }
+
+        $cuentaBanco = BankAccount::find($this->pagoIva_bankAccountId);
+        if (! $cuentaBanco) {
+            $this->dispatch('notify', type: 'error', message: 'Cuenta bancaria no encontrada.');
+
+            return;
+        }
+
+        if ($cuentaBanco->saldo < $diferencia) {
+            $this->dispatch('notify', type: 'error', message: 'Saldo insuficiente en la cuenta bancaria seleccionada.');
+
+            return;
+        }
+
+        try {
+            DB::transaction(function () use ($diferencia, $cuentaBanco): void {
+                $vatId = Account::where('code', '2408')->value('id');
+                $bancoId = Account::where('code', '1110')->value('id');
+
+                if (! $vatId || ! $bancoId) {
+                    throw new \RuntimeException('Cuentas contables 2408 o 1110 no encontradas en el PUC.');
+                }
+
+                $entry = JournalEntry::create([
+                    'modo' => modoContable(),
+                    'date' => $this->pagoIva_fecha,
+                    'reference' => 'IVA-DIAN-'.now()->format('Ym'),
+                    'description' => 'Pago IVA a la DIAN — período '.now()->format('m/Y'),
+                    'document_type' => 'pago_iva_dian',
+                    'document_id' => null,
+                    'auto_generated' => true,
+                ]);
+
+                JournalLine::create([
+                    'journal_entry_id' => $entry->id,
+                    'account_id' => $vatId,
+                    'debit' => $diferencia,
+                    'credit' => 0,
+                    'description' => 'Pago IVA DIAN',
+                ]);
+                JournalLine::create([
+                    'journal_entry_id' => $entry->id,
+                    'account_id' => $bancoId,
+                    'debit' => 0,
+                    'credit' => $diferencia,
+                    'description' => 'Pago IVA DIAN — '.$cuentaBanco->bank,
+                ]);
+
+                $gmf = BankService::calcularGmf('retiro', $diferencia);
+                $cuentaBanco->decrement('saldo', $diferencia + $gmf);
+
+                BankTransaction::create([
+                    'bank_account_id' => $cuentaBanco->id,
+                    'tipo' => 'retiro',
+                    'valor' => $diferencia,
+                    'gmf' => $gmf,
+                    'comision' => 0,
+                    'saldo_despues' => $cuentaBanco->fresh()->saldo,
+                    'descripcion' => 'Pago IVA DIAN — período '.now()->format('m/Y'),
+                    'journal_entry_id' => $entry->id,
+                    'fecha_transaccion' => $this->pagoIva_fecha,
+                ]);
+            });
+
+            $this->showPagoIvaModal = false;
+            $this->dispatch('notify', type: 'success', message: 'Pago IVA a la DIAN registrado correctamente.');
+        } catch (\Exception $e) {
+            $this->dispatch('notify', type: 'error', message: $e->getMessage());
+        }
+    }
+
     public function updatingSearch(): void
     {
         $this->resetPage();
@@ -938,12 +1072,45 @@ class Index extends Component
             ->whereYear('date', now()->year)
             ->sum('total');
 
+        $esResponsableIva = CompanyConfig::first()?->regimen === 'responsable_iva';
+
+        // Saldo IVA: ventas vs compras
+        $totalIvaVentas = (float) Invoice::modoActual()
+            ->whereNotIn('status', [InvoiceStatus::Borrador->value, InvoiceStatus::Anulada->value])
+            ->sum('tax_amount');
+        $totalIvaVentas += (float) FeFactura::whereNotIn('estado', [
+            EstadoFacturaEnum::Borrador->value,
+            EstadoFacturaEnum::Anulada->value,
+            EstadoFacturaEnum::Rechazada->value,
+        ])->sum('valor_iva');
+
+        $totalIvaCompras = (float) PurchaseInvoice::modoActual()
+            ->whereNotIn('status', [PurchaseInvoiceStatus::Borrador->value, PurchaseInvoiceStatus::Anulada->value])
+            ->sum('tax_amount');
+
+        // Pagos ya realizados a la DIAN (asientos document_type = 'pago_iva_dian')
+        $pagadoDian = (float) DB::table('journal_entries')
+            ->join('journal_lines', 'journal_lines.journal_entry_id', '=', 'journal_entries.id')
+            ->join('accounts', 'accounts.id', '=', 'journal_lines.account_id')
+            ->where('journal_entries.document_type', 'pago_iva_dian')
+            ->where('journal_entries.modo', modoContable())
+            ->where('accounts.code', '2408')
+            ->selectRaw('COALESCE(SUM(journal_lines.debit), 0) as total')
+            ->value('total');
+
+        $diferenciaIva = round($totalIvaVentas - $totalIvaCompras - $pagadoDian, 2);
+
+        $cuentasBancarias = BankAccount::where('activa', true)->orderByDesc('es_principal')->get();
+
         return view('livewire.tenant.invoices.index', compact(
             'invoices', 'receipts', 'feFacturas', 'creditNotes', 'debitNotes',
             'purchaseInvoices', 'thirds', 'products', 'statuses',
             'piStatuses', 'proveedores', 'cuentasGasto',
             'carteraCxC', 'carteraCxP',
-            'porCobrar', 'porPagar', 'facturadoMes', 'cobradoMes'
+            'porCobrar', 'porPagar', 'facturadoMes', 'cobradoMes',
+            'esResponsableIva',
+            'totalIvaVentas', 'totalIvaCompras', 'diferenciaIva',
+            'cuentasBancarias'
         ))->title('Facturación');
     }
 }

@@ -595,6 +595,7 @@ class Index extends Component
 
         $config = CompanyConfig::first();
         $sectorSugerida = $this->cuentaSugeridaPorSector($config?->sector_empresarial ?? 'comercial');
+        $esResponsableIva = $config?->regimen === 'responsable_iva';
 
         // ── Panel financiero (Parte B) ─────────────────────────────────────────
         // El simulador bancario lleva saldos en bank_accounts.saldo (no en 1110)
@@ -623,7 +624,7 @@ class Index extends Component
             'miPortafolio', 'cuentasIngreso', 'cuentasGasto',
             'recibidasCount', 'sectorSugerida',
             'saldoBancos', 'porCobrar', 'porPagar',
-            'cuentasBancarias'
+            'cuentasBancarias', 'esResponsableIva'
         ));
     }
 

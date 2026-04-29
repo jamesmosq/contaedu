@@ -335,10 +335,11 @@
                             </label>
                         </div>
                         @endif
-                        <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-3 {{ $esResponsableIva ? '' : 'opacity-50' }}">
                             <input wire:model.live="aplica_reteica" type="checkbox" id="aplica_reteica"
-                                class="rounded border-cream-300 text-forest-600 focus:ring-forest-500" />
-                            <label for="aplica_reteica" class="text-sm text-slate-700">
+                                @disabled(!$esResponsableIva)
+                                class="rounded border-cream-300 text-forest-600 focus:ring-forest-500 disabled:cursor-not-allowed" />
+                            <label for="aplica_reteica" class="text-sm text-slate-700 {{ $esResponsableIva ? 'cursor-pointer' : 'cursor-not-allowed' }}">
                                 Aplica retención ICA
                                 <span class="text-slate-400 text-xs">(0.4‰)</span>
                             </label>

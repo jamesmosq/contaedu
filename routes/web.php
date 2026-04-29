@@ -388,6 +388,7 @@ Route::middleware(['auth:student', 'tenant.initialize'])
             Route::get('/', [FacturacionElectronicaController::class, 'index'])->name('index');
             Route::get('/crear', [FacturacionElectronicaController::class, 'crear'])->name('crear');
             Route::post('/', [FacturacionElectronicaController::class, 'store'])->name('store');
+            Route::post('/pagar-iva', [FacturacionElectronicaController::class, 'pagarIvaDian'])->name('pagar-iva');
             // Resoluciones primero para evitar conflicto con el wildcard /{factura}
             Route::resource('resoluciones', FeResolucionController::class)->except('destroy')->parameters(['resoluciones' => 'resolucion']);
             Route::get('/{factura}', [FacturacionElectronicaController::class, 'show'])->name('show');
@@ -438,6 +439,7 @@ Route::middleware(['auth:student', 'tenant.initialize'])
             Route::get('/', [FacturacionElectronicaController::class, 'index'])->name('index');
             Route::get('/crear', [FacturacionElectronicaController::class, 'crear'])->name('crear');
             Route::post('/', [FacturacionElectronicaController::class, 'store'])->name('store');
+            Route::post('/pagar-iva', [FacturacionElectronicaController::class, 'pagarIvaDian'])->name('pagar-iva');
             Route::resource('resoluciones', FeResolucionController::class)
                 ->except('destroy')
                 ->parameters(['resoluciones' => 'resolucion']);

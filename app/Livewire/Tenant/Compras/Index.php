@@ -7,6 +7,7 @@ use App\Enums\PurchaseInvoiceStatus;
 use App\Enums\PurchaseOrderStatus;
 use App\Models\Tenant\BankAccount;
 use App\Models\Tenant\BankTransaction;
+use App\Models\Tenant\CompanyConfig;
 use App\Models\Tenant\Payment;
 use App\Models\Tenant\Product;
 use App\Models\Tenant\PurchaseInvoice;
@@ -654,9 +655,11 @@ class Index extends Component
             ->whereYear('date', now()->year)
             ->sum('total');
 
+        $esResponsableIva = CompanyConfig::first()?->regimen === 'responsable_iva';
+
         return view('livewire.tenant.compras.index', compact(
             'invoices', 'orders', 'suppliers', 'products', 'statuses', 'payments', 'conceptosRetencion',
-            'porPagar', 'porCobrar', 'compradoMes', 'pagadoMes'
+            'porPagar', 'porCobrar', 'compradoMes', 'pagadoMes', 'esResponsableIva'
         ))->title('Compras');
     }
 }

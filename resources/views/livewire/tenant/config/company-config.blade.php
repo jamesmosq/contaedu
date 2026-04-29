@@ -195,20 +195,23 @@
                 </div>
 
                 {{-- Facturación --}}
-                <div class="px-6 py-5">
+                <div class="px-6 py-5 {{ $regimen !== 'responsable_iva' ? 'opacity-50' : '' }}">
                     <h3 class="text-sm font-semibold text-slate-700 mb-4">Facturación</h3>
+                    @if($regimen !== 'responsable_iva')
+                        <p class="text-xs text-slate-400 mb-3">No disponible para empresas no responsables de IVA.</p>
+                    @endif
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">Prefijo factura</label>
                             <input wire:model="prefijo_factura" type="text" maxlength="5" placeholder="FV"
-                                @disabled(!$isEditing)
+                                @disabled(!$isEditing || $regimen !== 'responsable_iva')
                                 class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 disabled:bg-cream-50 disabled:text-slate-400 disabled:cursor-not-allowed" />
                             @error('prefijo_factura') <p class="text-red-500 text-xs mt-1">{{ $message }}</p> @enderror
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 mb-1.5">Resolución DIAN <span class="text-slate-400 font-normal">(educativo)</span></label>
                             <input wire:model="resolucion_dian" type="text"
-                                @disabled(!$isEditing)
+                                @disabled(!$isEditing || $regimen !== 'responsable_iva')
                                 class="block w-full rounded-xl border-cream-200 text-sm focus:ring-forest-500 focus:border-forest-500 disabled:bg-cream-50 disabled:text-slate-400 disabled:cursor-not-allowed" />
                         </div>
                     </div>

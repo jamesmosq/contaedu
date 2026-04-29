@@ -29,9 +29,12 @@ return new class extends Migration
 
     private function walk(array $node, string $parentCode, array &$out): void
     {
-        $code   = $parentCode . trim($node['codigo']);
-        $level  = match (strlen($code)) { 1 => 1, 2 => 2, default => strlen($code) <= 4 ? 3 : 4 };
-        $type   = match ($code[0]) {
+        $nodeCode = trim($node['codigo']);
+        $code = str_starts_with($nodeCode, $parentCode) ? $nodeCode : $parentCode.$nodeCode;
+        $level = match (strlen($code)) {
+            1 => 1, 2 => 2, default => strlen($code) <= 4 ? 3 : 4
+        };
+        $type = match ($code[0]) {
             '1' => 'activo', '2' => 'pasivo', '3' => 'patrimonio',
             '4' => 'ingreso', '5' => 'gasto', '6', '7' => 'costo', default => 'orden',
         };
